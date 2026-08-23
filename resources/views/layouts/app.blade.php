@@ -40,6 +40,7 @@
     </header>
     <main class="mx-auto max-w-7xl px-4 py-8">
         @if(session('success'))<div class="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800">{{ session('success') }}</div>@endif
+        @if(session('error'))<div class="mb-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800">{{ session('error') }}</div>@endif
         @if($errors->any())<div class="mb-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800"><p class="font-semibold">{{ __('common.fix_errors') }}</p><ul class="mt-1 list-disc ps-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
         {{ $slot ?? '' }}
         @yield('content')

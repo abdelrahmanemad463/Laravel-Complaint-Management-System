@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\{Branch, Complaint, ComplaintCategory, ComplaintSource, ComplaintStatus, ComplaintType, Customer, Priority, Service, User};
+use Spatie\Permission\Models\Role;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,6 +15,51 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
     {
         parent::setUp();
         $this->seed();
+    }
+
+    public function test_admin_can_create_and_delete_unused_role(): void
+    {
+        $admin = User::where('email', 'admin@example.com')->first();
+        $this->actingAs($admin)->post(route('roles.store'), ['name' => 'Temporary Role'])->assertRedirect(route('roles.index'));
+        $role = Role::where('name', 'Temporary Role')->firstOrFail();
+        $this->actingAs($admin)->delete(route('roles.destroy', $role))->assertRedirect(route('roles.index'));
+        $this->assertDatabaseMissing('roles', ['id' => $role->id]);
+    }
+
+    public function test_reserved_role_name_cannot_be_created(): void
+    {
+        $admin = User::where('email', 'admin@example.com')->first();
+        $this->actingAs($admin)->post(route('roles.store'), ['name' => 'Viewer'])->assertSessionHasErrors('name');
+    }
+
+    public function test_non_authorized_user_cannot_manage_roles_or_users(): void
+    {
+        $viewer = User::factory()->create();
+        $viewer->assignRole('Viewer');
+        $this->actingAs($viewer)->get(route('users.index'))->assertForbidden();
+        $this->actingAs($viewer)->get(route('roles.create'))->assertForbidden();
+    }
+
+    public function test_role_assigned_to_user_cannot_be_deleted(): void
+    {
+        $admin = User::where('email', 'admin@example.com')->first();
+        $role = Role::create(['name' => 'In Use Role', 'guard_name' => 'web']);
+        $user = User::factory()->create();
+        $user->assignRole($role);
+        $this->actingAs($admin)->from(route('roles.index'))->delete(route('roles.destroy', $role))->assertRedirect(route('roles.index'))->assertSessionHas('error');
+        $this->assertDatabaseHas('roles', ['id' => $role->id]);
+    }
+
+    public function test_users_page_filters_by_name_email_and_role(): void
+    {
+        $admin = User::where('email', 'admin@example.com')->first();
+        $target = User::factory()->create(['name' => 'Filtered Support', 'email' => 'filtered-support@example.com']);
+        $target->assignRole('Customer Support');
+        $other = User::factory()->create(['name' => 'Other Viewer', 'email' => 'other-viewer@example.com']);
+        $other->assignRole('Viewer');
+
+        $this->actingAs($admin)->get(route('users.index', ['search' => 'filtered-support']))->assertOk()->assertSee($target->email)->assertDontSee($other->email);
+        $this->actingAs($admin)->get(route('users.index', ['role' => 'Customer Support']))->assertOk()->assertSee($target->email)->assertDontSee($other->email);
     }
 
     public function test_complaint_id_filter_returns_only_the_requested_complaint(): void

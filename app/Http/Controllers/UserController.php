@@ -8,11 +8,19 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         abort_unless(auth()->user()?->can('user.view'), 403);
-        $users = User::with('roles')->orderBy('name')->paginate(20);
-        return view('users.index', compact('users'));
+        $search = trim((string) $request->input('search'));
+        $selectedRole = (string) $request->input('role');
+        $roles = Role::orderBy('name')->get();
+        $users = User::with('roles')
+            ->when($search !== '', fn ($query) => $query->where(fn ($subQuery) => $subQuery->where('name', 'like', "%$search%")->orWhere('email', 'like', "%$search%")))
+            ->when($selectedRole !== '', fn ($query) => $query->whereHas('roles', fn ($roleQuery) => $roleQuery->where('name', $selectedRole)))
+            ->orderBy('name')
+            ->paginate(20)
+            ->withQueryString();
+        return view('users.index', compact('users', 'roles', 'search', 'selectedRole'));
     }
 
     public function create()

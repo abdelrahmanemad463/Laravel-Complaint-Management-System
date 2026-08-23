@@ -32,3 +32,11 @@ On supported desktop browsers, the browser may show an install icon in the addre
 ### Verification status
 
 The PWA implementation was verified by compiling Blade views, successfully building Vite assets, validating manifest/icon/service-worker files through feature tests, and running the complete Laravel suite. Current result: **20 tests passed with 70 assertions**. Apache served the manifest, service worker, and icons successfully; the service-worker script passed Node syntax validation; and the service-worker/manifest responses returned no-cache headers. The service-worker route and application layout remain compatible with normal non-installed browser use. Direct visual browser testing from the sandbox could not connect to the user’s Windows `localhost`; the Windows XAMPP HTTP checks and Laravel tests passed.
+
+## Role lifecycle and users administration
+
+The roles administration page now supports creating custom roles through `roles.store` and deleting custom roles through `roles.destroy`. Creation requires `role.create`, uses the `web` guard, rejects duplicate and reserved baseline names, and leaves new roles with no permissions until configured. Deletion requires `role.delete`, is blocked for the protected baseline roles (`Super Admin`, `Admin`, `Customer Support`, and `Viewer`), and is also blocked server-side whenever the role is assigned to any user. The roles list displays permission and assigned-user counts and exposes only safe delete actions in the interface.
+
+The users page now provides a GET filter for name/email text and an exact role selection. User results are eager-loaded with roles, ordered by name, paginated at 20 records, and retain filter query strings across pagination. The role filter options are loaded separately from the paginated user query, so the page does not load all users into memory.
+
+The regression suite covers role creation, deletion of an unused role, refusal to delete an assigned role, and users-page text and role filters. After the latest changes, the complete suite reports **24 tests passed with 88 assertions**.
