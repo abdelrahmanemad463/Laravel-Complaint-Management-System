@@ -16,6 +16,17 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
         $this->seed();
     }
 
+    public function test_complaint_id_filter_returns_only_the_requested_complaint(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('Customer Support');
+        $complaint = $this->makeComplaint($user, Branch::first());
+        $otherComplaint = $this->makeComplaint($user, Branch::first());
+
+        $response = $this->actingAs($user)->get(route('complaints.index', ['complaint_id' => $complaint->id]));
+        $response->assertOk()->assertSee('#'.$complaint->id)->assertDontSee('#'.$otherComplaint->id);
+    }
+
     public function test_multiple_branch_filter_returns_only_selected_branches(): void
     {
         $user = User::factory()->create();

@@ -37,6 +37,7 @@ class Complaint extends \Illuminate\Database\Eloquent\Model
     public function scopeFilter(Builder $query, array $filters): Builder
     {
         return $query
+            ->when($filters['complaint_id'] ?? null, fn ($q, $v) => $q->whereKey($v))
             ->when($filters['customer_id'] ?? null, fn ($q, $v) => $q->where('customer_id', $v))
             ->when($filters['branch_ids'] ?? [], fn ($q, $v) => $q->whereIn('branch_id', (array) $v))
             ->when($filters['service_id'] ?? null, fn ($q, $v) => $q->where('service_id', $v))

@@ -4,6 +4,11 @@
 
 <form method="GET" action="{{ route('complaints.index') }}" class="card mb-6 space-y-5">
     <div class="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+        <div>
+            <label class="form-label">{{ __('common.complaint_id') }}</label>
+            <input class="form-input" type="number" min="1" name="complaint_id" value="{{ $filters['complaint_id'] ?? '' }}" placeholder="#123">
+        </div>
+
         <div data-customer-picker data-search-url="{{ route('customers.search') }}" data-empty-text="{{ __('common.no_customer_matches') }}">
             <label class="form-label">{{ __('common.customer') }}</label>
             <input type="hidden" name="customer_id" id="customer_id" value="{{ $selectedCustomerId }}">
