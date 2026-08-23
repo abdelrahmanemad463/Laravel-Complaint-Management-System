@@ -2368,3 +2368,199 @@ Then produce:
 ```
 
 Do NOT start generating the complete application code until this design is reviewed and finalized.
+
+
+---
+
+# 66. Current Implementation Status
+
+This document began as the system requirements and implementation brief. The following addendum records the verified state of the codebase so future development can distinguish completed behavior from intentionally deferred requirements.
+
+**Last verified:** 2026-08-24  
+**Application path:** `C:\xampp\htdocs\complaint`  
+**Current local URL:** `http://localhost/complaint/public/`
+
+## 66.1 Implemented Technology and Architecture
+
+The system is implemented as a Laravel 12 application on PHP 8.2+ using Blade, Tailwind CSS 4, Vite, Eloquent, Laravel migrations, Laravel session authentication, Spatie Laravel Permission 6.24.0, and Maatwebsite Laravel Excel 3.1.67. The configured local runtime uses SQLite. The UI is server-rendered and uses small vanilla-JavaScript enhancements; **Livewire is not currently used**. React, Vue, Inertia, and a separate SPA were not introduced.
+
+The actual application flow is:
+
+```text
+Browser
+  ↓
+Named route in routes/web.php
+  ↓
+SetLocale + auth middleware
+  ↓
+Controller permission checks / Spatie permission middleware
+  ↓
+Form Request validation where applicable
+  ↓
+Eloquent query or mutation
+  ↓
+ActivityLogService or ComplaintStatusService when required
+  ↓
+Blade response, redirect, JSON search response, or Excel download
+```
+
+The code intentionally avoids repositories, generic CRUD frameworks, excessive DTOs, custom domain layers, microservices, and unnecessary event-driven architecture. No custom application Policies, Livewire components, Notifications, or business Jobs currently exist; authorization is implemented through controllers, Laravel Gate, and Spatie permissions.
+
+## 66.2 Implemented Modules and Workflows
+
+| Requirement area | Current verified implementation |
+|---|---|
+| Customers | Customer CRUD, required primary phone, three optional phone fields, name/all-phone search, complaint summary, complaint history, and Add Complaint action |
+| Customer picker | Ten initial records, protected JSON search, 250 ms debounce, `fetch()`, `AbortController`, and selected-record preservation |
+| Complaints | Create/list/show/update, required relationships and descriptions, authenticated `created_by`, complaint ID filter, master-data filters, creator/date filters, pagination, and query-string preservation |
+| Branch filter | Multiple branch selection through `branch_ids[]` and `whereIn` |
+| Master data | Dynamic branches, services, sources, categories, complaint types, priorities, and statuses with active flags, colors/order fields, pagination, soft deletes, and permission checks |
+| Branch report | Date range and multi-branch filters, five-record initial branch picker, name search, and SQL grouping by complaint date and branch |
+| Resolution | `resolution`, `resolved_by`, and `resolved_at`; moving to the status named Solved records the authenticated resolver and timestamp |
+| Status history | `complaint_status_histories` records previous status, new status, reason, authenticated actor, and timestamp inside a transaction |
+| Activity logs | Append-oriented `activity_logs` records stable action names, actor, polymorphic subject, description, and JSON old/new snapshots |
+| Complaint timeline | Complaint details combine status-history entries and activity-log entries; known stored action identifiers are localized at display time |
+| Users | Authorized create/update, role assignment, name/email search filter, role filter, database pagination at 20 records |
+| Roles | Role list, custom role creation, permission configuration, permission/user counts, protected baseline roles, reserved-name prevention, and server-side refusal to delete roles assigned to users |
+| Dashboard | Seven-day complaint aggregates, top complained-about branches, status distribution, and priority distribution ordered by priority level |
+| Excel export | Filtered query export with localized English/Arabic headings and the exact current columns listed below |
+| Localization | English/Arabic interface, validation, authentication, complaint/customer/activity messages, localized audit output, and Arabic RTL layout |
+| PWA | Manifest, icons, standalone display metadata, and static-only service-worker caching; private pages, authentication, sessions, and JSON responses are not cached |
+
+## 66.3 Current Database and Seed State
+
+The implemented migration order is:
+
+```text
+0001_01_01_000000_create_users_table
+0001_01_01_000001_create_cache_table
+0001_01_01_000002_create_jobs_table
+2026_08_23_161041_create_permission_tables
+2026_08_23_161200_create_complaint_master_data_tables
+2026_08_23_161300_create_complaints_table
+2026_08_23_161400_create_complaint_history_tables
+```
+
+The complaint and master-data migrations use foreign keys, restrictive deletion behavior for historical references, nullable resolver/activity actor references where appropriate, indexes for phone/date/filter access, and soft deletes on business records. `DatabaseSeeder` runs permissions/roles, master data, and demo data in that order.
+
+The seeded master data includes Branch A/B/C; Take Away, Dine In, and Delivery services; WhatsApp, Phone, Facebook, In Person, Website, and Email sources; Food Quality, Customer Service, Staff, Delivery, Payment, and Order categories; Wrong Order, Missing Item, Late Delivery, Bad Treatment, Wrong Price, and Food Quality types; Low, Medium, High, and Critical priorities; and Pending, In Progress, Solved, Closed, and Reopened statuses.
+
+## 66.4 Current Permission Design
+
+Permissions are generated systematically for `customer`, `complaint`, `branch`, `service`, `source`, `category`, `type`, `priority`, `status`, `report`, `user`, `role`, and `audit`, using `view`, `create`, `update`, and `delete` actions. Additional permissions are `complaint.view_logs`, `complaint.export`, `report.export`, and `audit.view`.
+
+| Role | Current seeded permissions |
+|---|---|
+| Super Admin | All seeded permissions, plus Gate-level unrestricted access |
+| Admin | All seeded permissions except `role.delete`, `user.delete`, and `audit.view` |
+| Customer Support | `customer.view/create/update` and `complaint.view/create/update` |
+| Viewer | `customer.view`, `complaint.view`, all master-data `*.view`, and `report.view` |
+
+The `role.delete` permission is therefore normally available only to Super Admin under the baseline seed configuration. Role create/update and user administration remain permission-protected. Super Admin protection is enforced server-side and is not dependent only on hidden UI controls.
+
+## 66.5 Exact Current Excel Columns
+
+The implementation deliberately uses a practical 15-column export rather than every suggested field in Section 37:
+
+```text
+Complaint ID
+Customer Name
+Primary Phone
+Branch
+Service
+Source
+Category
+Complaint Type
+Priority
+Status
+Complaint Date
+Description
+Resolution
+Created By
+Resolved By
+```
+
+The export class reuses `Complaint::filter($filters)` and eager-loads related records. It does not currently export the optional customer phone fields, customer address, short description, resolved timestamp, or Laravel created/updated timestamps.
+
+## 66.6 Exact Current Audit Actions
+
+The current code records these action identifiers:
+
+```text
+complaint.created
+complaint.updated
+complaint.status_changed
+customer.created
+customer.updated
+master_data.created
+master_data.updated
+master_data.deleted
+```
+
+Complaint updates preserve old/new values, so priority, branch, service, category, type, status, description, and resolution changes can be represented in snapshots. There is currently no complaint-delete route or separate action for each individual field change. The audit and timeline views translate known action identifiers into the selected locale and use a localized generic fallback for unknown actions.
+
+## 66.7 Filtering and Scalability Status
+
+The complaint index and export support `complaint_id`, `customer_id`, `branch_ids[]`, `service_id`, `source_id`, `category_id`, `type_id`, `priority_id`, `status_id`, `created_by`, `date_from`, and `date_to`. The `date_to` validator requires it to be on or after `date_from`. Complaint results are paginated at 20 records.
+
+Customer list results are paginated at 15 records. The customer picker initially displays at most 10 records and searches all four phone fields plus name through a protected JSON route. Branch picker results are limited to 5 records and support name search. User results are paginated at 20 records and can be filtered by name/email and exact role.
+
+## 66.8 Localization and Error Handling Status
+
+The current translation directories contain `common.php`, `auth.php`, `complaints.php`, `customers.php`, `activity.php`, and `validation.php` for both `en` and `ar`. The application uses `SetLocale` to accept only `en` and `ar`, switches the main layout between LTR and RTL, and localizes flash messages, validation messages, login errors, audit actions, timeline entries, login copy, customer status-summary labels, and Excel headings.
+
+A translation-helper audit checked 143 static application keys against both locale dictionaries and found zero missing keys. Normal Laravel validation and session flash handling are used; sensitive internal errors are not intentionally exposed through the application UI.
+
+## 66.9 Verification Status
+
+The latest full verification completed successfully:
+
+```text
+Blade views: cleared and cached successfully
+Vite production build: completed successfully
+Laravel test suite: 29 tests passed, 117 assertions
+Migration status: all current migrations reported Ran
+Registered routes: 42 routes reported by php artisan route:list
+```
+
+Localization regression tests cover English/Arabic messages, login copy, customer status summaries, and audit-log action rendering. PWA tests cover manifest metadata, icons, service-worker files, and the rule that private pages/API responses are not cached.
+
+## 66.10 Intentional Limitations and Deferred Requirements
+
+The following requirements remain future work rather than current implementation claims:
+
+- Full offline PWA complaint creation, synchronization, and offline authentication.
+- Complaint attachments and secure file-upload workflows.
+- Internal comments, notifications, email/WhatsApp integration, and external API clients.
+- Customer portal, registration, password reset, mobile application, and branch-manager dashboard.
+- Satisfaction ratings, SLA tracking, escalation workflows, and advanced analytics.
+- Branch-specific user scoping.
+- Custom queued jobs, scheduled synchronization, and event/listener workflows.
+- Separate per-locale database values for branch/service/status/master-data names.
+
+The repository also does not include a sessions migration even though `.env.example` names `SESSION_DRIVER=database`; deployments must provide the table or choose another session driver. The default Laravel `welcome.blade.php` remains as an unused skeleton file because the application’s `/` route is the authenticated dashboard.
+
+This addendum supersedes any earlier speculative wording when it conflicts with verified code. The original sections remain useful as the requirements baseline, while this section records what is actually implemented and what is intentionally deferred.
+
+
+## 66.11 Mandatory Documentation Synchronization
+
+The project now has a persistent instruction requiring documentation synchronization for every code edit or code change, including feature work, bug fixes, refactors, configuration changes, route changes, permission changes, and frontend changes.
+
+Before editing code, the developer or agent must read:
+
+```text
+memory.md
+complete_project_specification.md
+project_structure.md
+```
+
+After the code change, the same task must update all three files so they remain consistent with the final implementation:
+
+| File | Required role |
+|---|---|
+| `complete_project_specification.md` | Requirements baseline plus verified implementation status |
+| `memory.md` | Persistent continuation context, decisions, pending work, issues, and verification results |
+| `project_structure.md` | Current architecture, project map, technologies, modules, routes, and developer guidance |
+
+No behavior should be described as implemented until it has been verified in the codebase. Schema changes also require `database_design.md` to be updated. Relevant tests, build checks, and other verification commands must be run before completion, and their results must be recorded in `memory.md`.

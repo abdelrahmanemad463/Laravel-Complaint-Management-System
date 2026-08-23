@@ -1,302 +1,599 @@
-# Complaint Management System — Project Structure and Architecture
+# Complaint Management System — Project Structure
 
-**Status:** Implemented baseline, with room for future modules  
-**Application:** Complaint Management System  
-**Framework:** Laravel 12, PHP 8.2+, Blade, Tailwind CSS, Eloquent ORM  
-**Primary languages:** English and Arabic, including RTL support  
+**Status:** Current-state implementation guide  
+**Application:** Complaint Desk  
+**Framework:** Laravel 12 on PHP 8.2+  
+**Rendering:** Server-rendered Blade with Tailwind CSS and progressive JavaScript enhancement  
+**Supported locales:** English (`en`) and Arabic (`ar`) with RTL layout support  
+**Runtime database:** SQLite in the current local installation; Laravel configuration can be changed through environment variables for another supported relational database.
+
+> This document describes the code that currently exists in the repository. It intentionally does not describe Livewire, Filament, React, Vue, an API platform, queues, or other technologies that are not used by the application’s business features.
 
 ## 1. Project Overview
 
-The application is a normal Laravel web application for customer-support teams. Authenticated staff search for customers by any of up to four phone numbers, create or update customers, and register complaints. Complaints are connected to dynamic master data such as branches, services, sources, categories, types, priorities, and statuses. Staff can follow the complaint lifecycle, record resolutions, and review a durable status history and activity timeline.
+Complaint Desk is an authenticated customer-support application for registering, managing, filtering, and reporting customer complaints. Support staff can search customers by name or any of four phone fields, create and update customer records, create complaints, follow status changes, record resolutions, and review a complaint timeline. Administrators manage master data, users, roles, and permissions.
 
-The design intentionally uses Laravel-native controllers, form requests, policies, Eloquent relationships, Blade views, small query scopes, and focused services only where they prevent duplication. It does not introduce a repository layer, a generic CRUD framework, a separate frontend application, or microservices.
+The main user types are **Super Admin**, **Admin**, **Customer Support**, and **Viewer**. Access is permission-based through Spatie Laravel Permission, with an application-level Super Admin bypass. The application uses a conventional Laravel MVC flow:
+
+```text
+Browser
+  ↓
+Named web route + auth middleware
+  ↓
+Controller / Form Request
+  ↓
+Eloquent model relationships and query scopes
+  ↓
+Application service for activity or status transitions when needed
+  ↓
+Relational database
+  ↓
+Blade response, redirect, flash message, JSON picker response, or Excel download
+```
+
+The interface is a normal Laravel web application rather than a single-page application. Small JavaScript enhancements provide searchable customer and branch pickers without replacing the server-rendered pages. A Progressive Web App manifest and service worker provide installation and static-asset caching, but the business application remains network-dependent.
 
 ## 2. Technology Stack
 
-| Concern | Decision |
-|---|---|
-| Backend | Laravel 12 on PHP 8.2+ |
-| Rendering | Blade templates with Blade components |
-| Styling | Tailwind CSS, using the existing Vite build |
-| Database | The relational database configured by the project; SQLite remains useful for automated tests |
-| ORM | Laravel Eloquent |
-| Authentication | Laravel authentication using the project’s selected starter approach |
-| Authorization | Laravel Policies/Gates plus Spatie Laravel Permission 6.24.0 |
-| Excel | `maatwebsite/excel` 3.1.67 with query-based exports |
-| Tests | Laravel feature/unit tests with the existing PHPUnit setup |
-| Localization | Laravel `en` and `ar` translation files, with direction switching in the main layout |
+| Concern | Actual technology | Current use |
+|---|---|---|
+| Backend | PHP 8.2+ and Laravel 12 | Routing, controllers, validation, authentication, sessions, migrations, Eloquent, localization, and responses |
+| UI rendering | Blade templates | All application screens under `resources/views/` |
+| Styling | Tailwind CSS 4 | Utility classes and reusable classes in `resources/css/app.css` |
+| Browser behavior | Plain JavaScript with `fetch()` | Debounced customer and branch searches, multi-branch picker behavior, and PWA registration |
+| Asset build | Vite 7 with Laravel Vite plugin | Compiles `resources/css/app.css` and `resources/js/app.js` into `public/build/` |
+| Database | SQLite in the current local environment | Runtime development database; migrations use Laravel schema APIs and can be configured for another relational database |
+| Authentication | Laravel session authentication | Custom `AuthController` login/logout flow and `auth` middleware |
+| Authorization | Laravel Gate plus Spatie Laravel Permission 6.24.0 | Permissions such as `complaint.view`, `user.update`, and `role.delete` |
+| Reporting/export | Laravel Excel 3.1.67 | Query-based filtered complaint export to `.xlsx` |
+| Localization | Laravel translation files and `SetLocale` middleware | English/Arabic UI, validation, activity, authentication, and export text |
+| PWA | Native web manifest and service worker | Installability, icons, and static Vite asset caching only |
+| Testing | PHPUnit 11 through Laravel’s test runner | Feature tests for workflows, authorization, filters, exports, localization, and PWA behavior |
+| Web serving | XAMPP Apache in the current setup | Local URL is under `http://localhost/complaint/public/` |
 
-React, Vue, Inertia, and a separate SPA are deliberately excluded. Livewire may be added only for small interactive areas such as phone search, dependent filtering, or modal forms if ordinary Blade forms become awkward.
+There is no React, Vue, Inertia, Livewire, Filament, repository layer, custom API authentication, or custom queue worker in the application code.
 
-## 3. Architecture Overview
+## 3. Packages and Libraries
 
-The request flow is:
+### Composer packages
 
-1. The browser sends a request to a named Laravel route.
-2. Authentication middleware confirms the user is signed in.
-3. A policy or permission middleware checks the requested ability.
-4. A form request validates and authorizes submitted data.
-5. A controller uses Eloquent queries and relationships to read or write data.
-6. Important mutations call a small activity-log service and, for status changes, create a status-history row in the same database transaction.
-7. The controller redirects with a translated flash message or renders a Blade view.
+| Package | Purpose | Important locations |
+|---|---|---|
+| `laravel/framework` `^12.0` | Core application framework, HTTP kernel, routing, sessions, validation, Blade, Eloquent, migrations, and testing integration | `app/`, `bootstrap/`, `config/`, `routes/`, `resources/views/` |
+| `laravel/tinker` `^2.10.1` | Interactive Laravel shell for development and inspection | Artisan integration |
+| `spatie/laravel-permission` `6.24.0` | Roles, permissions, model-role pivots, permission checks, and permission cache | `app/Models/User.php`, `app/Http/Controllers/RoleController.php`, `config/permission.php`, permission migration |
+| `maatwebsite/excel` `3.1.67` | Excel export of the current complaint filter query | `app/Exports/ComplaintsExport.php`, `ComplaintController::export()` |
+| `phpunit/phpunit` `^11.5.50` | Unit and feature test runner | `phpunit.xml`, `tests/` |
+| `fakerphp/faker` | Factory data generation in tests and seeders | `database/factories/` |
+| `laravel/pint` | Optional PHP code formatting during development | Composer development dependency |
+| `laravel/sail`, `laravel/pail`, `nunomaduro/collision`, and `mockery/mockery` | Laravel development, logging, CLI diagnostics, and test support | Composer development dependencies |
 
-The complaint create and update operations use a database transaction so the complaint mutation, status history, resolution metadata, and corresponding activity entry do not become inconsistent. Listing pages use eager loading, pagination, and composable Eloquent scopes. Reports use grouped database queries rather than loading every complaint into memory.
+### NPM packages
 
-### Authorization flow
+| Package | Purpose | Important locations |
+|---|---|---|
+| `vite` `^7.0.7` | Frontend asset bundling and development server | `vite.config.js`, `package.json` |
+| `laravel-vite-plugin` `^2.0.0` | Connects Vite to Laravel asset loading and build output | `vite.config.js`, Blade layout |
+| `tailwindcss` `^4.0.0` | Utility-first CSS framework | `resources/css/app.css` |
+| `@tailwindcss/vite` `^4.0.0` | Tailwind integration with Vite | `vite.config.js` |
+| `axios` `^1.11.0` | Installed frontend HTTP client dependency | Available to frontend code; the current picker implementation uses native `fetch()` |
+| `concurrently` `^9.0.1` | Runs Laravel/Vite development processes together through the Composer `dev` script | `composer.json` |
 
-Authorization is enforced on the server, not only by hiding navigation items. Routes use authentication and permission checks, controllers use policies where a record is involved, and form requests authorize the operation. Super Admin is recognized as a protected role with an application-level bypass for all permissions. Normal administrators cannot edit or remove the Super Admin role, its permissions, or the final Super Admin account through ordinary user-management screens.
+## 4. Technologies and Concepts Used
 
-## 4. Main Modules
+| Concept | What it is | Why and where this project uses it |
+|---|---|---|
+| Laravel MVC | Routes dispatch to controllers that validate data, use models, and render views | The entire web application follows this pattern |
+| Blade | Laravel’s server-side templating engine | All screens in `resources/views/` use Blade directives and translation helpers |
+| Eloquent ORM | Model and relationship layer for relational data | Complaint, customer, master-data, user, history, and activity queries |
+| Form Requests | Request objects that centralize authorization and validation | `app/Http/Requests/` for complaint/customer data and complaint filters |
+| Middleware | Request pipeline behavior applied before controllers | `auth`, Spatie permission middleware aliases, and `SetLocale` |
+| Gates and permissions | Server-side authorization decisions | `Gate::before` protects Super Admin; controllers and route middleware enforce abilities |
+| Spatie `HasRoles` | Trait and package model relations for user roles | `User` role assignment and permission checks |
+| Service layer | Small classes for business operations that span multiple writes | `ComplaintStatusService` and `ActivityLogService` |
+| Database transactions | Atomic grouping of related writes | Complaint creation/status transitions and status-history/activity consistency |
+| Query scopes | Reusable Eloquent query composition | `Complaint::scopeFilter()` applies complaint list/export filters |
+| Soft deletes | Retains records while hiding them from normal queries | Customers, branches, services, sources, categories, types, priorities, statuses, and complaints |
+| Polymorphic relation | One table can reference different model types | `activity_logs.subject_type/subject_id` and `Complaint::activityLogs()` |
+| Progressive enhancement | Server-rendered page remains functional while JavaScript adds convenience | Customer and branch pickers use debounced background JSON searches |
+| PWA static caching | Browser installation plus cache of static assets | `public/manifest.json`, `public/service-worker.js`, and registration in `resources/js/app.js` |
 
-| Module | Responsibility |
-|---|---|
-| Dashboard | Seven-day complaint counts, branch ranking, status distribution, and priority distribution |
-| Customers | Search by name or any phone, create/edit customer, summary counts, complaint history |
-| Complaints | Create, list, filter, view, update, assign, resolve, status history, and timeline |
-| Branches | Manage active/inactive branches without breaking historical complaints |
-| Services | Manage complaint service master data and display colors |
-| Sources | Manage complaint source master data separately from categories |
-| Categories | Manage complaint categories separately from sources |
-| Complaint Types | Manage detailed complaint types |
-| Priorities | Manage priority names, levels, colors, and ordering |
-| Statuses | Manage complaint statuses, colors, and ordering |
-| Reports | Branch-by-day complaint report with date and multi-branch filters |
-| Excel Export | Export the current complaint query and headings in the active language |
-| Users | Manage ordinary users and their roles, subject to authorization rules |
-| Roles and Permissions | Configure granular permissions, while protecting Super Admin access |
-| Audit Logs | Restricted activity log with old/new JSON snapshots and a complaint timeline |
-| Localization | English/Arabic translations, locale switch, and LTR/RTL layout direction |
-
-## 5. Principal Relationships
-
-A customer has many complaints, while each complaint belongs to exactly one customer and branch. A complaint also belongs to one service, source, category, type, priority, and status. A complaint is created by one user and may be resolved by another user. A complaint has many status-history rows and activity-log entries.
-
-Master-data records remain queryable through historical relationships after deactivation. Soft deletion is used where appropriate, and destructive deletion is restricted when a record is referenced by a complaint. Historical rows therefore remain understandable instead of losing their labels or foreign-key integrity.
-
-## 6. Complaint Lifecycle
-
-A complaint starts with a selected active status, normally **Pending**. Authorized users may update its master-data assignments and details. Every status change records the previous status, new status, reason, user, and timestamp in `complaint_status_histories`. When the new status is the configured Solved status, the application records the authenticated resolver and timestamp; the form prompts for a resolution. If a solved complaint is reopened, the earlier resolution metadata is retained for historical context and the new status transition is recorded.
-
-There is no hard-coded finite-state machine because statuses are dynamic master data. The application does, however, validate that selected statuses exist and are active for new selections; historical inactive statuses remain valid on existing complaints.
-
-```mermaid
-flowchart LR
-    A[Customer found or created] --> B[Create complaint]
-    B --> C[Pending]
-    C --> D[In Progress]
-    D --> E[Solved]
-    E --> F[Closed]
-    E --> G[Reopened]
-    G --> D
-    C --> G
-    B -. every transition .-> H[Status history + activity log]
-    D -. every important update .-> H
-    E --> I[Resolution, resolved_by, resolved_at]
-```
-
-## 7. Customer Workflow
-
-```mermaid
-flowchart TD
-    A[Support enters phone number] --> B{Match any phone field?}
-    B -- Yes --> C[Open customer]
-    B -- No --> D[Create customer]
-    C --> E[Review summary and history]
-    D --> E
-    E --> F[Add Complaint]
-    F --> G[Fill complaint details]
-    G --> H[Save and show complaint]
-```
-
-The search query checks `phone_primary`, `phone_2`, `phone_3`, and `phone_4` with an OR condition. The primary phone is required; the other three are nullable. The customer page displays contact information, complaint totals by status, an obvious **Add Complaint** action, and paginated complaint history.
-
-## 8. Filtering and Reporting Design
-
-The complaints listing accepts customer, branch, service, source, category, type, priority, status, created-by, date-from, and date-to filters. Branches are submitted as an array and applied with `whereIn`, so selecting multiple branches returns complaints from any selected branch. The same validated filter input is used by the HTML listing and the Excel export route, preventing export from silently ignoring active filters.
-
-Filter logic should live in readable Eloquent scopes on `Complaint` or in one small `ComplaintFilter` class if the controller would otherwise become repetitive. Query parameters are named and preserved in pagination links. The page displays the filtered result count before the table and uses paginated results rather than loading all records.
-
-The branch report groups complaints by complaint date and branch after applying the date range and multi-branch filters. Dashboard cards use aggregate queries for the last seven days, status counts, priority counts, and the most complained-about branches. Lightweight CSS or a small chart library may be used only where it improves comprehension.
-
-## 9. Excel Export Design
-
-The export is implemented with a query-based Laravel Excel export. It receives the validated complaint filters and builds the same filtered Eloquent query used by the listing. It selects useful fields through relationships and uses chunked/query-based processing for scalability. The export headings are translated according to the current locale; there is one export class with a localization map rather than separate Arabic and English export classes.
-
-The English export includes Complaint ID, customer identity and phones, address, branch, service, source, category, complaint type, descriptions, priority, status, complaint date, creator, resolver, resolution, and timestamps. The Arabic export uses equivalent translated headings. The export action is permission-protected.
-
-## 10. Localization and RTL Design
-
-All user-facing labels, buttons, validation messages, status text, and export headings use Laravel translation keys. Translation files live under `lang/en` and `lang/ar`. The selected locale is stored in the authenticated user profile or session, and a small locale middleware applies it to each request. The main Blade layout sets `dir="rtl"` and an Arabic language attribute when the locale is Arabic; English uses `dir="ltr"`.
-
-Database master-data names are initially single-language values because the requirements do not define translated columns. The structure remains open for future `*_translations` tables if localized master-data labels become necessary. The design does not silently duplicate master-data records for each language.
-
-## 11. Roles and Permissions
-
-The four baseline roles are **Super Admin**, **Admin**, **Customer Support**, and **Viewer**. Permissions use consistent dot notation. The Super Admin bypass is enforced in the authorization layer and is protected from removal by normal Admin users.
-
-| Permission | Super Admin | Admin | Customer Support | Viewer |
-|---|:---:|:---:|:---:|:---:|
-| customer.view | Yes | Yes | Yes | Yes |
-| customer.create | Yes | Yes | Yes | No |
-| customer.update | Yes | Yes | Yes | No |
-| customer.delete | Yes | Yes | No | No |
-| complaint.view | Yes | Yes | Yes | Yes |
-| complaint.create | Yes | Yes | Yes | No |
-| complaint.update | Yes | Yes | Yes | No |
-| complaint.delete | Yes | Yes | No | No |
-| complaint.view_logs | Yes | Configurable | No by default | No |
-| complaint.export | Yes | Yes | Configurable | Configurable |
-| branch.view | Yes | Yes | No by default | Yes |
-| branch.create/update/delete | Yes | Yes | No | No |
-| service/source/category/type/priority/status.view | Yes | Yes | No by default | Yes |
-| service/source/category/type/priority/status.manage | Yes | Yes | No | No |
-| report.view | Yes | Yes | Configurable | Yes |
-| report.export | Yes | Yes | Configurable | Configurable |
-| user.view/create/update/delete | Yes | Configurable, excluding protected Super Admin operations | No | No |
-| role.view/create/update/delete | Yes | Configurable, excluding protected Super Admin operations | No | No |
-| audit.view | Yes | Configurable | No | No |
-
-The seeders create all permission records systematically and assign the baseline roles. The exact Admin configuration is documented in seed data and may be adjusted by Super Admin.
-
-## 12. Project Folder Structure
+## 5. Project Directory Structure
 
 ```text
-app/
-├── Exports/
-│   └── ComplaintsExport.php
-├── Http/
-│   ├── Controllers/
-│   │   ├── AuditLogController.php
-│   │   ├── BranchController.php
-│   │   ├── ComplaintController.php
-│   │   ├── ComplaintStatusHistoryController.php
-│   │   ├── CustomerController.php
-│   │   ├── DashboardController.php
-│   │   ├── MasterData controllers...
-│   │   ├── ReportController.php
-│   │   ├── RoleController.php
-│   │   └── UserController.php
-│   ├── Middleware/
-│   │   └── SetLocale.php
-│   └── Requests/
-│       ├── ComplaintFilterRequest.php
-│       ├── StoreComplaintRequest.php
-│       ├── StoreCustomerRequest.php
-│       ├── UpdateComplaintRequest.php
-│       └── UpdateCustomerRequest.php
-├── Models/
-│   ├── ActivityLog.php
-│   ├── Branch.php
-│   ├── Complaint.php
-│   ├── ComplaintCategory.php
-│   ├── ComplaintSource.php
-│   ├── ComplaintStatus.php
-│   ├── ComplaintStatusHistory.php
-│   ├── ComplaintType.php
-│   ├── Customer.php
-│   ├── Priority.php
-│   ├── Service.php
-│   └── User.php
-├── Policies/
-│   ├── ComplaintPolicy.php
-│   ├── CustomerPolicy.php
+complaint/
+├── app/
+│   ├── Exports/
+│   │   └── ComplaintsExport.php
+│   ├── Http/
+│   │   ├── Controllers/
+│   │   │   ├── AuthController.php
+│   │   │   ├── AuditLogController.php
+│   │   │   ├── ComplaintController.php
+│   │   │   ├── CustomerController.php
+│   │   │   ├── DashboardController.php
+│   │   │   ├── LocaleController.php
+│   │   │   ├── MasterDataController.php
+│   │   │   ├── ReportController.php
+│   │   │   ├── RoleController.php
+│   │   │   └── UserController.php
+│   │   ├── Middleware/
+│   │   │   └── SetLocale.php
+│   │   └── Requests/
+│   │       ├── ComplaintFilterRequest.php
+│   │       ├── StoreComplaintRequest.php
+│   │       ├── StoreCustomerRequest.php
+│   │       ├── UpdateComplaintRequest.php
+│   │       └── UpdateCustomerRequest.php
+│   ├── Models/
+│   │   ├── ActivityLog.php
+│   │   ├── Branch.php
+│   │   ├── Complaint.php
+│   │   ├── ComplaintCategory.php
+│   │   ├── ComplaintSource.php
+│   │   ├── ComplaintStatus.php
+│   │   ├── ComplaintStatusHistory.php
+│   │   ├── ComplaintType.php
+│   │   ├── Customer.php
+│   │   ├── Priority.php
+│   │   ├── Service.php
+│   │   └── User.php
+│   ├── Providers/
+│   │   └── AppServiceProvider.php
+│   └── Services/
+│       ├── ActivityLogService.php
+│       └── ComplaintStatusService.php
+├── bootstrap/
+│   └── app.php
+├── config/
+│   ├── app.php
+│   ├── auth.php
+│   ├── database.php
+│   ├── filesystems.php
+│   ├── permission.php
 │   └── ...
-└── Services/
-    ├── ActivityLogService.php
-    └── ComplaintStatusService.php
-
-database/
-├── factories/
-├── migrations/
-└── seeders/
-    ├── DatabaseSeeder.php
-    ├── MasterDataSeeder.php
-    ├── PermissionSeeder.php
-    └── DemoDataSeeder.php
-
-lang/
-├── ar/
-│   ├── complaints.php
-│   ├── customers.php
-│   ├── exports.php
-│   └── validation.php
-└── en/
-    ├── complaints.php
-    ├── customers.php
-    ├── exports.php
-    └── validation.php
-
-resources/
-├── css/app.css
-├── js/app.js
-└── views/
-    ├── layouts/app.blade.php
-    ├── components/
-    ├── dashboard/index.blade.php
-    ├── customers/{index,create,edit,show}.blade.php
-    ├── complaints/{index,create,edit,show}.blade.php
-    ├── master-data/{branches,services,sources,categories,types,priorities,statuses}/...
-    ├── reports/branches.blade.php
-    ├── users/...
-    ├── roles/...
-    └── audit-logs/index.blade.php
-
-routes/
-├── console.php
-└── web.php
-
-tests/
-├── Feature/
-│   ├── CustomerManagementTest.php
-│   ├── ComplaintManagementTest.php
-│   ├── ComplaintFiltersTest.php
-│   ├── ComplaintExportTest.php
-│   └── AuthorizationTest.php
-└── Unit/
+├── database/
+│   ├── factories/
+│   ├── migrations/
+│   └── seeders/
+├── lang/
+│   ├── ar/
+│   │   ├── activity.php
+│   │   ├── auth.php
+│   │   ├── common.php
+│   │   ├── complaints.php
+│   │   ├── customers.php
+│   │   └── validation.php
+│   └── en/
+│       ├── activity.php
+│       ├── auth.php
+│       ├── common.php
+│       ├── complaints.php
+│       ├── customers.php
+│       └── validation.php
+├── public/
+│   ├── build/
+│   ├── icons/
+│   ├── manifest.json
+│   ├── service-worker.js
+│   └── .htaccess
+├── resources/
+│   ├── css/app.css
+│   ├── js/app.js
+│   └── views/
+│       ├── auth/
+│       ├── audit-logs/
+│       ├── complaints/
+│       ├── customers/
+│       ├── dashboard/
+│       ├── layouts/
+│       ├── master-data/
+│       ├── reports/
+│       ├── roles/
+│       └── users/
+├── routes/
+│   ├── console.php
+│   └── web.php
+├── tests/
+│   ├── Feature/
+│   ├── Unit/
+│   └── TestCase.php
+├── .env.example
+├── artisan
+├── composer.json
+├── package.json
+├── phpunit.xml
+└── vite.config.js
 ```
 
-The existing Laravel skeleton files remain in place. The current implementation includes authenticated login/logout, dashboard, customer CRUD and phone search, complaint CRUD and filtering, status history, activity logging, master-data CRUD, localized Excel export, branch reports, user/role administration, Arabic/English layout switching, and baseline feature tests. New files are added only for the complaint system, authentication integration, localization, and authorization that the application actually uses.
+`app/Http/Controllers/` contains the request-facing application actions. `app/Models/` contains Eloquent entities and relationships. `app/Services/` contains the two focused cross-cutting business services. `database/` contains schema, factories, and seed data. `resources/views/` contains all Blade UI. `lang/` contains the bilingual dictionaries. `public/` contains the PWA and compiled public assets.
 
-## 13. Data and Audit Rules
+## 6. Application Architecture and Component Communication
 
-All complaint foreign keys are validated server-side. Eloquent models use `$fillable` or guarded attributes deliberately. Master data uses `is_active` to control selection in new complaints, while old complaints continue to display inactive values. Soft deletes are used on business records where recovery and historical safety matter. Audit records are append-oriented; ordinary users cannot edit or delete them.
+The normal request flow is:
 
-Every important complaint mutation records the user, action, subject, description, and old/new JSON values. Status changes additionally create a dedicated status-history entry. The complaint details page merges creation/update activity and status history into a chronological timeline, ordered by timestamp.
+```text
+Authenticated browser request
+  ↓
+Route in routes/web.php
+  ↓
+SetLocale middleware + auth middleware
+  ↓
+Controller permission check or permission middleware
+  ↓
+Form Request validation/authorization where defined
+  ↓
+Eloquent query, mutation, or database transaction
+  ↓
+ActivityLogService / ComplaintStatusService when the operation needs audit/history
+  ↓
+Blade view, redirect with translated flash message, JSON picker response, or Excel download
+```
 
-## 14. Implementation Roadmap
+`ComplaintController` uses `ComplaintFilterRequest` for both the HTML index and Excel export, so exports use the same validated filters as the listing. `ComplaintController::masterData()` supplies bounded initial customer/branch picker results and active master data. `CustomerController::search()` and `ComplaintController::searchBranches()` provide protected JSON endpoints consumed by the JavaScript picker code.
 
-The implementation is intentionally incremental:
+`ActivityLogService` writes a stable action identifier, optional description, polymorphic subject, and old/new JSON snapshots. `ComplaintStatusService` changes the complaint status, stores a status-history row, sets resolution metadata when the new status is Solved, and records an activity entry in a transaction.
 
-1. Finalize this design and the database design document.
-2. Add Spatie Permission and Laravel Excel dependencies and publish only the needed migrations/configuration.
-3. Create migrations with foreign keys, indexes, soft deletes, and seed data.
-4. Add models, relationships, casts, scopes, factories, and baseline permissions.
-5. Add authentication integration and protected authorization rules, including Super Admin protection.
-6. Build the customer search, customer CRUD, summary, and complaint-history screens.
-7. Build complaint creation, listing, filtering, editing, resolution, and detail timeline.
-8. Add status history and activity logging in transactions.
-9. Add dashboard aggregates and branch reports.
-10. Add filtered, localized Excel export.
-11. Add Arabic/English translations, locale switching, and RTL layout behavior.
-12. Add feature tests for phone search, complaint ownership, status history, permissions, filters, and exports.
-13. Run migrations, seed demo data, execute the test suite, build frontend assets, and clean up documentation.
+There is no repository pattern, DTO layer, custom event/listener workflow, or application-specific job pipeline. Laravel’s existing cache/jobs tables and configuration remain available for framework features, but the complaint workflows are synchronous.
 
-## 15. Assumptions to Revisit
+## 7. Database Architecture
 
-The requirements do not specify a registration flow, password-reset provider, attachment handling, branch-specific user scoping, or translated master-data names. The first implementation will use authenticated users managed by authorized administrators, will not implement attachments, will not restrict users to one branch unless later requested, and will keep master-data names in the active application language. These choices avoid inventing business rules while preserving extension points for future work.
+The database separates authentication, authorization, customers, complaints, master data, status history, and audit activity. The current runtime uses SQLite. The migrations use Laravel’s schema builder and foreign-key APIs; `.env.example` also shows the standard variables for switching to a server database.
 
-## 16. Future Improvements Not Included Now
+```mermaid
+erDiagram
+    USERS ||--o{ COMPLAINTS : creates
+    USERS ||--o{ COMPLAINTS : resolves
+    USERS ||--o{ COMPLAINT_STATUS_HISTORIES : changes
+    USERS ||--o{ ACTIVITY_LOGS : performs
+    CUSTOMERS ||--o{ COMPLAINTS : has
+    BRANCHES ||--o{ COMPLAINTS : receives
+    SERVICES ||--o{ COMPLAINTS : uses
+    COMPLAINT_SOURCES ||--o{ COMPLAINTS : originates
+    COMPLAINT_CATEGORIES ||--o{ COMPLAINTS : categorizes
+    COMPLAINT_TYPES ||--o{ COMPLAINTS : classifies
+    PRIORITIES ||--o{ COMPLAINTS : prioritizes
+    COMPLAINT_STATUSES ||--o{ COMPLAINTS : tracks
+    COMPLAINTS ||--o{ COMPLAINT_STATUS_HISTORIES : records
+    COMPLAINT_STATUSES ||--o{ COMPLAINT_STATUS_HISTORIES : from_or_to
+    COMPLAINTS ||--o{ ACTIVITY_LOGS : has
+    ROLES ||--o{ MODEL_HAS_ROLES : assigned
+    USERS ||--o{ MODEL_HAS_ROLES : receives
+    ROLES ||--o{ ROLE_HAS_PERMISSIONS : grants
+    PERMISSIONS ||--o{ ROLE_HAS_PERMISSIONS : contains
 
-Attachments, internal comments, notifications, email or WhatsApp integration, satisfaction ratings, SLA tracking, escalation workflows, advanced analytics, branch-manager dashboards, customer portals, and mobile/API clients remain explicitly out of scope until requested.
+    USERS { bigint id PK; string name; string email; string password }
+    CUSTOMERS { bigint id PK; string name; string phone_primary; string phone_2; string phone_3; string phone_4; text address; timestamp deleted_at }
+    COMPLAINTS { bigint id PK; bigint customer_id FK; bigint branch_id FK; bigint service_id FK; bigint source_id FK; bigint category_id FK; bigint type_id FK; bigint priority_id FK; bigint status_id FK; bigint created_by FK; bigint resolved_by FK; date complaint_date }
+    COMPLAINT_STATUS_HISTORIES { bigint id PK; bigint complaint_id FK; bigint from_status_id FK; bigint to_status_id FK; bigint changed_by FK; text reason; timestamp changed_at }
+    ACTIVITY_LOGS { bigint id PK; bigint user_id FK; string action; string subject_type; bigint subject_id; json old_values; json new_values; timestamp created_at }
+```
+
+The Spatie permission tables are standard package tables: `permissions`, `roles`, `model_has_permissions`, `model_has_roles`, and `role_has_permissions`. Teams are disabled and wildcard permissions are disabled. Permission checks are registered with Laravel’s Gate and permissions are cached under the package cache key.
+
+## 8. Database Tables
+
+### Laravel infrastructure tables
+
+| Table | Purpose | Important notes |
+|---|---|---|
+| `users` | Authenticated staff accounts | Standard Laravel user fields; complaint actor foreign keys reference this table |
+| `cache` | Database cache backend when configured | Laravel skeleton table |
+| `jobs` | Database queue backend when configured | Laravel skeleton table; no custom complaint job currently depends on it |
+| `sessions` | Not present in the current migration set | `.env.example` names the database session driver, but this repository does not include a sessions migration; tests use array sessions |
+
+### Business tables
+
+| Table | Purpose | Important columns and rules |
+|---|---|---|
+| `customers` | Customer identity and contact data | Required `name` and `phone_primary`; nullable `phone_2`, `phone_3`, `phone_4`, `address`; phone columns indexed; soft deletes |
+| `branches` | Branch master data | `name`, nullable indexed `code`, indexed `is_active`, `sort_order`; soft deletes |
+| `services` | Complaint service master data | `name`, nullable `color`, indexed `is_active`, `sort_order`; soft deletes |
+| `complaint_sources` | Complaint-origin master data | Same common master-data shape; soft deletes |
+| `complaint_categories` | Complaint-category master data | Same common master-data shape; soft deletes |
+| `complaint_types` | Complaint-type master data | Same common master-data shape; soft deletes |
+| `priorities` | Complaint priority master data | Required `color`, nullable `level`, indexed `is_active`, `sort_order`; soft deletes |
+| `complaint_statuses` | Complaint status master data | Required `color`, indexed `is_active`, `sort_order`; soft deletes |
+| `complaints` | Main complaint record | Required foreign keys to customer, branch, service, source, category, type, priority, status; required descriptions/date/creator; nullable resolver, resolved time, resolution; soft deletes |
+| `complaint_status_histories` | Append-only status transitions | Complaint, optional previous status, new status, reason, actor, and `changed_at`; restrictive complaint/status/user foreign keys |
+| `activity_logs` | Audit trail | Nullable actor, stable action string, nullable polymorphic subject, description, JSON old/new snapshots, indexed action/date |
+
+The complaint foreign keys use restrictive deletion behavior so referenced master data, customers, and creator users cannot be physically deleted while historical complaints depend on them. `resolved_by` and `activity_logs.user_id` use nullable foreign keys with `nullOnDelete` because the application can preserve the record if the actor reference is removed. Business records prefer deactivation or soft deletion over physical deletion.
+
+## 9. Migrations
+
+Migrations are stored in `database/migrations/` and use Laravel timestamped filenames. The current order is:
+
+```text
+0001_01_01_000000_create_users_table
+0001_01_01_000001_create_cache_table
+0001_01_01_000002_create_jobs_table
+        ↓
+2026_08_23_161041_create_permission_tables
+        ↓
+2026_08_23_161200_create_complaint_master_data_tables
+        ↓
+2026_08_23_161300_create_complaints_table
+        ↓
+2026_08_23_161400_create_complaint_history_tables
+```
+
+The permission migration creates package roles, permissions, model-role/model-permission pivots, and role-permission pivots. The master-data migration creates customers, branches, services, sources, categories, types, priorities, and statuses. The complaints migration depends on those tables and creates complaint foreign keys plus branch/date and status/date composite indexes. The final migration creates status history and polymorphic activity logs.
+
+`DatabaseSeeder` runs `PermissionSeeder`, `MasterDataSeeder`, and `DemoDataSeeder` in that order. Future schema changes should add a new migration rather than editing an already-applied migration and should update this document when they affect project structure or data design.
+
+## 10. Main Features and Modules
+
+| Module | Main entry points | Main data and rules |
+|---|---|---|
+| Authentication | `AuthController`, `auth/login.blade.php` | Session login/logout; failed credentials use localized messages |
+| Dashboard | `DashboardController`, `dashboard/index.blade.php` | Aggregate seven-day counts, status/priority distributions, and branch ranking |
+| Customers | `CustomerController`, `Customer` model, `customers/` views | CRUD, four-phone/name search, complaint count/history, soft deletion model support; primary phone required |
+| Complaints | `ComplaintController`, `Complaint` model, `complaints/` views | CRUD, customer and master-data associations, filters, detail page, status transitions, resolution metadata, activity timeline |
+| Complaint filtering | `ComplaintFilterRequest`, `Complaint::scopeFilter()` | Complaint ID, customer, multi-branch, master-data, creator, and date filters; query strings retained in pagination |
+| Master data | `MasterDataController`, `master-data/` views | Branches, services, sources, categories, types, priorities, and statuses; active flag controls new selections; records are ordered and paginated |
+| Branch reports | `ReportController`, `reports/branches.blade.php` | Date range and multi-branch filtering; SQL grouping by complaint date and branch |
+| Excel export | `ComplaintsExport`, `ComplaintController::export()` | Exports the validated current complaint query and localized headings; permission protected |
+| Users | `UserController`, `users/` views | Authorized user creation/update, role assignment, name/email and role filters, paginated results |
+| Roles and permissions | `RoleController`, `roles/` views | Create custom roles, configure permissions, guarded deletion, protected baseline roles, assigned-user deletion prevention |
+| Audit logs | `AuditLogController`, `audit-logs/index.blade.php` | Permission-restricted, action-filtered, paginated audit list; known actions are localized at display time |
+| Localization | `SetLocale`, `LocaleController`, `lang/en/`, `lang/ar/` | Session locale selection, RTL Arabic layout, localized UI, validation, flash messages, activity labels, and exports |
+| PWA | `public/manifest.json`, `public/service-worker.js`, `resources/js/app.js` | Installability, icons, standalone display, static hashed asset caching, no private-page/API caching |
+
+## 11. Important Business Flows
+
+### Customer search and complaint creation
+
+```text
+Open complaint creation
+  ↓
+Load at most 10 initial customers
+  ↓
+Search by customer name or any of four phone fields using the JSON endpoint
+  ↓
+Select or create the customer
+  ↓
+Select active branch, service, source, category, type, priority, and status
+  ↓
+Submit validated complaint
+  ↓
+Create complaint with authenticated created_by
+  ↓
+Record localized activity entry
+  ↓
+Redirect to complaint detail page
+```
+
+The picker uses a 250 ms debounce and `AbortController`; server-side search returns at most 10 customers. The selected customer is preserved even if it is outside the initial ten results.
+
+### Complaint status transition
+
+```text
+Open complaint edit
+  ↓
+Submit a new active status and optional status reason
+  ↓
+Begin database transaction
+  ↓
+Update complaint status
+  ↓
+If status is Solved, set resolved_by and resolved_at
+  ↓
+Create complaint_status_histories row
+  ↓
+Create complaint.status_changed activity row
+  ↓
+Commit and redirect with localized success message
+```
+
+Status names are dynamic master data rather than a hard-coded enum. The configured Solved status is detected by its normalized name. Existing complaints may continue to reference inactive statuses for historical display.
+
+### Filtering and export
+
+```text
+GET complaint list with query parameters
+  ↓
+ComplaintFilterRequest validates filters
+  ↓
+Complaint::scopeFilter() composes the Eloquent query
+  ↓
+Paginated HTML result with query string preserved
+  ↓
+Optional Excel export reuses the same validated filters
+```
+
+Branch filters use an array and `whereIn`, so multiple selected branches are handled in one query. The branch report applies equivalent date and branch constraints before grouping in SQL.
+
+### Administration
+
+```text
+Authorized administrator
+  ↓
+Create/update master data, users, or roles
+  ↓
+Controller permission check and request validation
+  ↓
+Persist through Eloquent
+  ↓
+Apply protected-role and assigned-user rules where relevant
+  ↓
+Redirect with localized flash message
+```
+
+Role deletion is refused when the role is one of the four protected baseline roles or has any assigned users. New roles are created with the `web` guard and can be configured through the permission editor.
+
+## 12. Authentication and Authorization
+
+Authentication uses the standard Laravel `users` table and session guard. `AuthController` validates login credentials, regenerates the session after a successful attempt, redirects to the dashboard, and invalidates the session/token on logout. The authenticated application routes are grouped under `auth` middleware.
+
+Spatie Laravel Permission is configured with the default `Role` and `Permission` models, default table names, no teams, no wildcard permissions, and Laravel Gate permission checks. Permission cache expiration is configured for 24 hours and is flushed by package role/permission updates.
+
+The baseline roles are:
+
+| Role | Actual seeded behavior |
+|---|---|
+| `Super Admin` | Receives all permissions and bypasses Gate checks through `AppServiceProvider::boot()` |
+| `Admin` | Receives the operational permissions except `role.delete`, `user.delete`, and `audit.view` in the seed configuration |
+| `Customer Support` | Can work with customers and complaints using create/view/update permissions, but does not administer users, roles, or master data |
+| `Viewer` | Read-only access to selected customer, complaint, master-data, and report areas |
+
+Permission names use dot notation. The seeder creates systematic CRUD permissions for customers, complaints, branches, services, sources, categories, types, priorities, statuses, reports, users, roles, and audit logs, plus complaint log/export and report export permissions.
+
+Authorization is enforced server-side in controllers and route middleware; navigation/button visibility is only a usability layer. Super Admin role and permission protections are also checked in role/user administration. The application does not expose public registration or password-reset routes.
+
+## 13. Routes and Entry Points
+
+All routes are defined in `routes/web.php`. There is no separate `routes/api.php` business API. JSON search endpoints are protected web routes.
+
+| Route group | Important entry points | Protection/output |
+|---|---|---|
+| Authentication | `/login`, `/logout` | Login is public; logout requires `auth` |
+| Locale | `/locale/{locale}` | Switches the session locale between supported languages |
+| Dashboard | `/` | Authenticated dashboard controller |
+| Customers | `/customers`, `/customers/create`, `/customers/{customer}` and search | Authenticated and permission-checked; search returns JSON |
+| Complaints | `/complaints`, create/show/edit/update, `/complaints/branches/search`, `/complaints/export` | Authenticated; permissions control view/create/update/export |
+| Reports | `/reports/branches` | Authenticated and `report.view` middleware |
+| Master data | `/master-data/{type}` and CRUD subroutes | Authenticated and permission-protected; type selects the supported master-data table |
+| Users | `/users`, create, edit, update | Authenticated and controller permission checks |
+| Roles | `/roles`, `/roles/create`, `/roles/{role}/edit`, POST/PUT/DELETE role actions | Authenticated and controller permission checks |
+| Audit | `/audit-logs` | Authenticated and `audit.view` permission |
+| Framework | `/up`, `/storage/{path}` | Laravel health/storage routes |
+
+`bootstrap/app.php` registers the web routes, the `permission` and `role` middleware aliases, and appends `SetLocale` to the web middleware group.
+
+## 14. Frontend Architecture
+
+The frontend is Blade plus Tailwind CSS. `resources/views/layouts/app.blade.php` provides the authenticated shell, navigation, flash alerts, validation-error display, language direction, PWA metadata, and Vite asset loading. Individual modules use page views and a small number of form/list templates; they do not use a client-side router.
+
+`resources/css/app.css` defines the application’s reusable visual classes, including cards, buttons, form controls, tables, badges, navigation states, and focus/hover/press behavior. `resources/js/app.js` contains:
+
+1. Customer-picker initialization, 10-result rendering, debounced `fetch()` search, abort handling, and selected-record preservation.
+2. Branch-picker initialization, five-result rendering, multi-selection, hidden `branch_ids[]` fields, debounced search, abort handling, and selected-record preservation.
+3. PWA service-worker registration derived from the manifest scope, with cache update settings.
+
+The application remains usable without JavaScript because the main forms and list pages are server-rendered. JavaScript improves large-data selection performance; it does not expose private data without the same protected JSON routes.
+
+### PWA policy
+
+The manifest uses the Complaint Desk name, short name, relative application scope/start URL, standalone display, theme/background colors, and 180/192/512 pixel icons, including a maskable icon. The service worker caches only Vite hashed files under `build/` and static icons under `icons/`. It does not cache HTML navigations, authentication, sessions, API/JSON responses, or private pages. Full offline complaint entry, synchronization, and offline authentication are not implemented.
+
+## 15. Configuration and Environment
+
+The project reads configuration through Laravel’s `.env` file. `.env.example` documents variable names and safe defaults; secrets must never be committed to `project_structure.md` or source control.
+
+| Variable/configuration | Purpose |
+|---|---|
+| `APP_ENV`, `APP_KEY`, `APP_DEBUG`, `APP_URL` | Application environment, encryption key, debug mode, and base URL |
+| `APP_LOCALE`, `APP_FALLBACK_LOCALE`, `APP_FAKER_LOCALE` | Default/fallback language and generated-data locale |
+| `DB_CONNECTION` and database-specific `DB_*` variables | Database driver and connection settings |
+| `SESSION_DRIVER`, `SESSION_LIFETIME`, `SESSION_DOMAIN` | Session storage and lifetime |
+| `CACHE_STORE` and `CACHE_PREFIX` | Cache backend and key prefix |
+| `QUEUE_CONNECTION` | Queue backend; current default template is database |
+| `FILESYSTEM_DISK` | Filesystem disk; current application has no complaint attachment workflow |
+| `MAIL_*` | Mail transport and sender configuration; no complaint email workflow currently exists |
+| `REDIS_*` and `MEMCACHED_HOST` | Optional cache/queue backends supported by Laravel configuration |
+| `AWS_*` | Optional S3-compatible filesystem configuration |
+| `VITE_APP_NAME` | Frontend build-time application name |
+
+The current local `.env` uses SQLite, database sessions/cache/queues according to the runtime configuration, and a local application URL. Tests override the database with in-memory SQLite, cache with the array store, mail with the array mailer, queue with synchronous execution, and session with the array store in `phpunit.xml`.
+
+Localization is applied per request by `SetLocale`, which reads the session `locale` value and permits only `en` or `ar`. The selected Arabic locale sets RTL direction in the main layout.
+
+## 16. Testing
+
+The project uses PHPUnit 11 through Laravel’s `php artisan test` command. Tests use `RefreshDatabase`, seed the application baseline where needed, and run against in-memory SQLite as configured by `phpunit.xml`.
+
+```text
+tests/
+├── Feature/
+│   ├── ComplaintExportTest.php
+│   ├── ComplaintFiltersAndAuthorizationTest.php
+│   ├── ComplaintManagementTest.php
+│   ├── LocalizationTest.php
+│   ├── PwaTest.php
+│   └── ExampleTest.php
+├── Unit/
+│   └── ExampleTest.php
+└── TestCase.php
+```
+
+Current feature coverage includes customer phone/name search, customer and complaint workflows, authenticated complaint creator assignment, complaint filters including complaint ID and multiple branches, complaint status history and resolution metadata, authorization denial, role lifecycle safeguards, users filters, branch reports, localized Excel headings, English/Arabic localization, PWA manifest/service-worker boundaries, and Blade/runtime regression cases. Tests are feature-focused; the two application services do not currently have separate unit-test classes.
+
+## 17. Important Development Commands
+
+Run these commands from the project root:
+
+```bash
+# Install PHP dependencies
+composer install
+
+# Create/update the local environment and application key
+copy .env.example .env
+php artisan key:generate
+
+# Run schema migrations and seed baseline/demo data
+php artisan migrate
+php artisan db:seed
+
+# Clear/rebuild cached configuration and compiled Blade views
+php artisan config:clear
+php artisan view:clear
+php artisan view:cache
+
+# Install and build frontend assets
+npm install
+npm run dev
+npm run build
+
+# Run the full test suite
+php artisan test --no-ansi
+
+# Inspect routes and migration status
+php artisan route:list
+php artisan migrate:status
+
+# Optional Laravel combined development command
+composer run dev
+```
+
+For XAMPP deployment, Apache should serve the Laravel `public/` directory. In the current local setup, the application is accessed at `http://localhost/complaint/public/`. Build assets with `npm run build` before relying on the production Vite manifest.
+
+## 18. Current Architecture Decisions
+
+- The application uses Blade and Laravel controllers rather than introducing a separate SPA. This keeps the complaint workflows simple, server-authorized, and compatible with the existing XAMPP deployment.
+- Searchable customer and branch selectors use bounded initial results plus protected JSON search endpoints. This avoids loading 100,000-plus customers or a full branch table into an HTML select.
+- Complaint filtering is composed in an Eloquent scope and reused by Excel export so the visible report and downloaded report have the same constraints.
+- Complaint creation and status changes use database transactions where multiple records must remain consistent.
+- Statuses are master data rather than a PHP enum so administrators can manage them, while the configured Solved name controls resolution metadata.
+- Foreign keys use restrictive deletion behavior for historical complaint references. Master data should normally be deactivated or soft-deleted rather than physically removed.
+- Activity logs store stable action identifiers and JSON snapshots. Display views translate known identifiers at render time so changing the current locale does not expose raw keys such as `complaint.updated`.
+- Permission checks are server-side. UI conditionals improve usability but are not considered a security boundary.
+- The PWA service worker is deliberately static-only. Private data, session state, authentication, and JSON responses are not cached.
+
+## 19. Known Limitations
+
+- The application is network-dependent. It is installable as a PWA, but full offline complaint creation, synchronization, and offline authentication are not implemented.
+- Master-data names are stored as single database values rather than per-locale translations. The interface labels are bilingual, but a branch/service/status name entered in one language remains that database value.
+- There is no public customer portal, registration, password reset, attachment workflow, email notification, WhatsApp integration, or external complaint API.
+- There is no branch-specific user scoping; authorization is role/permission based rather than restricted to a user’s branch.
+- The application currently has no custom queued jobs, scheduled tasks, event/listener pipeline, or background synchronization process.
+- The current local runtime uses SQLite and XAMPP Apache; production database, mail, storage, cache, and queue infrastructure must be configured separately.
+- `public/storage` is not linked in the current local runtime, and the present complaint workflow does not upload files.
+- The default Laravel `welcome.blade.php` remains in the repository, but the application’s `/` route is the authenticated dashboard and does not use the default welcome screen.
+
+## 20. Documentation Maintenance
+
+`project_structure.md` is living documentation. When a change affects project structure, database schema, migrations, packages, technologies, architecture, major features, business flows, authorization, configuration, or development workflow:
+
+1. Inspect the current code and this document.
+2. Implement the code change.
+3. Run the relevant tests/build/migration checks.
+4. Update this document to describe the final implementation.
+5. Confirm that no secrets, passwords, API keys, or tokens have been added.
+
+The companion `database_design.md` provides a more detailed data-design narrative. This file is the higher-level navigation guide for developers joining the project.
 
 
-### Administration refinements
+## Documentation synchronization workflow
 
-The **Roles and Permissions** module supports custom-role creation and guarded deletion. Role creation is permission-protected and rejects the four reserved baseline role names. Baseline roles are never deletable, and a custom role cannot be deleted while any user is assigned to it; both rules are enforced in the controller in addition to conditional UI actions. New roles are created with the `web` guard and can then be configured through the existing permission editor.
-
-The **Users** module lists users with eager-loaded roles and provides GET filters for name/email text and exact role selection. Results are database-filtered, ordered by name, paginated at 20 records, and preserve active filter parameters in pagination links, avoiding an in-memory load of the full user table.
-
-
-### Localization completion
-
-Localization now covers complaint and customer flash/activity messages, authentication failures, validation rules and field names, activity-log action labels, login branding/demo guidance, master-data headings, and customer complaint-summary statuses in both English and Arabic. Audit and complaint-timeline views translate known persisted action identifiers and use a localized generic fallback for unknown activity types, preventing raw keys such as `complaints.updated` from appearing in the interface.
+Persistent project instructions require every code edit or code change to begin by reading `memory.md`, `complete_project_specification.md`, and `project_structure.md`. After the change, all three files must be updated in the same task so they remain synchronized with the actual code, migrations, routes, permissions, tests, configuration, and known limitations. `complete_project_specification.md` is the requirements and verified implementation-status source, `memory.md` is the continuation context, and this file is the architecture/developer map. Schema changes additionally require `database_design.md`. Relevant tests and build checks must be run before reporting completion, with verification results recorded in `memory.md`.
