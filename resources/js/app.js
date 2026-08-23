@@ -83,3 +83,128 @@ if (customerPicker) {
     });
 }
 
+
+const branchPicker = document.querySelector('[data-branch-picker]');
+
+if (branchPicker) {
+    const searchInput = branchPicker.querySelector('#branch-search');
+    const results = branchPicker.querySelector('#branch-results');
+    const selectedInputs = branchPicker.querySelector('#selected-branch-inputs');
+    const searchUrl = branchPicker.dataset.searchUrl;
+    const emptyText = branchPicker.dataset.emptyText;
+    const selectedIds = new Set((branchPicker.dataset.selectedIds || '').split(',').filter(Boolean));
+    let timer;
+    let controller;
+
+    const syncSelectedInputs = () => {
+        selectedInputs.replaceChildren();
+        selectedIds.forEach((id) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'branch_ids[]';
+            input.value = id;
+            selectedInputs.appendChild(input);
+        });
+    };
+
+    const syncButtons = () => {
+        results.querySelectorAll('.branch-option').forEach((button) => {
+            const selected = selectedIds.has(button.dataset.id);
+            button.dataset.selected = selected ? '1' : '0';
+            button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+            button.classList.toggle('bg-indigo-100', selected);
+            button.classList.toggle('text-indigo-800', selected);
+            const check = button.querySelector('.branch-check');
+            if (check) check.textContent = selected ? '✓' : '';
+        });
+        syncSelectedInputs();
+    };
+
+    const bindButtons = () => {
+        results.querySelectorAll('.branch-option').forEach((button) => {
+            button.addEventListener('click', () => {
+                if (selectedIds.has(button.dataset.id)) selectedIds.delete(button.dataset.id);
+                else selectedIds.add(button.dataset.id);
+                syncButtons();
+            });
+        });
+        syncButtons();
+    };
+
+    const renderBranches = (branches) => {
+        results.replaceChildren();
+        if (!branches.length) {
+            const empty = document.createElement('p');
+            empty.className = 'px-3 py-3 text-sm text-slate-500';
+            empty.textContent = emptyText;
+            results.appendChild(empty);
+            return;
+        }
+        branches.slice(0, 5).forEach((branch) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'branch-option flex w-full items-center justify-between rounded-md px-3 py-2 text-start text-sm hover:bg-indigo-50';
+            button.dataset.id = branch.id;
+            button.dataset.name = branch.name;
+            button.dataset.selected = selectedIds.has(String(branch.id)) ? '1' : '0';
+            button.setAttribute('aria-pressed', selectedIds.has(String(branch.id)) ? 'true' : 'false');
+            const name = document.createElement('span');
+            name.className = 'font-medium';
+            name.textContent = branch.name;
+            const check = document.createElement('span');
+            check.className = 'branch-check text-indigo-600';
+            check.textContent = selectedIds.has(String(branch.id)) ? '✓' : '';
+            button.append(name, check);
+            results.appendChild(button);
+        });
+        bindButtons();
+    };
+
+    const searchBranches = async () => {
+        const term = searchInput.value.trim();
+        if (!term) {
+            results.querySelectorAll('.branch-option').forEach((option) => option.classList.remove('hidden'));
+            results.querySelectorAll('.branch-option:nth-child(n+6)').forEach((option) => option.classList.add('hidden'));
+            bindButtons();
+            return;
+        }
+        controller?.abort();
+        controller = new AbortController();
+        try {
+            const url = new URL(searchUrl, window.location.origin);
+            url.searchParams.set('q', term);
+            const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
+            if (!response.ok) throw new Error('Branch search failed');
+            renderBranches(await response.json());
+        } catch (error) {
+            if (error.name !== 'AbortError') console.error(error);
+        }
+    };
+
+    bindButtons();
+    searchInput.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(searchBranches, 250);
+    });
+}
+
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+        const manifestLink = document.querySelector('link[rel="manifest"]');
+        if (!manifestLink) return;
+
+        try {
+            const manifestUrl = new URL(manifestLink.href);
+            const serviceWorkerUrl = new URL('service-worker.js', manifestUrl);
+            const scope = new URL('./', manifestUrl).pathname;
+            const registration = await navigator.serviceWorker.register(serviceWorkerUrl.pathname, {
+                scope,
+                updateViaCache: 'none',
+            });
+            await registration.update();
+        } catch (error) {
+            console.warn('PWA service worker registration failed.', error);
+        }
+    });
+}
