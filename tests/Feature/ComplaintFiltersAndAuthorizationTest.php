@@ -31,6 +31,12 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
         $response->assertOk()->assertSee('<strong>'.$expected.'</strong>', false);
     }
 
+    public function test_admin_can_open_master_data_create_form(): void
+    {
+        $admin = User::where('email', 'admin@example.com')->first();
+        $this->actingAs($admin)->get(route('master.create', 'branches'))->assertOk()->assertSee('name="name"', false);
+    }
+
     public function test_viewer_cannot_create_customer(): void
     {
         $user = User::factory()->create();
