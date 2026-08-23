@@ -36,6 +36,24 @@ class ComplaintManagementTest extends TestCase
         }
     }
 
+    public function test_customer_picker_search_returns_at_most_ten_name_or_phone_matches(): void
+    {
+        Customer::factory()->count(12)->create();
+        $target = Customer::factory()->create(['name' => 'Search Target', 'phone_2' => '01155555555']);
+        $response = $this->actingAs($this->user)->getJson(route('customers.search', ['q' => '01155555555']));
+        $response->assertOk()->assertJsonFragment(['id' => $target->id, 'name' => 'Search Target']);
+        $this->assertLessThanOrEqual(10, count($response->json()));
+
+        $response = $this->actingAs($this->user)->getJson(route('customers.search', ['q' => 'Search Target']));
+        $response->assertOk()->assertJsonFragment(['id' => $target->id, 'name' => 'Search Target']);
+    }
+
+    public function test_complaint_form_requires_and_renders_customer_selector(): void
+    {
+        $response = $this->actingAs($this->user)->get(route('complaints.create'));
+        $response->assertOk()->assertSee('name="customer_id"', false)->assertSee('Ahmed Mohamed')->assertSee('nav-link-active', false);
+    }
+
     public function test_complaint_stores_authenticated_creator_and_relationships(): void
     {
         $customer = Customer::factory()->create();

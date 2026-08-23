@@ -12,14 +12,14 @@
             <a href="{{ route('dashboard') }}" class="text-xl font-bold tracking-tight text-indigo-700">Complaint Desk</a>
             @auth
             <nav class="hidden items-center gap-4 text-sm font-medium lg:flex">
-                <a href="{{ route('dashboard') }}" class="nav-link">{{ __('common.dashboard') }}</a>
-                <a href="{{ route('customers.index') }}" class="nav-link">{{ __('common.customers') }}</a>
-                <a href="{{ route('complaints.index') }}" class="nav-link">{{ __('common.complaints') }}</a>
-                @can('report.view')<a href="{{ route('reports.branches') }}" class="nav-link">{{ __('common.reports') }}</a>@endcan
-                @can('branch.view')<a href="{{ route('master.index','branches') }}" class="nav-link">{{ __('common.master_data') }}</a>@endcan
-                @can('user.view')<a href="{{ route('users.index') }}" class="nav-link">{{ __('common.users') }}</a>@endcan
-                @can('role.view')<a href="{{ route('roles.index') }}" class="nav-link">{{ __('common.roles') }}</a>@endcan
-                @can('audit.view')<a href="{{ route('audit-logs.index') }}" class="nav-link">{{ __('common.audit_logs') }}</a>@endcan
+                <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'nav-link-active' : '' }}">{{ __('common.dashboard') }}</a>
+                <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'nav-link-active' : '' }}">{{ __('common.customers') }}</a>
+                <a href="{{ route('complaints.index') }}" class="nav-link {{ request()->routeIs('complaints.*') ? 'nav-link-active' : '' }}">{{ __('common.complaints') }}</a>
+                @can('report.view')<a href="{{ route('reports.branches') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'nav-link-active' : '' }}">{{ __('common.reports') }}</a>@endcan
+                @can('branch.view')<a href="{{ route('master.index','branches') }}" class="nav-link {{ request()->routeIs('master.*') ? 'nav-link-active' : '' }}">{{ __('common.master_data') }}</a>@endcan
+                @can('user.view')<a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'nav-link-active' : '' }}">{{ __('common.users') }}</a>@endcan
+                @can('role.view')<a href="{{ route('roles.index') }}" class="nav-link {{ request()->routeIs('roles.*') ? 'nav-link-active' : '' }}">{{ __('common.roles') }}</a>@endcan
+                @can('audit.view')<a href="{{ route('audit-logs.index') }}" class="nav-link {{ request()->routeIs('audit-logs.*') ? 'nav-link-active' : '' }}">{{ __('common.audit_logs') }}</a>@endcan
             </nav>
             <div class="flex items-center gap-3 text-sm">
                 <a href="{{ route('locale', app()->getLocale() === 'ar' ? 'en' : 'ar') }}" class="rounded-md border px-2 py-1">{{ app()->getLocale() === 'ar' ? 'English' : 'العربية' }}</a>

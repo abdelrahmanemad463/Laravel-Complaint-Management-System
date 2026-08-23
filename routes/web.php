@@ -7,6 +7,7 @@ Route::post('/logout',[AuthController::class,'logout'])->middleware('auth')->nam
 Route::get('/locale/{locale}',LocaleController::class)->name('locale');
 Route::middleware('auth')->group(function () {
     Route::get('/',DashboardController::class)->name('dashboard');
+    Route::get('customers/search',[CustomerController::class,'search'])->name('customers.search');
     Route::resource('customers',CustomerController::class)->only(['index','create','store','show','edit','update']);
     Route::get('complaints/export',[ComplaintController::class,'export'])->name('complaints.export')->middleware('permission:complaint.export');
     Route::resource('complaints',ComplaintController::class)->only(['index','create','store','show','edit','update']);
