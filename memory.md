@@ -40,3 +40,9 @@ The roles administration page now supports creating custom roles through `roles.
 The users page now provides a GET filter for name/email text and an exact role selection. User results are eager-loaded with roles, ordered by name, paginated at 20 records, and retain filter query strings across pagination. The role filter options are loaded separately from the paginated user query, so the page does not load all users into memory.
 
 The regression suite covers role creation, deletion of an unused role, refusal to delete an assigned role, and users-page text and role filters. After the latest changes, the complete suite reports **24 tests passed with 88 assertions**.
+
+## Localization audit and completion
+
+The localization sweep added complete English and Arabic namespaces for complaint flash messages and activity descriptions (`complaints.php`, `activity.php`), customer messages (`customers.php`), authentication failures (`auth.php`), and validation messages/field attributes (`validation.php`). Audit-log and complaint-timeline views now translate known stored action identifiers such as `complaint.updated` instead of printing raw keys or historical descriptions. Unknown actions use a localized generic activity label. Master-data headings and activity descriptions, login branding/demo guidance, and customer complaint-summary statuses are also locale-aware.
+
+A static translation-helper audit now checks 143 application keys against both locale dictionaries and reports **zero missing keys**. Localization feature tests verify English/Arabic message availability, selected-locale login and customer pages, and bilingual audit-log rendering.

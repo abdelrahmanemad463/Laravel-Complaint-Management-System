@@ -295,3 +295,8 @@ Attachments, internal comments, notifications, email or WhatsApp integration, sa
 The **Roles and Permissions** module supports custom-role creation and guarded deletion. Role creation is permission-protected and rejects the four reserved baseline role names. Baseline roles are never deletable, and a custom role cannot be deleted while any user is assigned to it; both rules are enforced in the controller in addition to conditional UI actions. New roles are created with the `web` guard and can then be configured through the existing permission editor.
 
 The **Users** module lists users with eager-loaded roles and provides GET filters for name/email text and exact role selection. Results are database-filtered, ordered by name, paginated at 20 records, and preserve active filter parameters in pagination links, avoiding an in-memory load of the full user table.
+
+
+### Localization completion
+
+Localization now covers complaint and customer flash/activity messages, authentication failures, validation rules and field names, activity-log action labels, login branding/demo guidance, master-data headings, and customer complaint-summary statuses in both English and Arabic. Audit and complaint-timeline views translate known persisted action identifiers and use a localized generic fallback for unknown activity types, preventing raw keys such as `complaints.updated` from appearing in the interface.

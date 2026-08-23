@@ -7,7 +7,7 @@
     <a href="{{ route('master.index', $type) }}" class="back-link">← {{ __('common.back') }}</a>
     <h1 class="page-title mt-4">
         {{ $editing ? __('common.edit') : __('common.new') }}
-        {{ \Illuminate\Support\Str::singular($config['title']) }}
+        {{ \Illuminate\Support\Str::singular(__('common.' . $type)) }}
     </h1>
 </div>
 

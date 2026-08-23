@@ -8,13 +8,13 @@ use Illuminate\Http\Request;
 class MasterDataController extends Controller
 {
     private array $types = [
-        'branches' => ['model' => \App\Models\Branch::class, 'title' => 'Branches', 'module' => 'branch', 'fields' => ['name', 'code', 'is_active', 'sort_order']],
-        'services' => ['model' => \App\Models\Service::class, 'title' => 'Services', 'module' => 'service', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
-        'sources' => ['model' => \App\Models\ComplaintSource::class, 'title' => 'Sources', 'module' => 'source', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
-        'categories' => ['model' => \App\Models\ComplaintCategory::class, 'title' => 'Categories', 'module' => 'category', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
-        'types' => ['model' => \App\Models\ComplaintType::class, 'title' => 'Complaint Types', 'module' => 'type', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
-        'priorities' => ['model' => \App\Models\Priority::class, 'title' => 'Priorities', 'module' => 'priority', 'fields' => ['name', 'color', 'level', 'is_active', 'sort_order']],
-        'statuses' => ['model' => \App\Models\ComplaintStatus::class, 'title' => 'Statuses', 'module' => 'status', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
+        'branches' => ['model' => \App\Models\Branch::class, 'title' => 'branches', 'module' => 'branch', 'fields' => ['name', 'code', 'is_active', 'sort_order']],
+        'services' => ['model' => \App\Models\Service::class, 'title' => 'services', 'module' => 'service', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
+        'sources' => ['model' => \App\Models\ComplaintSource::class, 'title' => 'sources', 'module' => 'source', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
+        'categories' => ['model' => \App\Models\ComplaintCategory::class, 'title' => 'categories', 'module' => 'category', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
+        'types' => ['model' => \App\Models\ComplaintType::class, 'title' => 'types', 'module' => 'type', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
+        'priorities' => ['model' => \App\Models\Priority::class, 'title' => 'priorities', 'module' => 'priority', 'fields' => ['name', 'color', 'level', 'is_active', 'sort_order']],
+        'statuses' => ['model' => \App\Models\ComplaintStatus::class, 'title' => 'statuses', 'module' => 'status', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
     ];
 
     private function config(string $type): array
@@ -62,7 +62,7 @@ class MasterDataController extends Controller
         $values = $request->validate($this->rules($config));
         $values['is_active'] = $request->boolean('is_active');
         $record = ($config['model'])::create($values);
-        app(ActivityLogService::class)->record('master_data.created', $record, $config['title'].' item created.');
+        app(ActivityLogService::class)->record('master_data.created', $record, __('activity.master_data.created'));
         return redirect()->route('master.index', $type)->with('success', __('common.saved'));
     }
 
@@ -83,7 +83,7 @@ class MasterDataController extends Controller
         $values['is_active'] = $request->boolean('is_active');
         $old = $record->only(array_keys($values));
         $record->update($values);
-        app(ActivityLogService::class)->record('master_data.updated', $record, $config['title'].' item updated.', $old, $record->only(array_keys($values)));
+        app(ActivityLogService::class)->record('master_data.updated', $record, __('activity.master_data.updated'), $old, $record->only(array_keys($values)));
         return redirect()->route('master.index', $type)->with('success', __('common.saved'));
     }
 
@@ -93,7 +93,7 @@ class MasterDataController extends Controller
         $this->authorizeAction($config, 'delete');
         $record = ($config['model'])::findOrFail($item);
         $record->delete();
-        app(ActivityLogService::class)->record('master_data.deleted', $record, $config['title'].' item deleted.');
+        app(ActivityLogService::class)->record('master_data.deleted', $record, __('activity.master_data.deleted'));
         return back()->with('success', __('common.deleted'));
     }
 }
