@@ -1,0 +1,6 @@
+@extends('layouts.app')
+@section('content')
+<div class="mb-8"><p class="eyebrow">{{ __('common.administration') }}</p><h1 class="page-title">{{ __('common.audit_logs') }}</h1><p class="page-subtitle">{{ __('common.audit_logs_subtitle') }}</p></div>
+<form class="card mb-6 flex gap-3" method="GET"><input class="form-input max-w-md" name="action" value="{{ request('action') }}" placeholder="{{ __('common.action_filter') }}"><button class="btn-primary">{{ __('common.filter') }}</button><a class="btn-secondary" href="{{ route('audit-logs.index') }}">{{ __('common.reset') }}</a></form>
+<div class="card overflow-hidden p-0"><table class="data-table"><thead><tr><th>{{ __('common.date') }}</th><th>{{ __('common.user') }}</th><th>{{ __('common.action') }}</th><th>{{ __('common.description') }}</th></tr></thead><tbody>@forelse($logs as $log)<tr><td>{{ optional($log->created_at)->format('Y-m-d H:i') }}</td><td>{{ $log->user?->name ?? __('common.system') }}</td><td class="font-semibold">{{ $log->action }}</td><td>{{ $log->description }}</td></tr>@empty<tr><td colspan="4" class="empty">{{ __('common.no_data') }}</td></tr>@endforelse</tbody></table><div class="p-4">{{ $logs->links() }}</div></div>
+@endsection

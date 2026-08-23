@@ -1,0 +1,5 @@
+@extends('layouts.app')
+@section('content')
+<div class="mb-8"><a class="back-link" href="{{ route('roles.index') }}">← {{ __('common.roles') }}</a><h1 class="page-title mt-4">{{ __('common.configure') }}: {{ $role->name }}</h1>@if($role->name==='Super Admin')<p class="mt-2 text-sm text-amber-700">{{ __('common.super_admin_protected') }}</p>@endif</div>
+<form method="POST" action="{{ route('roles.update',$role) }}" class="card">@csrf @method('PUT')<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">@foreach($permissions as $permission)<label class="flex items-center gap-2 rounded-lg border border-slate-200 p-3 text-sm"><input type="checkbox" name="permissions[]" value="{{ $permission->name }}" @checked($role->hasPermissionTo($permission->name)) @disabled($role->name==='Super Admin')>{{ $permission->name }}</label>@endforeach</div>@if($role->name!=='Super Admin')<div class="mt-6 flex justify-end"><button class="btn-primary">{{ __('common.save') }}</button></div>@endif</form>
+@endsection

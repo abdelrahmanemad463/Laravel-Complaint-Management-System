@@ -1,0 +1,255 @@
+# Complaint Management System — Database Design
+
+**Status:** Implemented baseline, with room for future modules  
+**Database:** The relational database configured by Laravel; migrations must remain portable between MySQL and SQLite tests where practical.
+
+## 1. Design Principles
+
+The database separates customers, complaints, dynamic master data, authorization, status history, and audit activity. Complaint records keep foreign-key references to master data so reports remain consistent. Master data is deactivated with `is_active = false` when it should no longer be selectable for new complaints; soft deletes and restricted deletion protect historical records.
+
+All timestamps use Laravel’s normal timestamp handling. Business dates are stored separately from record creation timestamps. JSON columns are used only for audit snapshots where structured old/new values are useful.
+
+## 2. Tables Summary
+
+| Table | Purpose | Soft deletes |
+|---|---|:---:|
+| users | Authenticated application users and complaint actors | No |
+| customers | Customers with one required and up to three optional phones | Yes |
+| branches | Dynamic branch master data | Yes |
+| services | Dynamic service master data | Yes |
+| complaint_sources | Dynamic complaint-origin master data | Yes |
+| complaint_categories | Dynamic complaint-category master data | Yes |
+| complaint_types | Dynamic complaint-type master data | Yes |
+| priorities | Dynamic priority master data and colors | Yes |
+| complaint_statuses | Dynamic complaint-status master data and colors | Yes |
+| complaints | Customer complaints and resolution metadata | Yes |
+| complaint_status_histories | Immutable status transitions and reasons | No |
+| activity_logs | Append-oriented audit events and snapshots | No |
+| Spatie permission tables | Roles, permissions, and model assignments | No |
+| cache/jobs tables | Existing Laravel infrastructure | Existing skeleton behavior |
+
+## 3. Core Tables and Columns
+
+### 3.1 `users`
+
+The existing Laravel users table remains the authentication source. It must provide the normal `id`, `name`, `email`, `password`, verification, and timestamps. No manual `created_by` name is stored in complaints; complaints reference `users.id`.
+
+Additional profile fields such as `locale` may be added only if the existing authentication design needs a per-user language preference. Otherwise, locale is stored in the session.
+
+### 3.2 `customers`
+
+| Column | Type | Constraints and reason |
+|---|---|---|
+| id | big integer | Primary key |
+| name | string | Required customer name |
+| phone_primary | string | Required; indexed; normalized before saving |
+| phone_2 | string nullable | Optional; indexed |
+| phone_3 | string nullable | Optional; indexed |
+| phone_4 | string nullable | Optional; indexed |
+| address | text nullable | Optional address |
+| created_at | timestamp | Laravel timestamp |
+| updated_at | timestamp | Laravel timestamp |
+| deleted_at | timestamp nullable | Soft delete |
+
+The four phone columns are deliberately explicit because the requirements define a maximum of four numbers and require a simple OR search. Phone values should be normalized consistently, for example by trimming whitespace and applying the application’s chosen digit representation. A unique constraint is not imposed across all phone columns in the first design because cross-column uniqueness is database-specific and duplicates may require a business decision. The application may reject an exact duplicate phone during customer creation after a clear policy decision.
+
+Indexes: separate indexes on `phone_primary`, `phone_2`, `phone_3`, and `phone_4`; an index on `name` only if name search is used frequently.
+
+### 3.3 Master-data tables
+
+The following tables share a simple structure and are managed separately so Source and Category remain distinct concepts:
+
+- `branches`
+- `services`
+- `complaint_sources`
+- `complaint_categories`
+- `complaint_types`
+- `priorities`
+- `complaint_statuses`
+
+| Column | Type | Constraints and reason |
+|---|---|---|
+| id | big integer | Primary key |
+| name | string | Required display name |
+| color | string nullable or string | Hex/CSS-safe display color; required for priorities and statuses |
+| is_active | boolean | Default true; controls new selections |
+| sort_order | unsigned integer | Default 0; stable UI ordering |
+| level | unsigned integer nullable | Used by priorities to order severity |
+| code | string nullable | Used by branches for a stable business code |
+| created_at | timestamp | Laravel timestamp |
+| updated_at | timestamp | Laravel timestamp |
+| deleted_at | timestamp nullable | Soft delete |
+
+Column application by table:
+
+| Table | `code` | `color` | `level` |
+|---|:---:|:---:|:---:|
+| branches | Yes | No | No |
+| services | No | Yes | No |
+| complaint_sources | No | Yes | No |
+| complaint_categories | No | Yes | No |
+| complaint_types | No | Yes | No |
+| priorities | No | Yes, required | Yes, useful for severity ordering |
+| complaint_statuses | No | Yes, required | No |
+
+Branch `code` should be unique among non-deleted branches if it is used operationally. Names should have a practical uniqueness rule per table, normally unique among active/non-deleted records. The migration should avoid database-specific partial unique indexes unless required; validation and a conventional unique field can be used where appropriate.
+
+### 3.4 `complaints`
+
+| Column | Type | Constraints and reason |
+|---|---|---|
+| id | big integer | Primary key |
+| customer_id | foreign big integer | Required; references customers |
+| branch_id | foreign big integer | Required; references branches |
+| service_id | foreign big integer | Required; references services |
+| source_id | foreign big integer | Required; references complaint_sources |
+| category_id | foreign big integer | Required; references complaint_categories |
+| type_id | foreign big integer | Required; references complaint_types |
+| priority_id | foreign big integer | Required; references priorities |
+| status_id | foreign big integer | Required; references complaint_statuses |
+| short_description | string | Required summary |
+| description | text | Required full complaint |
+| complaint_date | date/datetime | Required business submission/occurrence date; indexed |
+| created_by | foreign big integer | Required; references users |
+| resolved_by | foreign big integer nullable | Resolver user; populated when solved |
+| resolved_at | timestamp nullable | Resolution timestamp |
+| resolution | text nullable | How the complaint was solved |
+| created_at | timestamp | Laravel timestamp |
+| updated_at | timestamp | Laravel timestamp |
+| deleted_at | timestamp nullable | Soft delete |
+
+Foreign-key behavior must preserve history. The preferred behavior is `restrict`/`no action` for referenced master data and users, or a nullable foreign key only where the business explicitly accepts losing the actor reference. The application should soft-delete or deactivate referenced records instead of physically deleting them. Customer deletion should be prevented or restricted when complaints exist; if a later policy allows it, the customer foreign key must remain safe and historical display must be designed first. No blanket cascade delete is used.
+
+Indexes: indexes on each foreign key used by filters and joins; an index on `complaint_date`; composite indexes may be added after observing report query patterns, especially `(branch_id, complaint_date)` and `(status_id, complaint_date)` if they materially improve reports.
+
+### 3.5 `complaint_status_histories`
+
+| Column | Type | Constraints and reason |
+|---|---|---|
+| id | big integer | Primary key |
+| complaint_id | foreign big integer | Required; references complaints |
+| from_status_id | foreign big integer nullable | Null for the first recorded transition if needed |
+| to_status_id | foreign big integer | Required new status |
+| reason | text nullable | User explanation for the change |
+| changed_by | foreign big integer | Required authenticated actor |
+| changed_at | timestamp | Required event timestamp |
+| created_at | timestamp | Laravel timestamp |
+| updated_at | timestamp | Laravel timestamp |
+
+Indexes: `complaint_id`, `changed_at`, `to_status_id`, and `changed_by`. Status-history rows are append-only in the application and are not soft-deleted, because the requirement says history must not be lost. Foreign keys use restrictive behavior where possible.
+
+### 3.6 `activity_logs`
+
+| Column | Type | Constraints and reason |
+|---|---|---|
+| id | big integer | Primary key |
+| user_id | foreign big integer nullable | Actor; nullable for system actions |
+| action | string | Stable action name such as `complaint.updated` |
+| subject_type | string nullable | Polymorphic model type |
+| subject_id | big integer nullable | Polymorphic model id |
+| description | text nullable | Human-readable event description |
+| old_values | json nullable | Previous values for important changes |
+| new_values | json nullable | New values for important changes |
+| created_at | timestamp | Event timestamp |
+
+Indexes: `(subject_type, subject_id)`, `user_id`, `action`, and `created_at`. Logs are append-oriented, restricted by `audit.view`, and not exposed for normal editing or deletion. A polymorphic subject keeps audit logging simple without one nullable foreign key for every audited model.
+
+## 4. Authorization Tables
+
+Spatie Laravel Permission 6.24.0 adds its standard tables, normally `permissions`, `roles`, `model_has_permissions`, `model_has_roles`, and `role_has_permissions`. The published package migration is the source of truth for their exact columns and indexes. The application seeds permissions such as `customer.view`, `complaint.create`, `complaint.view_logs`, `report.export`, `user.update`, and `role.update` systematically.
+
+The Super Admin role is seeded with all permissions. Authorization code checks the protected role before allowing role/user changes, so removing buttons is not the only safeguard. Normal Admin users cannot remove Super Admin’s role or permissions through the UI or a crafted request.
+
+## 5. Relationship Map
+
+```mermaid
+erDiagram
+    USERS ||--o{ COMPLAINTS : creates
+    USERS ||--o{ COMPLAINTS : resolves
+    USERS ||--o{ COMPLAINT_STATUS_HISTORIES : changes
+    USERS ||--o{ ACTIVITY_LOGS : performs
+
+    CUSTOMERS ||--o{ COMPLAINTS : has
+    BRANCHES ||--o{ COMPLAINTS : receives
+    SERVICES ||--o{ COMPLAINTS : classifies
+    COMPLAINT_SOURCES ||--o{ COMPLAINTS : originates
+    COMPLAINT_CATEGORIES ||--o{ COMPLAINTS : categorizes
+    COMPLAINT_TYPES ||--o{ COMPLAINTS : types
+    PRIORITIES ||--o{ COMPLAINTS : prioritizes
+    COMPLAINT_STATUSES ||--o{ COMPLAINTS : tracks
+
+    COMPLAINTS ||--o{ COMPLAINT_STATUS_HISTORIES : records
+    COMPLAINT_STATUSES ||--o{ COMPLAINT_STATUS_HISTORIES : from_status
+    COMPLAINT_STATUSES ||--o{ COMPLAINT_STATUS_HISTORIES : to_status
+    COMPLAINTS ||--o{ ACTIVITY_LOGS : has
+
+    USERS {
+        bigint id PK
+        string name
+        string email
+    }
+    CUSTOMERS {
+        bigint id PK
+        string name
+        string phone_primary
+        string phone_2
+        string phone_3
+        string phone_4
+    }
+    COMPLAINTS {
+        bigint id PK
+        bigint customer_id FK
+        bigint branch_id FK
+        bigint service_id FK
+        bigint source_id FK
+        bigint category_id FK
+        bigint type_id FK
+        bigint priority_id FK
+        bigint status_id FK
+        bigint created_by FK
+        bigint resolved_by FK
+        datetime complaint_date
+    }
+```
+
+## 6. Foreign Keys and Delete Policy
+
+| Reference | Preferred behavior | Reason |
+|---|---|---|
+| complaints.customer_id | Restrict/no action | Complaints must retain customer context |
+| complaints.branch_id and other master-data ids | Restrict/no action | Historical reports must remain valid |
+| complaints.created_by | Restrict/no action or carefully nullable | Preserve actor identity |
+| complaints.resolved_by | Set null only if user deletion is allowed | Resolution remains readable even if account is retired |
+| complaint_status_histories.complaint_id | Restrict/no action | History must not disappear with a complaint |
+| activity_logs.user_id | Set null for system/account retirement | Audit event can remain when actor account is unavailable |
+| activity_logs subject | No database FK because it is polymorphic | Log must not prevent normal model lifecycle |
+
+Soft deletes and deactivation are preferred over physical deletion. Any future purge process must explicitly account for audit and statutory retention requirements.
+
+## 7. Validation and Integrity Rules
+
+Customer `name` and `phone_primary` are required. `phone_2`, `phone_3`, and `phone_4` are nullable. Complaint foreign keys are required and validated with `exists` rules against the appropriate tables. New complaints accept active master-data records only; existing complaints may continue to reference inactive records. The creator is always taken from the authenticated user and never from a submitted form field.
+
+When a complaint is moved into the configured Solved status, the application stores `resolved_by` and `resolved_at` from the authenticated user and current time. The UI asks for a resolution and displays it on the complaint timeline. Status changes are performed inside a transaction and require a history row.
+
+## 8. Query and Reporting Index Plan
+
+The first migration set should add indexes to all complaint filter foreign keys, `complaint_date`, creator, resolver, and each customer phone column. This directly supports the main workflow and filter/report queries. The application should use `with()` for customer, branch, master-data, creator, resolver, and status-history display to prevent N+1 queries.
+
+The complaint listing uses `paginate()` and preserves query strings. The branch report groups by `complaint_date` and `branch_id` in SQL. Excel export uses the filtered query with chunking rather than constructing a large in-memory collection. Additional composite indexes should be added only after profiling actual query plans.
+
+## 9. Migration Order
+
+1. Keep the existing Laravel users/cache/jobs migrations.
+2. Add Spatie Permission’s published migration.
+3. Create customers and all master-data tables.
+4. Create complaints after every referenced table exists.
+5. Create complaint status histories after complaints and statuses exist.
+6. Create activity logs after users and auditable models exist.
+7. Seed permissions, roles, master data, users, customers, and demo complaints.
+
+The implemented migration order follows this plan. Seeders now provide the four baseline roles, systematic permissions, an initial Super Admin account, master-data examples, and realistic demo customers/complaints. Each future schema change must update this document and `project_structure.md` before the change is considered complete.
+
+## 10. Test Coverage Required by the Design
+
+Feature tests must cover required and optional phone validation, search through each of the four phone columns, complaint creation with authenticated `created_by`, all required relationships, status-history creation, resolution metadata, Super Admin protection, permission denial, customer/date/status/priority filters, multiple-branch filtering, combined filters, filtered export, and English/Arabic export headings.
