@@ -23,6 +23,29 @@ class PwaTest extends TestCase
             ->assertSee('rel="apple-touch-icon"', false);
     }
 
+    public function test_authenticated_layout_exposes_theme_switch_and_bootstrap(): void
+    {
+        $this->seed();
+        $user = User::where('email', 'admin@example.com')->firstOrFail();
+
+        $this->actingAs($user)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('data-theme-toggle', false)
+            ->assertSee("localStorage.getItem('complaint-theme')", false)
+            ->assertSee("document.documentElement.dataset.theme", false)
+            ->assertSee(__('common.dark_mode'), false)
+            ->assertSee(__('common.theme_switcher'), false);
+
+        $styles = (string) file_get_contents(resource_path('css/app.css'));
+        $this->assertStringContainsString("html[data-theme='dark'] .card", $styles);
+        $this->assertStringContainsString("html[data-theme='dark'] .form-input", $styles);
+        $this->assertStringContainsString("html[data-theme='dark'] #branch-results", $styles);
+        $this->assertStringContainsString("html[data-theme='dark'] .form-label", $styles);
+        $this->assertStringContainsString("html[data-theme='dark'] .btn-secondary", $styles);
+        $this->assertStringContainsString("html[data-theme='dark'] .nav-link", $styles);
+    }
+
     public function test_pwa_manifest_and_assets_are_valid(): void
     {
         $manifestPath = public_path('manifest.json');

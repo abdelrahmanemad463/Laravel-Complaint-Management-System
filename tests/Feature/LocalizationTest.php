@@ -47,6 +47,15 @@ class LocalizationTest extends TestCase
         }
     }
 
+    public function test_theme_switch_labels_are_localized(): void
+    {
+        $this->assertSame('Dark mode', __('common.dark_mode', [], 'en'));
+        $this->assertSame('Light mode', __('common.light_mode', [], 'en'));
+        $this->assertSame('تبديل مظهر الألوان.', __('common.theme_switcher', [], 'ar'));
+        $this->assertSame('الوضع الداكن', __('common.dark_mode', [], 'ar'));
+        $this->assertSame('الوضع الفاتح', __('common.light_mode', [], 'ar'));
+    }
+
     public function test_login_and_customer_summary_use_selected_locale(): void
     {
         $admin = User::where('email', 'admin@example.com')->firstOrFail();

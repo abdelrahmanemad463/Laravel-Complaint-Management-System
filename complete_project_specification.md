@@ -2518,12 +2518,12 @@ The latest full verification completed successfully:
 ```text
 Blade views: cleared and cached successfully
 Vite production build: completed successfully
-Laravel test suite: 32 tests passed, 127 assertions
+Laravel test suite: 34 tests passed, 144 assertions
 Migration status: all current migrations reported Ran
 Registered routes: 42 routes reported by php artisan route:list
 ```
 
-Localization regression tests cover English/Arabic messages, login copy, customer status summaries, and audit-log action rendering. Pagination regression tests verify 30 complaint rows and 30 customer rows on the first two pages against the seeded larger dataset. PWA tests cover manifest metadata, icons, service-worker files, and the rule that private pages/API responses are not cached. `php artisan db:seed --force` completed successfully with the expanded idempotent demo dataset.
+Localization regression tests cover English/Arabic messages, login copy, customer status summaries, audit-log action rendering, and theme labels. Pagination regression tests verify 30 complaint rows and 30 customer rows on the first two pages against the seeded larger dataset. PWA tests cover manifest metadata, icons, service-worker files, and the rule that private pages/API responses are not cached. Dark-mode layout tests verify the theme switch markup and early localStorage bootstrap. `php artisan db:seed --force` completed successfully with the expanded idempotent demo dataset; the latest full suite passed with 34 tests and 144 assertions.
 
 ## 66.10 Intentional Limitations and Deferred Requirements
 
@@ -2569,3 +2569,8 @@ No behavior should be described as implemented until it has been verified in the
 ## 66.12 Pagination Verification Coverage
 
 The feature regression suite verifies that both the complaints and customers index pages render 30 records on each of the first two pages when the dataset exceeds one page. The demo seed dataset is included in the same test setup, so pagination coverage is exercised against more than 100 existing records rather than only a small isolated fixture.
+
+
+## 66.13 Dark Mode and Theme Preference
+
+The shared Blade layout now includes a localized light/dark theme switch. The selected theme is stored in browser `localStorage` under `complaint-theme`, initialized before the Vite bundle runs to reduce theme flash, and applied through `html[data-theme='dark']` CSS overrides. Shared page surfaces, typography, form controls, tables, navigation, alerts, buttons, badges, picker result panels, and other light-palette utility classes have explicit dark-mode overrides so report filters and all other existing server-rendered forms do not remain white or low-contrast in dark mode. Component-specific dark selectors provide brighter labels, headings, navigation, secondary buttons, borders, hover states, and focus states while leaving light mode unchanged. The switch updates the PWA `theme-color` metadata and preserves English/Arabic labels and RTL behavior. Bilingual localization and layout regression tests cover the new theme controls and explicit dark form/card/picker surfaces. Contrast regression assertions cover component selectors for labels, secondary buttons, and navigation; the latest full suite passed after the contrast correction with 34 tests and 144 assertions.

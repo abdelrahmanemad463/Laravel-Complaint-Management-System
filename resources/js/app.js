@@ -1,5 +1,31 @@
 import './bootstrap';
 
+const themeToggle = document.querySelector('[data-theme-toggle]');
+const themeColorMeta = document.querySelector('[data-theme-color]');
+
+const applyTheme = (theme) => {
+    const normalizedTheme = theme === 'dark' ? 'dark' : 'light';
+    const isDark = normalizedTheme === 'dark';
+    document.documentElement.dataset.theme = normalizedTheme;
+    document.documentElement.style.colorScheme = normalizedTheme;
+    if (themeColorMeta) themeColorMeta.content = isDark ? '#0f172a' : '#4f46e5';
+    if (!themeToggle) return;
+    themeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+    themeToggle.setAttribute('aria-label', themeToggle.dataset.themeSwitcher || themeToggle.getAttribute('aria-label') || 'Switch theme');
+    const icon = themeToggle.querySelector('[data-theme-icon]');
+    const label = themeToggle.querySelector('[data-theme-label]');
+    if (icon) icon.textContent = isDark ? '☀' : '☾';
+    if (label) label.textContent = isDark ? themeToggle.dataset.lightLabel : themeToggle.dataset.darkLabel;
+};
+
+applyTheme(document.documentElement.dataset.theme || 'light');
+
+themeToggle?.addEventListener('click', () => {
+    const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+    applyTheme(nextTheme);
+    window.localStorage.setItem('complaint-theme', nextTheme);
+});
+
 const customerPicker = document.querySelector('[data-customer-picker]');
 
 if (customerPicker) {

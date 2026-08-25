@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#4f46e5" data-theme-color>
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -12,6 +12,13 @@
     <link rel="icon" type="image/png" sizes="192x192" href="{{ asset('icons/icon-192x192.png') }}">
     <link rel="apple-touch-icon" href="{{ asset('icons/icon-180x180.png') }}">
     <title>{{ $title ?? 'Complaint Desk' }}</title>
+    <script>
+        (() => {
+            const savedTheme = window.localStorage.getItem('complaint-theme');
+            const theme = savedTheme === 'dark' || savedTheme === 'light' ? savedTheme : 'light';
+            document.documentElement.dataset.theme = theme;
+        })();
+    </script>
     @vite(['resources/css/app.css','resources/js/app.js'])
 </head>
 <body class="bg-slate-50 text-slate-900">
@@ -32,6 +39,10 @@
             </nav>
             <div class="flex items-center gap-3 text-sm">
                 <a href="{{ route('locale', app()->getLocale() === 'ar' ? 'en' : 'ar') }}" class="rounded-md border px-2 py-1">{{ app()->getLocale() === 'ar' ? 'English' : 'العربية' }}</a>
+                <button type="button" class="theme-toggle" data-theme-toggle data-light-label="{{ __('common.light_mode') }}" data-dark-label="{{ __('common.dark_mode') }}" data-theme-switcher="{{ __('common.theme_switcher') }}" aria-pressed="false" aria-label="{{ __('common.theme_switcher') }}">
+                    <span data-theme-icon aria-hidden="true">☾</span>
+                    <span data-theme-label>{{ __('common.dark_mode') }}</span>
+                </button>
                 <span class="hidden text-slate-600 sm:inline">{{ auth()->user()->name }}</span>
                 <form method="POST" action="{{ route('logout') }}">@csrf<button class="text-rose-600 hover:underline">{{ __('common.logout') }}</button></form>
             </div>
