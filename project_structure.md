@@ -1,6 +1,6 @@
 # Complaint Management System — Project Structure
 
-**Status:** Current-state implementation guide  
+**Status:** Current-state implementation guide; last verified 2026-08-26  
 **Application:** Complaint Desk  
 **Framework:** Laravel 12 on PHP 8.2+  
 **Rendering:** Server-rendered Blade with Tailwind CSS and progressive JavaScript enhancement  
@@ -328,8 +328,8 @@ The permission migration creates package roles, permissions, model-role/model-pe
 |---|---|---|
 | Authentication | `AuthController`, `auth/login.blade.php` | Session login/logout; failed credentials use localized messages |
 | Dashboard | `DashboardController`, `dashboard/index.blade.php` | Aggregate seven-day counts, status/priority distributions, and branch ranking |
-| Customers | `CustomerController`, `Customer` model, `customers/` views | CRUD, four-phone/name search, complaint count/history, soft deletion model support; primary phone required |
-| Complaints | `ComplaintController`, `Complaint` model, `complaints/` views | CRUD, customer and master-data associations, filters, detail page, status transitions, resolution metadata, activity timeline |
+| Customers | `CustomerController`, `Customer` model, `customers/` views | CRUD, four-phone/name search, complaint count/history, 30-record pagination, soft deletion model support; primary phone required |
+| Complaints | `ComplaintController`, `Complaint` model, `complaints/` views | CRUD, customer and master-data associations, filters, detail page, status transitions, resolution metadata, activity timeline, and 30-record pagination |
 | Complaint filtering | `ComplaintFilterRequest`, `Complaint::scopeFilter()` | Complaint ID, customer, multi-branch, master-data, creator, and date filters; query strings retained in pagination |
 | Master data | `MasterDataController`, `master-data/` views | Branches, services, sources, categories, types, priorities, and statuses; active flag controls new selections; records are ordered and paginated |
 | Branch reports | `ReportController`, `reports/branches.blade.php` | Date range and multi-branch filtering; SQL grouping by complaint date and branch |
@@ -597,3 +597,8 @@ The companion `database_design.md` provides a more detailed data-design narrativ
 ## Documentation synchronization workflow
 
 Persistent project instructions require every code edit or code change to begin by reading `memory.md`, `complete_project_specification.md`, and `project_structure.md`. After the change, all three files must be updated in the same task so they remain synchronized with the actual code, migrations, routes, permissions, tests, configuration, and known limitations. `complete_project_specification.md` is the requirements and verified implementation-status source, `memory.md` is the continuation context, and this file is the architecture/developer map. Schema changes additionally require `database_design.md`. Relevant tests and build checks must be run before reporting completion, with verification results recorded in `memory.md`.
+
+
+### Pagination verification
+
+Feature tests verify that the complaints and customers index pages each render 30 records on both the first and second pages when more than 100 records exist. The test setup uses the seeded demo dataset, ensuring the paginator is exercised with a realistic larger result set. The latest full suite passed with 32 tests and 127 assertions; Blade caching, the Vite production build, migration status, and `php artisan db:seed --force` also completed successfully.

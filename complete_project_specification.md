@@ -2376,7 +2376,7 @@ Do NOT start generating the complete application code until this design is revie
 
 This document began as the system requirements and implementation brief. The following addendum records the verified state of the codebase so future development can distinguish completed behavior from intentionally deferred requirements.
 
-**Last verified:** 2026-08-24  
+**Last verified:** 2026-08-26  
 **Application path:** `C:\xampp\htdocs\complaint`  
 **Current local URL:** `http://localhost/complaint/public/`
 
@@ -2443,7 +2443,7 @@ The implemented migration order is:
 
 The complaint and master-data migrations use foreign keys, restrictive deletion behavior for historical references, nullable resolver/activity actor references where appropriate, indexes for phone/date/filter access, and soft deletes on business records. `DatabaseSeeder` runs permissions/roles, master data, and demo data in that order.
 
-The seeded master data includes Branch A/B/C; Take Away, Dine In, and Delivery services; WhatsApp, Phone, Facebook, In Person, Website, and Email sources; Food Quality, Customer Service, Staff, Delivery, Payment, and Order categories; Wrong Order, Missing Item, Late Delivery, Bad Treatment, Wrong Price, and Food Quality types; Low, Medium, High, and Critical priorities; and Pending, In Progress, Solved, Closed, and Reopened statuses.
+The seeded master data includes Branch A/B/C; Take Away, Dine In, and Delivery services; WhatsApp, Phone, Facebook, In Person, Website, and Email sources; Food Quality, Customer Service, Staff, Delivery, Payment, and Order categories; Wrong Order, Missing Item, Late Delivery, Bad Treatment, Wrong Price, and Food Quality types; Low, Medium, High, and Critical priorities; and Pending, In Progress, Solved, Closed, and Reopened statuses. `DemoDataSeeder` then creates an idempotent dataset of exactly 100 customers and one complaint per demo customer, distributing records across the seeded master data values.
 
 ## 66.4 Current Permission Design
 
@@ -2501,9 +2501,9 @@ Complaint updates preserve old/new values, so priority, branch, service, categor
 
 ## 66.7 Filtering and Scalability Status
 
-The complaint index and export support `complaint_id`, `customer_id`, `branch_ids[]`, `service_id`, `source_id`, `category_id`, `type_id`, `priority_id`, `status_id`, `created_by`, `date_from`, and `date_to`. The `date_to` validator requires it to be on or after `date_from`. Complaint results are paginated at 20 records.
+The complaint index and export support `complaint_id`, `customer_id`, `branch_ids[]`, `service_id`, `source_id`, `category_id`, `type_id`, `priority_id`, `status_id`, `created_by`, `date_from`, and `date_to`. The `date_to` validator requires it to be on or after `date_from`. Complaint results are paginated at 30 records.
 
-Customer list results are paginated at 15 records. The customer picker initially displays at most 10 records and searches all four phone fields plus name through a protected JSON route. Branch picker results are limited to 5 records and support name search. User results are paginated at 20 records and can be filtered by name/email and exact role.
+Customer list results are paginated at 30 records. The customer picker initially displays at most 10 records and searches all four phone fields plus name through a protected JSON route. Branch picker results are limited to 5 records and support name search. User results are paginated at 20 records and can be filtered by name/email and exact role.
 
 ## 66.8 Localization and Error Handling Status
 
@@ -2518,12 +2518,12 @@ The latest full verification completed successfully:
 ```text
 Blade views: cleared and cached successfully
 Vite production build: completed successfully
-Laravel test suite: 29 tests passed, 117 assertions
+Laravel test suite: 32 tests passed, 127 assertions
 Migration status: all current migrations reported Ran
 Registered routes: 42 routes reported by php artisan route:list
 ```
 
-Localization regression tests cover English/Arabic messages, login copy, customer status summaries, and audit-log action rendering. PWA tests cover manifest metadata, icons, service-worker files, and the rule that private pages/API responses are not cached.
+Localization regression tests cover English/Arabic messages, login copy, customer status summaries, and audit-log action rendering. Pagination regression tests verify 30 complaint rows and 30 customer rows on the first two pages against the seeded larger dataset. PWA tests cover manifest metadata, icons, service-worker files, and the rule that private pages/API responses are not cached. `php artisan db:seed --force` completed successfully with the expanded idempotent demo dataset.
 
 ## 66.10 Intentional Limitations and Deferred Requirements
 
@@ -2564,3 +2564,8 @@ After the code change, the same task must update all three files so they remain 
 | `project_structure.md` | Current architecture, project map, technologies, modules, routes, and developer guidance |
 
 No behavior should be described as implemented until it has been verified in the codebase. Schema changes also require `database_design.md` to be updated. Relevant tests, build checks, and other verification commands must be run before completion, and their results must be recorded in `memory.md`.
+
+
+## 66.12 Pagination Verification Coverage
+
+The feature regression suite verifies that both the complaints and customers index pages render 30 records on each of the first two pages when the dataset exceeds one page. The demo seed dataset is included in the same test setup, so pagination coverage is exercised against more than 100 existing records rather than only a small isolated fixture.

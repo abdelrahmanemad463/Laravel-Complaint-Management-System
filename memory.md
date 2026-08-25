@@ -1,6 +1,6 @@
 # Complaint Desk — Persistent Project Memory
 
-**Last synchronized:** 2026-08-24  
+**Last synchronized:** 2026-08-26  
 **Project root:** `C:\xampp\htdocs\complaint`  
 **Application:** Complaint Desk / Complaint Management System  
 **Source of truth:** The current codebase, migrations, configuration, tests, and generated build output. This file is a concise continuation guide; `project_structure.md` and `database_design.md` contain the fuller architecture and database narratives.
@@ -75,11 +75,13 @@ Business logic is intentionally simple and Laravel-native. There is no repositor
 - Initial customer picker limited to 10 records.
 - Debounced background customer search with `fetch()` and `AbortController`.
 - Customer summary and complaint history.
+- Customer index uses Laravel `paginate(30)->withQueryString()` so 30 customers are rendered per page.
 - Soft deletes at the model/database level.
 
 ### Complaints
 
 - Complaint creation, listing, detail, and update screens.
+- Complaint index uses Laravel `paginate(30)->withQueryString()` so 30 complaints are rendered per page.
 - Required customer, branch, service, source, category, type, priority, status, short description, description, and complaint date.
 - Authenticated user is always assigned as `created_by` server-side.
 - Complaint ID, customer, branch, master-data, creator, and date filtering.
@@ -285,3 +287,15 @@ The latest specification verification confirmed the document is synchronized wit
 ## Mandatory documentation synchronization
 
 Persistent project instructions now require that every code edit or code change—feature work, bug fixes, refactors, configuration changes, route changes, permission changes, and frontend changes—starts by reading `memory.md`, `complete_project_specification.md`, and `project_structure.md`. The same task must update all three after the change and keep them consistent with the verified codebase. `complete_project_specification.md` remains the requirements and verified implementation-status source, `memory.md` remains continuation context, and `project_structure.md` remains the architecture/developer map. Schema changes additionally require `database_design.md`. Relevant tests and build checks must be run before reporting completion, and verification results must be recorded here.
+
+
+## Complaint/customer pagination and demo data
+
+The complaints index and customers index now use Laravel `paginate(30)->withQueryString()`. The existing Blade views already render paginator links, totals, and current filters, so no client-side pagination was introduced. The 10-record customer picker and 5-record branch picker limits remain separate and unchanged.
+
+`database/seeders/DemoDataSeeder.php` now creates an idempotent dataset of exactly 100 customers and one complaint per demo customer. It preserves the three named sample customers, generates deterministic additional phone values, distributes complaints across seeded branches/services/sources/categories/types/priorities/statuses, and uses `firstOrCreate` keys so rerunning the seeder does not duplicate the demo records. It requires the seeded master data and initial Super Admin user.
+
+Regression tests verify the 30-record first/second pages and the 100-customer/100-complaint seeded dataset. Final verification completed successfully on 2026-08-26: `php artisan db:seed --force`, Blade view caching, the Vite production build, migration status, and the full test suite all passed. The full suite result is **32 tests passed, 127 assertions**.
+
+
+The pagination regression expectations account for the seeded 100-customer/100-complaint baseline: when 35 additional records are created, both the first and second pages contain 30 rows. The tests verify the configured page size across multiple pages against a realistic result set.

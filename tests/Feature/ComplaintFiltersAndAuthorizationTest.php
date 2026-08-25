@@ -17,6 +17,42 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
         $this->seed();
     }
 
+    public function test_demo_seeder_creates_one_hundred_customers_and_complaints(): void
+    {
+        $this->assertSame(100, Customer::count());
+        $this->assertSame(100, Complaint::count());
+    }
+
+    public function test_complaints_index_paginates_thirty_records(): void
+    {
+        $user = User::where('email', 'admin@example.com')->first();
+        foreach (range(1, 35) as $number) {
+            $this->makeComplaint($user, Branch::first());
+        }
+
+        $firstPage = $this->actingAs($user)->get(route('complaints.index'));
+        $secondPage = $this->actingAs($user)->get(route('complaints.index', ['page' => 2]));
+
+        $firstPage->assertOk();
+        $secondPage->assertOk();
+        $this->assertSame(30, substr_count($firstPage->getContent(), '<td>#'));
+        $this->assertSame(30, substr_count($secondPage->getContent(), '<td>#'));
+    }
+
+    public function test_customers_index_paginates_thirty_records(): void
+    {
+        $admin = User::where('email', 'admin@example.com')->first();
+        Customer::factory()->count(35)->create();
+
+        $firstPage = $this->actingAs($admin)->get(route('customers.index'));
+        $secondPage = $this->actingAs($admin)->get(route('customers.index', ['page' => 2]));
+
+        $firstPage->assertOk();
+        $secondPage->assertOk();
+        $this->assertSame(30, substr_count($firstPage->getContent(), 'font-semibold text-indigo-700 hover:underline'));
+        $this->assertSame(30, substr_count($secondPage->getContent(), 'font-semibold text-indigo-700 hover:underline'));
+    }
+
     public function test_admin_can_create_and_delete_unused_role(): void
     {
         $admin = User::where('email', 'admin@example.com')->first();
