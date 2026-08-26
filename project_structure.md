@@ -330,7 +330,7 @@ The permission migration creates package roles, permissions, model-role/model-pe
 | Dashboard | `DashboardController`, `dashboard/index.blade.php` | Aggregate seven-day counts, status/priority distributions, and branch ranking |
 | Customers | `CustomerController`, `Customer` model, `customers/` views | CRUD, four-phone/name search, complaint count/history, 30-record pagination, soft deletion model support; primary phone required |
 | Complaints | `ComplaintController`, `Complaint` model, `complaints/` views | CRUD, customer and master-data associations, filters, detail page, status transitions, resolution metadata, activity timeline, and 30-record pagination |
-| Complaint filtering | `ComplaintFilterRequest`, `Complaint::scopeFilter()` | Complaint ID, customer, multi-branch, master-data, creator, and date filters; query strings retained in pagination |
+| Complaint filtering | `ComplaintFilterRequest`, `Complaint::scopeFilter()` | Complaint ID, validated short/full description text search, customer, multi-branch, master-data, creator, and date filters; query strings retained in pagination |
 | Master data | `MasterDataController`, `master-data/` views | Branches, services, sources, categories, types, priorities, and statuses; active flag controls new selections; records are ordered and paginated |
 | Branch reports | `ReportController`, `reports/branches.blade.php` | Date range and multi-branch filtering; SQL grouping by complaint date and branch |
 | Excel export | `ComplaintsExport`, `ComplaintController::export()` | Exports the validated current complaint query and localized headings; permission protected |
@@ -517,7 +517,7 @@ tests/
 └── TestCase.php
 ```
 
-Current feature coverage includes customer phone/name search, customer and complaint workflows, authenticated complaint creator assignment, complaint filters including complaint ID and multiple branches, complaint status history and resolution metadata, authorization denial, role lifecycle safeguards, users filters, branch reports, localized Excel headings, English/Arabic localization, PWA manifest/service-worker boundaries, and Blade/runtime regression cases. Tests are feature-focused; the two application services do not currently have separate unit-test classes.
+Current feature coverage includes customer phone/name search, customer and complaint workflows, authenticated complaint creator assignment, complaint filters including complaint ID, short/full description search, and multiple branches, complaint status history and resolution metadata, authorization denial, role lifecycle safeguards, users filters, branch reports, localized Excel headings, description-filtered export reuse, English/Arabic localization, PWA manifest/service-worker boundaries, and Blade/runtime regression cases. Tests are feature-focused; the two application services do not currently have separate unit-test classes.
 
 ## 17. Important Development Commands
 
@@ -562,7 +562,7 @@ For XAMPP deployment, Apache should serve the Laravel `public/` directory. In th
 
 - The application uses Blade and Laravel controllers rather than introducing a separate SPA. This keeps the complaint workflows simple, server-authorized, and compatible with the existing XAMPP deployment.
 - Searchable customer and branch selectors use bounded initial results plus protected JSON search endpoints. This avoids loading 100,000-plus customers or a full branch table into an HTML select.
-- Complaint filtering is composed in an Eloquent scope and reused by Excel export so the visible report and downloaded report have the same constraints.
+- Complaint filtering is composed in an Eloquent scope and reused by Excel export so the visible report and downloaded report have the same constraints, including the grouped short/full description text search.
 - Complaint creation and status changes use database transactions where multiple records must remain consistent.
 - Statuses are master data rather than a PHP enum so administrators can manage them, while the configured Solved name controls resolution metadata.
 - Foreign keys use restrictive deletion behavior for historical complaint references. Master data should normally be deactivated or soft-deleted rather than physically removed.
@@ -601,7 +601,7 @@ Persistent project instructions require every code edit or code change to begin 
 
 ### Pagination verification
 
-Feature tests verify that the complaints and customers index pages each render 30 records on both the first and second pages when more than 100 records exist. The test setup uses the seeded demo dataset, ensuring the paginator is exercised with a realistic larger result set. The latest full suite passed with 36 tests and 161 assertions; Blade caching, the Vite production build, migration status, and `php artisan db:seed --force` also completed successfully.
+Feature tests verify that the complaints and customers index pages each render 30 records on both the first and second pages when more than 100 records exist. The test setup uses the seeded demo dataset, ensuring the paginator is exercised with a realistic larger result set. The latest full suite passed with 38 tests and 171 assertions; Blade caching, the Vite production build, migration status, and `php artisan db:seed --force` also completed successfully.
 
 
 ### Dark-mode theme system
@@ -616,4 +616,20 @@ The shared layout provides a localized light/dark switch with accessible button 
 
 ### Complaint export columns and timeline mapping
 
-`app/Exports/ComplaintsExport.php` now maps 17 columns. In addition to the existing complaint fields, it exports `short_description` and a localized `Timeline` column. The export eager-loads the complaint status histories, related statuses and actors, and activity-log users. It combines both event collections, sorts them by event timestamp, and writes newline-separated readable lines into one Excel cell. Status transitions include the previous/new status and optional reason; general activity events use the bilingual activity dictionary. Focused export tests verify the two new headings and mapped timeline content. Full validation passed with 36 tests and 161 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported Ran, and 42 routes were registered.
+`app/Exports/ComplaintsExport.php` now maps 17 columns. In addition to the existing complaint fields, it exports `short_description` and a localized `Timeline` column. The export eager-loads the complaint status histories, related statuses and actors, and activity-log users. It combines both event collections, sorts them by event timestamp, and writes newline-separated readable lines into one Excel cell. Status transitions include the previous/new status and optional reason; general activity events use the bilingual activity dictionary. Focused export tests verify the two new headings, mapped timeline content, and description-filter reuse. Full validation passed with 38 tests and 171 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported Ran, and 42 routes were registered.
+
+
+### Complaint description search
+
+The complaints filter form has a normal GET search field named `description` at the end of the filter grid, localized in English and Arabic as “Search short or full description” / `البحث في الوصف المختصر أو الكامل`. `ComplaintFilterRequest` validates it as optional text with a 255-character maximum. `Complaint::scopeFilter()` trims the term and applies one grouped `LIKE` predicate against `short_description` or `description`; the same validated filters flow into pagination and `ComplaintsExport` without a separate export query.
+
+Feature regression coverage verifies short-only and full-only matches exclude unrelated complaints, and export coverage verifies the shared query scope honors the same description term. No schema or route change was required.
+
+### Final verification for complaint description search
+
+The focused complaint-filter suite passed with 18 tests and 67 assertions, and the focused export suite passed with 4 tests and 15 assertions. Full verification passed with 38 tests and 171 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported `Ran`, and `php artisan route:list` reported 42 routes.
+
+### Maintenance note
+
+This document is synchronized with the current codebase as of 2026-08-26. The three living project documents must be read before every future code edit and synchronized after each meaningful change; schema changes additionally require `database_design.md` updates.
+

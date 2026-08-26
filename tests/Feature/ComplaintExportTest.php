@@ -29,6 +29,20 @@ class ComplaintExportTest extends TestCase
         $this->assertSame(17, count($export->headings()));
     }
 
+    public function test_export_query_respects_description_filter(): void
+    {
+        $user = User::where('email', 'admin@example.com')->first();
+        $branch = Branch::first();
+        $match = $this->makeComplaint($user, $branch);
+        $match->update(['short_description' => 'Export description token']);
+        $excluded = $this->makeComplaint($user, $branch);
+
+        $export = new ComplaintsExport(['description' => 'Export description token']);
+
+        $this->assertTrue($export->query()->whereKey($match->id)->exists());
+        $this->assertTrue($export->query()->whereKey($excluded->id)->doesntExist());
+    }
+
     public function test_export_contains_short_description_and_combined_timeline(): void
     {
         app()->setLocale('en');

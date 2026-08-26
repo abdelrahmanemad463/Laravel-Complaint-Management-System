@@ -9,6 +9,7 @@
             <input class="form-input" type="number" min="1" name="complaint_id" value="{{ $filters['complaint_id'] ?? '' }}" placeholder="#123">
         </div>
 
+
         <div data-customer-picker data-search-url="{{ route('customers.search') }}" data-empty-text="{{ __('common.no_customer_matches') }}">
             <label class="form-label">{{ __('common.customer') }}</label>
             <input type="hidden" name="customer_id" id="customer_id" value="{{ $selectedCustomerId }}">
@@ -61,6 +62,10 @@
         <div>
             <label class="form-label">{{ __('common.date_to') }}</label>
             <input class="form-input" type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}">
+        </div>
+        <div>
+            <label class="form-label">{{ __('common.search_complaint_descriptions') }}</label>
+            <input class="form-input" type="search" name="description" value="{{ $filters['description'] ?? '' }}" placeholder="{{ __('common.search_complaint_descriptions') }}" autocomplete="off">
         </div>
     </div>
 

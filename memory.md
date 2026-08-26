@@ -84,7 +84,7 @@ Business logic is intentionally simple and Laravel-native. There is no repositor
 - Complaint index uses Laravel `paginate(30)->withQueryString()` so 30 complaints are rendered per page.
 - Required customer, branch, service, source, category, type, priority, status, short description, description, and complaint date.
 - Authenticated user is always assigned as `created_by` server-side.
-- Complaint ID, customer, branch, master-data, creator, and date filtering.
+- Complaint ID and validated short/full description text filtering, plus customer, branch, master-data, creator, and date filtering.
 - Multi-branch filtering with `branch_ids[]` and `whereIn`.
 - Pagination with query-string preservation.
 - Filtered Excel export using the same validated filters as the HTML list.
@@ -280,9 +280,9 @@ After every meaningful code change, verify the final implementation and update t
 
 ## Specification synchronization
 
-`complete_project_specification.md` was reviewed against the current codebase and updated with a **Current Implementation Status** addendum. The original requirements remain preserved as the baseline, while the addendum records verified implementation details and intentional deviations: Blade/vanilla JavaScript rather than Livewire, exact permission assignments, seeded master data, implemented route/workflow coverage, exact 15-column Excel export, actual audit action identifiers, bounded customer/branch searches, bilingual localization, PWA static-only caching, current test/build verification, and deferred features.
+`complete_project_specification.md` was reviewed against the current codebase and updated with a **Current Implementation Status** addendum. The original requirements remain preserved as the baseline, while the addendum records verified implementation details and intentional deviations: Blade/vanilla JavaScript rather than Livewire, exact permission assignments, seeded master data, implemented route/workflow coverage, exact 17-column Excel export with short description and timeline, actual audit action identifiers, bounded customer/branch searches, bilingual localization, PWA static-only caching, current test/build verification, and deferred features.
 
-The latest specification verification confirmed the document is synchronized with the implemented Laravel 12 system. The current application has 36 passing tests with 161 assertions; all current migrations report as ran, and the known `.env.example` database-session-driver versus missing sessions-migration issue is documented rather than hidden.
+The latest specification verification confirmed the document is synchronized with the implemented Laravel 12 system. The current application has 38 passing tests with 171 assertions; all current migrations report as ran, and the known `.env.example` database-session-driver versus missing sessions-migration issue is documented rather than hidden.
 
 
 ## Mandatory documentation synchronization
@@ -316,4 +316,15 @@ The branch reports page at `/reports/branches` now paginates grouped complaint r
 
 ## Complaint Excel export columns
 
-The filtered complaint Excel export now includes both `Short Description`/`الوصف المختصر` and a combined `Timeline`/`الخط الزمني` column. `ComplaintsExport` eager-loads status-history and activity-log relationships and maps their events into one chronologically sorted, newline-separated cell. Status-history lines include timestamp, actor, previous status, new status, and optional reason; activity lines include timestamp, actor, and localized action labels. Focused export regression coverage passed with 3 tests and 13 assertions. Full validation then passed with 36 tests and 161 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported Ran, and 42 routes were registered.
+The filtered complaint Excel export now includes both `Short Description`/`الوصف المختصر` and a combined `Timeline`/`الخط الزمني` column. `ComplaintsExport` eager-loads status-history and activity-log relationships and maps their events into one chronologically sorted, newline-separated cell. Status-history lines include timestamp, actor, previous status, new status, and optional reason; activity lines include timestamp, actor, and localized action labels. Focused export regression coverage passed with 4 tests and 15 assertions, including reuse of the description filter. Full validation then passed with 38 tests and 171 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported Ran, and 42 routes were registered.
+
+
+## Complaint description search
+
+The complaints index now has a localized GET field named `description` at the end of the filter grid, displayed as “Search short or full description” in English and `البحث في الوصف المختصر أو الكامل` in Arabic. `ComplaintFilterRequest` validates the optional term as a string with a maximum length of 255 characters. `Complaint::scopeFilter()` trims non-empty input and applies one grouped, parameter-bound `LIKE` condition against `short_description` or `description`.
+
+Because `ComplaintController::index()` and `ComplaintController::export()` both use the validated request filters, the description search is preserved through normal pagination query strings and applies to Excel exports through `ComplaintsExport` as well. No schema migration or route change was needed, and the existing customer/branch picker limits remain unchanged.
+
+Regression coverage now includes a complaint-list test with short-only and full-only matches plus an unrelated complaint, and an export test confirming the shared filter scope excludes non-matching records. Focused suites passed with 18 filter tests/67 assertions and 4 export tests/15 assertions. Final verification on 2026-08-26 passed: Blade views cleared/cached, Vite production build completed, full Laravel suite **38 tests passed with 171 assertions**, all migrations reported `Ran`, and `php artisan route:list` reported 42 routes.
+
+The required living documents were synchronized in this task: `memory.md`, `complete_project_specification.md`, and `project_structure.md`. `database_design.md` was not changed because the feature uses existing complaint columns and introduces no schema change.

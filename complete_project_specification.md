@@ -2412,7 +2412,7 @@ The code intentionally avoids repositories, generic CRUD frameworks, excessive D
 |---|---|
 | Customers | Customer CRUD, required primary phone, three optional phone fields, name/all-phone search, complaint summary, complaint history, and Add Complaint action |
 | Customer picker | Ten initial records, protected JSON search, 250 ms debounce, `fetch()`, `AbortController`, and selected-record preservation |
-| Complaints | Create/list/show/update, required relationships and descriptions, authenticated `created_by`, complaint ID filter, master-data filters, creator/date filters, pagination, and query-string preservation |
+| Complaints | Create/list/show/update, required relationships and descriptions, authenticated `created_by`, complaint ID and short/full description text filters, master-data filters, creator/date filters, pagination, and query-string preservation |
 | Branch filter | Multiple branch selection through `branch_ids[]` and `whereIn` |
 | Master data | Dynamic branches, services, sources, categories, complaint types, priorities, and statuses with active flags, colors/order fields, pagination, soft deletes, and permission checks |
 | Branch report | Date range and multi-branch filters, five-record initial branch picker, name search, and SQL grouping by complaint date and branch |
@@ -2460,7 +2460,7 @@ The `role.delete` permission is therefore normally available only to Super Admin
 
 ## 66.5 Exact Current Excel Columns
 
-The implementation deliberately uses a practical 15-column export rather than every suggested field in Section 37:
+The implementation uses a practical 17-column export rather than every suggested field in Section 37:
 
 ```text
 Complaint ID
@@ -2474,13 +2474,15 @@ Complaint Type
 Priority
 Status
 Complaint Date
+Short Description
 Description
 Resolution
 Created By
 Resolved By
+Timeline
 ```
 
-The export class reuses `Complaint::filter($filters)` and eager-loads related records. It does not currently export the optional customer phone fields, customer address, short description, resolved timestamp, or Laravel created/updated timestamps.
+The export class reuses `Complaint::filter($filters)` and eager-loads related records. It includes the short description and combined timeline while intentionally not exporting the optional customer phone fields, customer address, resolved timestamp, or Laravel created/updated timestamps.
 
 ## 66.6 Exact Current Audit Actions
 
@@ -2501,7 +2503,7 @@ Complaint updates preserve old/new values, so priority, branch, service, categor
 
 ## 66.7 Filtering and Scalability Status
 
-The complaint index and export support `complaint_id`, `customer_id`, `branch_ids[]`, `service_id`, `source_id`, `category_id`, `type_id`, `priority_id`, `status_id`, `created_by`, `date_from`, and `date_to`. The `date_to` validator requires it to be on or after `date_from`. Complaint results are paginated at 30 records.
+The complaint index and export support `complaint_id`, a validated `description` term searched against both `short_description` and `description`, `customer_id`, `branch_ids[]`, `service_id`, `source_id`, `category_id`, `type_id`, `priority_id`, `status_id`, `created_by`, `date_from`, and `date_to`. The description-search control is placed at the end of the complaint filter grid. The description term is optional text limited to 255 characters, and the `date_to` validator requires it to be on or after `date_from`. Complaint results are paginated at 30 records, with query strings preserved.
 
 Customer list results are paginated at 30 records. The customer picker initially displays at most 10 records and searches all four phone fields plus name through a protected JSON route. Branch picker results are limited to 5 records and support name search. User results are paginated at 20 records and can be filtered by name/email and exact role.
 
@@ -2509,7 +2511,7 @@ Customer list results are paginated at 30 records. The customer picker initially
 
 The current translation directories contain `common.php`, `auth.php`, `complaints.php`, `customers.php`, `activity.php`, and `validation.php` for both `en` and `ar`. The application uses `SetLocale` to accept only `en` and `ar`, switches the main layout between LTR and RTL, and localizes flash messages, validation messages, login errors, audit actions, timeline entries, login copy, customer status-summary labels, and Excel headings.
 
-A translation-helper audit checked 143 static application keys against both locale dictionaries and found zero missing keys. Normal Laravel validation and session flash handling are used; sensitive internal errors are not intentionally exposed through the application UI.
+Both locale dictionaries now contain the localized short/full description search label, and the existing localization regression coverage remains green. Normal Laravel validation and session flash handling are used; sensitive internal errors are not intentionally exposed through the application UI.
 
 ## 66.9 Verification Status
 
@@ -2518,12 +2520,12 @@ The latest full verification completed successfully:
 ```text
 Blade views: cleared and cached successfully
 Vite production build: completed successfully
-Laravel test suite: 36 tests passed, 161 assertions
+Laravel test suite: 38 tests passed, 171 assertions
 Migration status: all current migrations reported Ran
 Registered routes: 42 routes reported by php artisan route:list
 ```
 
-Localization regression tests cover English/Arabic messages, login copy, customer status summaries, audit-log action rendering, and theme labels. Pagination regression tests verify 30 complaint rows and 30 customer rows on the first two pages against the seeded larger dataset. PWA tests cover manifest metadata, icons, service-worker files, and the rule that private pages/API responses are not cached. Dark-mode layout tests verify the theme switch markup and early localStorage bootstrap. `php artisan db:seed --force` completed successfully with the expanded idempotent demo dataset; the latest full suite passed with 36 tests and 161 assertions.
+Localization regression tests cover English/Arabic messages, login copy, customer status summaries, audit-log action rendering, theme labels, and the new description-search label. Complaint-filter regression tests verify that a single validated description term matches either the short or full description while excluding unrelated complaints; export regression tests verify the same filter is reused by `ComplaintsExport`. Pagination regression tests verify 30 complaint rows and 30 customer rows on the first two pages against the seeded larger dataset. PWA tests cover manifest metadata, icons, service-worker files, and the rule that private pages/API responses are not cached. Dark-mode layout tests verify the theme switch markup and early localStorage bootstrap. `php artisan db:seed --force` completed successfully with the expanded idempotent demo dataset; the latest full suite passed with 38 tests and 171 assertions.
 
 ## 66.10 Intentional Limitations and Deferred Requirements
 
@@ -2583,4 +2585,4 @@ The branch reports page at `/reports/branches` now uses Laravel `paginate(30)->w
 
 ## 66.15 Complaint Export Short Description and Timeline
 
-The filtered complaint Excel export now includes a localized short-description column and a localized combined timeline column. The export query eager-loads `statusHistories.fromStatus`, `statusHistories.toStatus`, `statusHistories.changer`, and `activityLogs.user` so mapping does not create an N+1 relationship pattern. The timeline cell contains newline-separated events sorted chronologically across both sources: status-history events include timestamp, actor, previous status, new status, and optional reason; activity events include timestamp, actor, and the localized action label. English headings are `Short Description` and `Timeline`; Arabic headings are `الوصف المختصر` and `الخط الزمني`. Focused export regression coverage passed with 3 tests and 13 assertions. Full verification completed with 36 tests and 161 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported Ran, and 42 routes were registered.
+The filtered complaint Excel export now includes a localized short-description column and a localized combined timeline column. The export query eager-loads `statusHistories.fromStatus`, `statusHistories.toStatus`, `statusHistories.changer`, and `activityLogs.user` so mapping does not create an N+1 relationship pattern. The timeline cell contains newline-separated events sorted chronologically across both sources: status-history events include timestamp, actor, previous status, new status, and optional reason; activity events include timestamp, actor, and the localized action label. English headings are `Short Description` and `Timeline`; Arabic headings are `الوصف المختصر` and `الخط الزمني`. Focused export regression coverage passed with 4 tests and 15 assertions, including description-filter reuse. Full verification completed with 38 tests and 171 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported Ran, and 42 routes were registered.

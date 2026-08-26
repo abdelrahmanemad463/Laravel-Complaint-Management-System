@@ -124,6 +124,26 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
         $response->assertOk()->assertSee('<strong>'.$expected.'</strong>', false);
     }
 
+    public function test_description_filter_matches_short_or_full_description(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('Customer Support');
+        $branch = Branch::first();
+
+        $shortMatch = $this->makeComplaint($user, $branch);
+        $shortMatch->update(['short_description' => 'Short description search token', 'description' => 'Generic complaint details']);
+        $fullMatch = $this->makeComplaint($user, $branch);
+        $fullMatch->update(['short_description' => 'Generic complaint summary', 'description' => 'Full description search token']);
+        $unrelated = $this->makeComplaint($user, $branch);
+        $unrelated->update(['short_description' => 'Unrelated summary', 'description' => 'Unrelated complaint details']);
+
+        $shortResponse = $this->actingAs($user)->get(route('complaints.index', ['description' => 'Short description search token']));
+        $shortResponse->assertOk()->assertSee('#'.$shortMatch->id)->assertDontSee('#'.$fullMatch->id)->assertDontSee('#'.$unrelated->id);
+
+        $fullResponse = $this->actingAs($user)->get(route('complaints.index', ['description' => 'Full description search token']));
+        $fullResponse->assertOk()->assertSee('#'.$fullMatch->id)->assertDontSee('#'.$shortMatch->id)->assertDontSee('#'.$unrelated->id);
+    }
+
     public function test_branch_reports_paginate_thirty_grouped_rows_and_preserve_filters(): void
     {
         $admin = User::where('email', 'admin@example.com')->first();

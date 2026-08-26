@@ -36,6 +36,8 @@ class Complaint extends \Illuminate\Database\Eloquent\Model
 
     public function scopeFilter(Builder $query, array $filters): Builder
     {
+        $descriptionSearch = trim((string) ($filters['description'] ?? ''));
+
         return $query
             ->when($filters['complaint_id'] ?? null, fn ($q, $v) => $q->whereKey($v))
             ->when($filters['customer_id'] ?? null, fn ($q, $v) => $q->where('customer_id', $v))
@@ -47,6 +49,11 @@ class Complaint extends \Illuminate\Database\Eloquent\Model
             ->when($filters['priority_id'] ?? null, fn ($q, $v) => $q->where('priority_id', $v))
             ->when($filters['status_id'] ?? null, fn ($q, $v) => $q->where('status_id', $v))
             ->when($filters['created_by'] ?? null, fn ($q, $v) => $q->where('created_by', $v))
+            ->when($descriptionSearch !== '', fn ($q) => $q->where(function ($descriptionQuery) use ($descriptionSearch) {
+                $descriptionQuery
+                    ->where('short_description', 'like', "%{$descriptionSearch}%")
+                    ->orWhere('description', 'like', "%{$descriptionSearch}%");
+            }))
             ->when($filters['date_from'] ?? null, fn ($q, $v) => $q->whereDate('complaint_date', '>=', $v))
             ->when($filters['date_to'] ?? null, fn ($q, $v) => $q->whereDate('complaint_date', '<=', $v));
     }
