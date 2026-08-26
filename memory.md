@@ -232,7 +232,7 @@ The last complete validation performed after the dark-mode implementation was su
 
 - Blade views cleared and cached successfully.
 - Vite production build completed successfully.
-- Full Laravel suite: **34 tests passed, 144 assertions**.
+- Full Laravel suite: **35 tests passed, 152 assertions**.
 - Bilingual localization tests passed for complaint/customer/auth messages, login copy, customer status summaries, audit-log action rendering, and dark-mode labels.
 - Dark-mode layout tests passed for the theme switch markup and early localStorage bootstrap.
 - A static audit checked **143 translation helper keys** against both locale dictionaries and found **0 missing keys**.
@@ -282,7 +282,7 @@ After every meaningful code change, verify the final implementation and update t
 
 `complete_project_specification.md` was reviewed against the current codebase and updated with a **Current Implementation Status** addendum. The original requirements remain preserved as the baseline, while the addendum records verified implementation details and intentional deviations: Blade/vanilla JavaScript rather than Livewire, exact permission assignments, seeded master data, implemented route/workflow coverage, exact 15-column Excel export, actual audit action identifiers, bounded customer/branch searches, bilingual localization, PWA static-only caching, current test/build verification, and deferred features.
 
-The latest specification verification confirmed the document is synchronized with the implemented Laravel 12 system. The current application has 34 passing tests with 141 assertions; all current migrations report as ran, and the known `.env.example` database-session-driver versus missing sessions-migration issue is documented rather than hidden.
+The latest specification verification confirmed the document is synchronized with the implemented Laravel 12 system. The current application has 36 passing tests with 161 assertions; all current migrations report as ran, and the known `.env.example` database-session-driver versus missing sessions-migration issue is documented rather than hidden.
 
 
 ## Mandatory documentation synchronization
@@ -296,7 +296,7 @@ The complaints index and customers index now use Laravel `paginate(30)->withQuer
 
 `database/seeders/DemoDataSeeder.php` now creates an idempotent dataset of exactly 100 customers and one complaint per demo customer. It preserves the three named sample customers, generates deterministic additional phone values, distributes complaints across seeded branches/services/sources/categories/types/priorities/statuses, and uses `firstOrCreate` keys so rerunning the seeder does not duplicate the demo records. It requires the seeded master data and initial Super Admin user.
 
-Regression tests verify the 30-record first/second pages and the 100-customer/100-complaint seeded dataset. Final verification completed successfully on 2026-08-26: `php artisan db:seed --force`, Blade view caching, the Vite production build, migration status, and the full test suite all passed. The full suite result is **34 tests passed, 144 assertions**.
+Regression tests verify the 30-record first/second pages and the 100-customer/100-complaint seeded dataset. Final verification completed successfully on 2026-08-26: `php artisan db:seed --force`, Blade view caching, the Vite production build, migration status, and the full test suite all passed. The full suite result is **36 tests passed, 161 assertions**.
 
 
 The pagination regression expectations account for the seeded 100-customer/100-complaint baseline: when 35 additional records are created, both the first and second pages contain 30 rows. The tests verify the configured page size across multiple pages against a realistic result set.
@@ -307,3 +307,13 @@ The pagination regression expectations account for the seeded 100-customer/100-c
 The shared authenticated layout now includes a localized light/dark switch. An inline bootstrap script sets the saved theme before Vite loads, while `resources/js/app.js` applies the theme, persists it in `localStorage` under `complaint-theme`, updates `aria-pressed`, changes the icon/label, and updates the PWA `theme-color` meta value. The default is light mode when no valid saved preference exists.
 
 `resources/css/app.css` now includes theme-aware base/component styles and explicit dark overrides for the shared layout, `.card`, `.form-input`, `.form-label`, `.page-title`, `.section-title`, `.page-subtitle`, navigation, secondary buttons, tables, picker result panels, alerts, badges, text, borders, and direct light-palette utilities used by module views. The dark-only palette uses brighter text, clearer borders, and stronger hover/focus colors while leaving light mode unchanged. English and Arabic theme labels are present. Regression tests cover the layout bootstrap/toggle markup, form/card/picker dark selectors, component contrast selectors, and both locale dictionaries. Focused dark-mode tests passed with 8 tests and 61 assertions; final full-suite verification then passed with 34 tests and 144 assertions, including Blade caching, the Vite production build, and route verification.
+
+
+## Branch report pagination
+
+The branch reports page at `/reports/branches` now paginates grouped complaint rows at 30 results per page with `paginate(30)->withQueryString()`. Date-range and multi-branch filters are preserved in paginator links, and the view displays the filtered total through the existing localized results-count pattern. The branch picker remains limited to five initial records with background name search. Regression coverage passed with 17 tests and 59 assertions. Full validation then passed with 35 tests and 152 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported Ran, and 42 routes were registered.
+
+
+## Complaint Excel export columns
+
+The filtered complaint Excel export now includes both `Short Description`/`الوصف المختصر` and a combined `Timeline`/`الخط الزمني` column. `ComplaintsExport` eager-loads status-history and activity-log relationships and maps their events into one chronologically sorted, newline-separated cell. Status-history lines include timestamp, actor, previous status, new status, and optional reason; activity lines include timestamp, actor, and localized action labels. Focused export regression coverage passed with 3 tests and 13 assertions. Full validation then passed with 36 tests and 161 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported Ran, and 42 routes were registered.

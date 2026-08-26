@@ -2518,12 +2518,12 @@ The latest full verification completed successfully:
 ```text
 Blade views: cleared and cached successfully
 Vite production build: completed successfully
-Laravel test suite: 34 tests passed, 144 assertions
+Laravel test suite: 36 tests passed, 161 assertions
 Migration status: all current migrations reported Ran
 Registered routes: 42 routes reported by php artisan route:list
 ```
 
-Localization regression tests cover English/Arabic messages, login copy, customer status summaries, audit-log action rendering, and theme labels. Pagination regression tests verify 30 complaint rows and 30 customer rows on the first two pages against the seeded larger dataset. PWA tests cover manifest metadata, icons, service-worker files, and the rule that private pages/API responses are not cached. Dark-mode layout tests verify the theme switch markup and early localStorage bootstrap. `php artisan db:seed --force` completed successfully with the expanded idempotent demo dataset; the latest full suite passed with 34 tests and 144 assertions.
+Localization regression tests cover English/Arabic messages, login copy, customer status summaries, audit-log action rendering, and theme labels. Pagination regression tests verify 30 complaint rows and 30 customer rows on the first two pages against the seeded larger dataset. PWA tests cover manifest metadata, icons, service-worker files, and the rule that private pages/API responses are not cached. Dark-mode layout tests verify the theme switch markup and early localStorage bootstrap. `php artisan db:seed --force` completed successfully with the expanded idempotent demo dataset; the latest full suite passed with 36 tests and 161 assertions.
 
 ## 66.10 Intentional Limitations and Deferred Requirements
 
@@ -2574,3 +2574,13 @@ The feature regression suite verifies that both the complaints and customers ind
 ## 66.13 Dark Mode and Theme Preference
 
 The shared Blade layout now includes a localized light/dark theme switch. The selected theme is stored in browser `localStorage` under `complaint-theme`, initialized before the Vite bundle runs to reduce theme flash, and applied through `html[data-theme='dark']` CSS overrides. Shared page surfaces, typography, form controls, tables, navigation, alerts, buttons, badges, picker result panels, and other light-palette utility classes have explicit dark-mode overrides so report filters and all other existing server-rendered forms do not remain white or low-contrast in dark mode. Component-specific dark selectors provide brighter labels, headings, navigation, secondary buttons, borders, hover states, and focus states while leaving light mode unchanged. The switch updates the PWA `theme-color` metadata and preserves English/Arabic labels and RTL behavior. Bilingual localization and layout regression tests cover the new theme controls and explicit dark form/card/picker surfaces. Contrast regression assertions cover component selectors for labels, secondary buttons, and navigation; the latest full suite passed after the contrast correction with 34 tests and 144 assertions.
+
+
+## 66.14 Branch Report Pagination
+
+The branch reports page at `/reports/branches` now uses Laravel `paginate(30)->withQueryString()` for its grouped complaint-date/branch rows. The filtered total is displayed above the table, and date-range plus multi-branch query parameters are preserved in paginator links. Regression coverage verifies 30 grouped rows on the first page and the remaining row on the second page using the existing report filters. Final verification is recorded in `memory.md`: the focused branch-report suite passed with 17 tests and 59 assertions, and the full suite passed with 35 tests and 152 assertions; Blade caching, the Vite build, migration status, and route verification also passed.
+
+
+## 66.15 Complaint Export Short Description and Timeline
+
+The filtered complaint Excel export now includes a localized short-description column and a localized combined timeline column. The export query eager-loads `statusHistories.fromStatus`, `statusHistories.toStatus`, `statusHistories.changer`, and `activityLogs.user` so mapping does not create an N+1 relationship pattern. The timeline cell contains newline-separated events sorted chronologically across both sources: status-history events include timestamp, actor, previous status, new status, and optional reason; activity events include timestamp, actor, and the localized action label. English headings are `Short Description` and `Timeline`; Arabic headings are `الوصف المختصر` and `الخط الزمني`. Focused export regression coverage passed with 3 tests and 13 assertions. Full verification completed with 36 tests and 161 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported Ran, and 42 routes were registered.

@@ -40,6 +40,10 @@
     </div>
 </form>
 
+<div class="mb-4 flex items-center justify-between">
+    <p class="text-sm text-slate-500">{{ __('common.results_count', ['count' => $rows->total()]) }}</p>
+</div>
+
 <div class="card overflow-hidden p-0">
     <table class="data-table">
         <thead>
@@ -61,5 +65,8 @@
             @endforelse
         </tbody>
     </table>
+    <div class="border-t border-slate-200 p-4">
+        {{ $rows->links() }}
+    </div>
 </div>
 @endsection

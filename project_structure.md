@@ -601,9 +601,19 @@ Persistent project instructions require every code edit or code change to begin 
 
 ### Pagination verification
 
-Feature tests verify that the complaints and customers index pages each render 30 records on both the first and second pages when more than 100 records exist. The test setup uses the seeded demo dataset, ensuring the paginator is exercised with a realistic larger result set. The latest full suite passed with 34 tests and 144 assertions; Blade caching, the Vite production build, migration status, and `php artisan db:seed --force` also completed successfully.
+Feature tests verify that the complaints and customers index pages each render 30 records on both the first and second pages when more than 100 records exist. The test setup uses the seeded demo dataset, ensuring the paginator is exercised with a realistic larger result set. The latest full suite passed with 36 tests and 161 assertions; Blade caching, the Vite production build, migration status, and `php artisan db:seed --force` also completed successfully.
 
 
 ### Dark-mode theme system
 
 The shared layout provides a localized light/dark switch with accessible button state. `resources/js/app.js` initializes the selected theme, persists it in `localStorage` under `complaint-theme`, updates the document color scheme, and changes the PWA `theme-color` metadata. `resources/css/app.css` defines dark-mode overrides under `html[data-theme='dark']` for shared surfaces, typography, form controls, navigation, alerts, tables, buttons, badges, picker result panels, and direct light-palette utility classes used by module views. Explicit `.card`, `.form-input`, `.form-label`, `.page-title`, `.section-title`, `.page-subtitle`, `.nav-link`, and `.btn-secondary` overrides provide a consistent brighter dark-only palette with clearer borders, hover states, and focus states while leaving light mode unchanged. Report filters and all other server-rendered forms therefore use readable dark surfaces rather than remaining white or low-contrast. The focused dark-mode layout/form/contrast regression tests passed; the final full suite passed after this correction with 34 tests and 144 assertions, alongside successful Blade caching, Vite production build, and route verification.
+
+
+### Branch report pagination
+
+`ReportController::branches()` now paginates grouped complaint-date/branch report rows at 30 per page and calls `withQueryString()` so date and multi-branch filters persist across pages. `reports/branches.blade.php` displays the localized filtered total and renders Laravel paginator links below the report table. The existing five-result branch picker and protected background search remain unchanged. The focused branch-report suite passed with 17 tests and 59 assertions. Full validation then passed with 35 tests and 152 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported Ran, and 42 routes were registered.
+
+
+### Complaint export columns and timeline mapping
+
+`app/Exports/ComplaintsExport.php` now maps 17 columns. In addition to the existing complaint fields, it exports `short_description` and a localized `Timeline` column. The export eager-loads the complaint status histories, related statuses and actors, and activity-log users. It combines both event collections, sorts them by event timestamp, and writes newline-separated readable lines into one Excel cell. Status transitions include the previous/new status and optional reason; general activity events use the bilingual activity dictionary. Focused export tests verify the two new headings and mapped timeline content. Full validation passed with 36 tests and 161 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported Ran, and 42 routes were registered.

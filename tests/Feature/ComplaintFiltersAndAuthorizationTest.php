@@ -124,6 +124,30 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
         $response->assertOk()->assertSee('<strong>'.$expected.'</strong>', false);
     }
 
+    public function test_branch_reports_paginate_thirty_grouped_rows_and_preserve_filters(): void
+    {
+        $admin = User::where('email', 'admin@example.com')->first();
+        $branch = Branch::first();
+        $dateFrom = now()->subDays(31)->toDateString();
+        $dateTo = now()->toDateString();
+
+        foreach (range(1, 31) as $daysAgo) {
+            $this->makeComplaint($admin, $branch, now()->subDays($daysAgo)->toDateString());
+        }
+
+        $filters = ['date_from' => $dateFrom, 'date_to' => $dateTo, 'branch_ids' => [$branch->id]];
+        $firstPage = $this->actingAs($admin)->get(route('reports.branches', $filters + ['page' => 1]));
+        $firstPage->assertOk()->assertSee('page=2', false)->assertSee('date_from='.$dateFrom, false);
+        $this->assertStringContainsString('branch_ids%5B0%5D='.$branch->id, $firstPage->getContent());
+        preg_match('/<tbody>(.*?)<\/tbody>/s', $firstPage->getContent(), $firstTableBody);
+        $this->assertSame(30, substr_count($firstTableBody[1] ?? '', '<tr>'));
+
+        $secondPage = $this->actingAs($admin)->get(route('reports.branches', $filters + ['page' => 2]));
+        $secondPage->assertOk()->assertSee(now()->subDays(31)->toDateString(), false);
+        preg_match('/<tbody>(.*?)<\/tbody>/s', $secondPage->getContent(), $secondTableBody);
+        $this->assertSame(1, substr_count($secondTableBody[1] ?? '', '<tr>'));
+    }
+
     public function test_branch_reports_uses_the_top_five_searchable_branch_picker(): void
     {
         $admin = User::where('email', 'admin@example.com')->first();
@@ -180,8 +204,8 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
         $this->actingAs($user)->get(route('customers.create'))->assertForbidden();
     }
 
-    private function makeComplaint(User $user, Branch $branch): Complaint
+    private function makeComplaint(User $user, Branch $branch, ?string $date = null): Complaint
     {
-        return Complaint::create(['customer_id'=>Customer::factory()->create()->id,'branch_id'=>$branch->id,'service_id'=>Service::first()->id,'source_id'=>ComplaintSource::first()->id,'category_id'=>ComplaintCategory::first()->id,'type_id'=>ComplaintType::first()->id,'priority_id'=>Priority::first()->id,'status_id'=>ComplaintStatus::first()->id,'short_description'=>'Example complaint','description'=>'Example details','complaint_date'=>now()->toDateString(),'created_by'=>$user->id]);
+        return Complaint::create(['customer_id'=>Customer::factory()->create()->id,'branch_id'=>$branch->id,'service_id'=>Service::first()->id,'source_id'=>ComplaintSource::first()->id,'category_id'=>ComplaintCategory::first()->id,'type_id'=>ComplaintType::first()->id,'priority_id'=>Priority::first()->id,'status_id'=>ComplaintStatus::first()->id,'short_description'=>'Example complaint','description'=>'Example details','complaint_date'=>$date ?? now()->toDateString(),'created_by'=>$user->id]);
     }
 }
