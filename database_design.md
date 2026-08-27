@@ -1,7 +1,7 @@
 # Complaint Management System — Database Design
 
 **Status:** Implemented baseline, with room for future modules  
-**Database:** The relational database configured by Laravel; migrations must remain portable between MySQL and SQLite tests where practical.
+**Database:** The verified local runtime is SQL Server at `127.0.0.1:1433`, database `complaints`; PHPUnit continues to use in-memory SQLite. Migrations remain portable between SQL Server, MySQL, and SQLite tests where practical.
 
 ## 1. Design Principles
 
@@ -118,7 +118,7 @@ Branch `code` should be unique among non-deleted branches if it is used operatio
 | updated_at | timestamp | Laravel timestamp |
 | deleted_at | timestamp nullable | Soft delete |
 
-Foreign-key behavior must preserve history. The preferred behavior is `restrict`/`no action` for referenced master data and users, or a nullable foreign key only where the business explicitly accepts losing the actor reference. The application should soft-delete or deactivate referenced records instead of physically deleting them. Customer deletion should be prevented or restricted when complaints exist; if a later policy allows it, the customer foreign key must remain safe and historical display must be designed first. No blanket cascade delete is used.
+Foreign-key behavior must preserve history. The preferred behavior is `no action` for referenced master data and users, or a nullable foreign key only where the business explicitly accepts losing the actor reference. Laravel migrations use `noActionOnDelete()` because SQL Server does not accept `ON DELETE RESTRICT`; this has the same restrictive/no-action business semantics. The application should soft-delete or deactivate referenced records instead of physically deleting them. Customer deletion should be prevented or restricted when complaints exist; if a later policy allows it, the customer foreign key must remain safe and historical display must be designed first. No blanket cascade delete is used.
 
 Indexes: indexes on each foreign key used by filters and joins; an index on `complaint_date`; composite indexes may be added after observing report query patterns, especially `(branch_id, complaint_date)` and `(status_id, complaint_date)` if they materially improve reports.
 
@@ -136,7 +136,7 @@ Indexes: indexes on each foreign key used by filters and joins; an index on `com
 | created_at | timestamp | Laravel timestamp |
 | updated_at | timestamp | Laravel timestamp |
 
-Indexes: `complaint_id`, `changed_at`, `to_status_id`, and `changed_by`. Status-history rows are append-only in the application and are not soft-deleted, because the requirement says history must not be lost. Foreign keys use restrictive behavior where possible.
+Indexes: `complaint_id`, `changed_at`, `to_status_id`, and `changed_by`. Status-history rows are append-only in the application and are not soft-deleted, because the requirement says history must not be lost. Foreign keys use explicit no-action behavior in the migrations for SQL Server portability.
 
 ### 3.6 `activity_logs`
 

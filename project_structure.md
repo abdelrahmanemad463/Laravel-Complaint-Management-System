@@ -5,7 +5,7 @@
 **Framework:** Laravel 12 on PHP 8.2+  
 **Rendering:** Server-rendered Blade with Tailwind CSS and progressive JavaScript enhancement  
 **Supported locales:** English (`en`) and Arabic (`ar`) with RTL layout support  
-**Runtime database:** SQLite in the current local installation; Laravel configuration can be changed through environment variables for another supported relational database.
+**Runtime database:** SQL Server in the current local installation at `127.0.0.1:1433`, database `complaints`; PHPUnit continues to use in-memory SQLite through `phpunit.xml`.
 
 > This document describes the code that currently exists in the repository. It intentionally does not describe Livewire, Filament, React, Vue, an API platform, queues, or other technologies that are not used by the application’s business features.
 
@@ -496,7 +496,7 @@ The project reads configuration through Laravel’s `.env` file. `.env.example` 
 | `AWS_*` | Optional S3-compatible filesystem configuration |
 | `VITE_APP_NAME` | Frontend build-time application name |
 
-The current local `.env` uses SQLite, database sessions/cache/queues according to the runtime configuration, and a local application URL. Tests override the database with in-memory SQLite, cache with the array store, mail with the array mailer, queue with synchronous execution, and session with the array store in `phpunit.xml`.
+The current local `.env` uses SQL Server at `127.0.0.1:1433` with database sessions/cache/queues according to the runtime configuration, and a local application URL. Tests override the database with in-memory SQLite, cache with the array store, mail with the array mailer, queue with synchronous execution, and session with the array store in `phpunit.xml`.
 
 Localization is applied per request by `SetLocale`, which reads the session `locale` value and permits only `en` or `ar`. The selected Arabic locale sets RTL direction in the main layout.
 
@@ -578,7 +578,7 @@ For XAMPP deployment, Apache should serve the Laravel `public/` directory. In th
 - There is no public customer portal, registration, password reset, attachment workflow, email notification, WhatsApp integration, or external complaint API.
 - There is no branch-specific user scoping; authorization is role/permission based rather than restricted to a user’s branch.
 - The application currently has no custom queued jobs, scheduled tasks, event/listener pipeline, or background synchronization process.
-- The current local runtime uses SQLite and XAMPP Apache; production database, mail, storage, cache, and queue infrastructure must be configured separately.
+- The current local runtime uses SQL Server and XAMPP Apache; production database, mail, storage, cache, and queue infrastructure must be configured separately.
 - `public/storage` is not linked in the current local runtime, and the present complaint workflow does not upload files.
 - The default Laravel `welcome.blade.php` remains in the repository, but the application’s `/` route is the authenticated dashboard and does not use the default welcome screen.
 
@@ -682,7 +682,7 @@ The dashboard Branch filter now uses the shared closed `data-filter-dropdown` mu
 The branch-report Branch filter now uses the shared closed `data-filter-dropdown` multi-select markup, preserving `branch_ids[]`, bounded initial results, remote branch-name search, selected states, Clear action, and outside-click/Escape closing. The complaint-create Customer picker remains the final selector to standardize in this task.
 
 
-The complaint create/edit Customer control now uses the shared closed `data-filter-dropdown` single-select markup, preserving `customer_id`, the bounded ten-customer initial list, background name/any-phone search, selected state, Clear action, and outside-click/Escape closing. Dashboard and branch-report branch controls are also standardized; regression coverage and final verification remain pending.
+The complaint create/edit Customer control now uses the shared closed `data-filter-dropdown` single-select markup, preserving `customer_id`, the bounded ten-customer initial list, background name/any-phone search, selected state, Clear action, and outside-click/Escape closing. Dashboard and branch-report branch controls are also standardized; regression coverage and final verification passed in the latest full verification.
 
 
 Feature coverage now verifies closed picker markup on the dashboard Branch filter, branch-report Branch filter, and complaint create Customer filter. Dashboard/report branches preserve `branch_ids[]`; complaint creation preserves `customer_id`; bounded search behavior remains implemented by the shared picker JavaScript.
@@ -696,3 +696,9 @@ Focused cross-page picker tests passed with 22 tests and 95 assertions. Final ve
 
 
 The dashboard Branch dropdown intentionally renders no helper hint beneath the trigger; the incorrect Ctrl/Cmd guidance was removed. Its closed searchable multi-select behavior and `branch_ids[]` contract remain unchanged. The shared translation key remains available for other controls but is not used by the dashboard view.
+
+
+The attached local `.env` selects the SQL Server driver and database `complaints` at `127.0.0.1:1433` with SQL authentication. Credentials are not stored in this architecture document. The attached Windows PHP runtime exposes `pdo_sqlsrv` and `sqlsrv`; connectivity, migrations, and seeders were verified successfully. Seed counts are 100 customers, 100 complaints, 4 roles, 3 branches, 3 services, 6 sources, 6 categories, 6 types, 4 priorities, 5 statuses, and 1 seeded admin user. `.env` is ignored by `.gitignore`, is no longer tracked by Git, and remains locally available to the attached runtime.
+
+
+The `sqlsrv` connection in `config/database.php` now consumes `DB_ENCRYPT` and `DB_TRUST_SERVER_CERTIFICATE`. ODBC Driver 17 required the local environment to use the ODBC-compatible string `DB_ENCRYPT=no`; `DB_TRUST_SERVER_CERTIFICATE=true` remains enabled for local development. Credentials are kept only in `.env` and are not documented. The complaints and complaint-history migrations use explicit `noActionOnDelete()` for required foreign keys because SQL Server rejects `ON DELETE RESTRICT`; this preserves the intended restrictive/no-action policy. The SQL Server migration sequence and seeders completed successfully. Verified counts are 100 customers, 100 complaints, 4 roles, 3 branches, 3 services, 6 sources, 6 categories, 6 types, 4 priorities, 5 statuses, and 1 seeded admin user. The temporary verifier was removed.

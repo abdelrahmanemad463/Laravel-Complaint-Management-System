@@ -395,3 +395,36 @@ Focused cross-page picker tests passed with 22 tests and 95 assertions. Final fu
 
 
 The dashboard Branch filter no longer renders the `Hold Ctrl/Cmd to select multiple branches` helper text. The closed multi-select control, internal search, selection state, Clear action, and backend `branch_ids[]` behavior remain unchanged. The hint remains available for other controls/localization but is intentionally unused on the dashboard.
+
+
+The attached local `.env` is configured for SQL Server using database `complaints`, the local default host/port (`127.0.0.1:1433`), and SQL authentication. Credentials are intentionally not recorded in project documentation. The SQL Server PHP extensions (`pdo_sqlsrv` and `sqlsrv`) are installed in the attached Windows PHP runtime. Connection, migrations, and seeders were subsequently verified successfully.
+
+
+Laravel’s `sqlsrv` connection reads `DB_ENCRYPT` and `DB_TRUST_SERVER_CERTIFICATE` from the local environment. The local configuration uses encryption disabled and trusts the local server certificate for the supplied development SQL Server setup. Credentials remain excluded from documentation. Connection, migrations, and seeders were subsequently verified successfully.
+
+
+The first SQL Server connection attempt reached the ODBC driver but rejected the boolean `DB_ENCRYPT=false` value as invalid for the ODBC Driver 17 `Encrypt` attribute. The local `.env` was corrected to use the ODBC-compatible string value `DB_ENCRYPT=no`; `DB_TRUST_SERVER_CERTIFICATE=true` remains enabled for this local development connection. The corrected connection, migrations, and seeders were verified successfully.
+
+
+The first SQL Server migration run created the migration repository and completed the users, cache, jobs, permission, and complaint master-data migrations, then failed in `2026_08_23_161300_create_complaints_table.php` because SQL Server rejects `ON DELETE RESTRICT`. The failed migration did not leave a `complaints` table. The migration was updated to use Laravel’s explicit `noActionOnDelete()` for required complaint foreign keys; this preserves the intended restrictive/no-action delete policy while generating SQL Server-compatible DDL. The complaint-history migration subsequently received the same compatibility update before the migration sequence was rerun.
+
+
+The complaint-history migration `2026_08_23_161400_create_complaint_history_tables.php` was updated to use `noActionOnDelete()` for its required status-history foreign keys. Both complaint-domain migrations now preserve restrictive/no-action deletion semantics while avoiding SQL Server’s unsupported `ON DELETE RESTRICT` syntax. The SQL Server migration sequence was rerun successfully from the failed complaints migration; no `complaints` table was present after the failed attempt.
+
+
+A temporary root-level `.sqlsrv_verify.php` script was created solely to bootstrap Laravel and report aggregate SQL Server seed counts without exposing credentials. It was removed after verification and is not part of the application architecture.
+
+
+SQL Server verification completed successfully. `php artisan migrate --database=sqlsrv --force` completed all pending migrations, including complaints and complaint history. `php artisan db:seed --database=sqlsrv --force` completed PermissionSeeder, MasterDataSeeder, and DemoDataSeeder. A temporary bootstrap count check reported 100 customers, 100 complaints, 4 roles, 3 branches, 3 services, 6 sources, 6 categories, 6 types, 4 priorities, 5 statuses, and 1 `admin@example.com` user. The temporary verifier was removed. The first non-destructive status check after configuration connected successfully and reported only that the migration table did not yet exist; the final post-migration status check showed every migration as `Ran`.
+
+
+The repository’s `.gitignore` now ignores `.env` so local SQL Server credentials are not newly added to version control. The previously tracked `.env` was removed from the Git index while preserving the local file; no credential value is recorded here.
+
+
+The tracked `.env` entry was removed from the Git index with `git rm --cached`; the local file remains in place for the attached runtime and is now protected by `.gitignore`. Its credential value was never copied into documentation or output.
+
+
+Final verification on 2026-08-27: `php artisan migrate:status --database=sqlsrv` showed all seven migrations as `Ran` across batches 1 and 2. The PHPUnit suite passed with 43 tests and 205 assertions using its configured in-memory SQLite test database. `php artisan view:cache` passed, `npm.cmd run build` passed with Vite 7.3.6, `git diff --check` passed, and Laravel reported 42 registered routes. The XAMPP HTTP smoke request to `/complaint/public/` returned HTTP 302, consistent with the authenticated application redirect. An initial `npm run build` attempt was blocked by the Windows PowerShell execution policy for `npm.ps1`; the equivalent `npm.cmd run build` completed successfully.
+
+
+Final repository protection check passed: `git check-ignore -v .env` matched the `.env` rule, and `git ls-files --error-unmatch .env` reported it is not tracked. The local `.env` remains available to the attached XAMPP runtime without exposing its credential contents.
