@@ -2721,3 +2721,18 @@ The tracked `.env` entry was removed from the Git index with `git rm --cached`; 
 ## 66.36 Final credential-file protection check
 
 Final repository protection check passed: `git check-ignore -v .env` matched the `.env` rule, and `git ls-files --error-unmatch .env` reported it is not tracked. The local `.env` remains available to the attached XAMPP runtime without exposing its credential contents.
+
+
+## 66.37 SQL Server dashboard trend compatibility
+
+The dashboard login failure was traced to `DashboardStatsService::trend()`, which used MySQL/SQLite-style `DATE(complaint_date)` and grouped by its alias. SQL Server does not provide `DATE()` as a built-in function. The service now selects `CAST(complaint_date AS date)` for the `sqlsrv` driver and retains `DATE(complaint_date)` for the SQLite/MySQL test and supported paths; the same driver-selected expression is used in `GROUP BY` and `ORDER BY`. This preserves the existing day/week/month bucket behavior without changing dashboard metrics or filters. The SQL Server dashboard smoke check now passes.
+
+
+## 66.38 Temporary SQL Server dashboard smoke check
+
+A temporary root-level `.sqlsrv_dashboard_verify.php` script was created solely to bootstrap Laravel and execute `DashboardStatsService::build([])` against the configured SQL Server connection. It reported aggregate trend metadata (`total=100`, daily grouping, 30 trend points), passed, and was removed; it is not part of the application architecture.
+
+
+## 66.39 Verified SQL Server dashboard fix
+
+Final verification for the SQL Server dashboard fix completed on 2026-08-27. The live SQL Server dashboard smoke check executed `DashboardStatsService::build([])` successfully and reported `total=100`, daily grouping, and 30 trend points. The temporary smoke script was removed. The full PHPUnit suite passed with 43 tests and 205 assertions using in-memory SQLite; Blade view caching passed; `npm.cmd run build` passed; Laravel reported 42 routes; and `git diff --check` passed. No schema, route, permission, or database-design change was required.

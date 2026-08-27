@@ -224,10 +224,11 @@ class DashboardStatsService
     private function trend(Builder $query, Carbon $from, Carbon $to): array
     {
         $grouping = $this->grouping($from, $to);
+        $dateExpression = $this->trendDateExpression();
         $daily = (clone $query)
-            ->selectRaw('DATE(complaint_date) AS bucket_date, COUNT(*) AS total')
-            ->groupBy('bucket_date')
-            ->orderBy('bucket_date')
+            ->selectRaw($dateExpression.' AS bucket_date, COUNT(*) AS total')
+            ->groupByRaw($dateExpression)
+            ->orderByRaw($dateExpression.' ASC')
             ->pluck('total', 'bucket_date');
         $buckets = [];
         $cursor = $from->copy();
@@ -243,6 +244,13 @@ class DashboardStatsService
             'values' => array_values($buckets),
             'grouping' => $grouping,
         ];
+    }
+
+    private function trendDateExpression(): string
+    {
+        return DB::connection()->getDriverName() === 'sqlsrv'
+            ? 'CAST(complaint_date AS date)'
+            : 'DATE(complaint_date)';
     }
 
     private function grouping(Carbon $from, Carbon $to): string

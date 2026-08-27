@@ -19,7 +19,7 @@ The main roles are **Super Admin**, **Admin**, **Customer Support**, and **Viewe
 | UI | Blade templates with Tailwind CSS 4 |
 | Frontend build | Vite 7 with Laravel Vite plugin |
 | Browser JavaScript | Native `fetch()`, debounce timers, `AbortController`, and service-worker registration |
-| Database | SQLite in the current local installation; test suite uses in-memory SQLite |
+| Database | SQL Server at `127.0.0.1:1433`, database `complaints`; test suite uses in-memory SQLite |
 | Authentication | Laravel session authentication through custom `AuthController` |
 | Authorization | Spatie Laravel Permission 6.24.0, Laravel Gate, controller checks, and permission middleware |
 | Excel | Maatwebsite Laravel Excel 3.1.67 |
@@ -159,7 +159,7 @@ Spatie adds `permissions`, `roles`, `model_has_permissions`, `model_has_roles`, 
 
 Foreign keys on complaints and status histories use restrictive deletion behavior for historical references. `resolved_by` and `activity_logs.user_id` are nullable and use `nullOnDelete`. Business records should normally be deactivated or soft-deleted instead of physically deleted.
 
-The `.env.example` specifies `SESSION_DRIVER=database`, but the current migration set does not include a `sessions` migration. PHPUnit overrides sessions with the array driver. If database sessions are used in a deployment, the required sessions table must be provided or the session driver should be changed.
+The `.env.example` specifies `SESSION_DRIVER=database`, and the default Laravel users migration includes the `sessions` table. PHPUnit overrides sessions with the array driver. Database-backed sessions are therefore available in the verified local SQL Server schema.
 
 ## Business Rules and Decisions
 
@@ -428,3 +428,14 @@ Final verification on 2026-08-27: `php artisan migrate:status --database=sqlsrv`
 
 
 Final repository protection check passed: `git check-ignore -v .env` matched the `.env` rule, and `git ls-files --error-unmatch .env` reported it is not tracked. The local `.env` remains available to the attached XAMPP runtime without exposing its credential contents.
+
+
+## SQL Server dashboard trend compatibility
+
+The dashboard login failure was traced to `DashboardStatsService::trend()`, which used MySQL/SQLite-style `DATE(complaint_date)` and grouped by its alias. SQL Server does not provide `DATE()` as a built-in function. The service now selects `CAST(complaint_date AS date)` for the `sqlsrv` driver and retains `DATE(complaint_date)` for the SQLite/MySQL test and supported paths; the same driver-selected expression is used in `GROUP BY` and `ORDER BY`. This preserves the existing day/week/month bucket behavior without changing dashboard metrics or filters. The SQL Server dashboard smoke check now passes.
+
+
+A temporary root-level `.sqlsrv_dashboard_verify.php` script was created solely to bootstrap Laravel and execute `DashboardStatsService::build([])` against the configured SQL Server connection. It reported aggregate trend metadata (`total=100`, daily grouping, 30 trend points), passed, and was removed; it is not part of the application architecture.
+
+
+Final verification for the SQL Server dashboard fix completed on 2026-08-27. The live SQL Server dashboard smoke check executed `DashboardStatsService::build([])` successfully and reported `total=100`, daily grouping, and 30 trend points. The temporary smoke script was removed. The full PHPUnit suite passed with 43 tests and 205 assertions using in-memory SQLite; Blade view caching passed; `npm.cmd run build` passed; Laravel reported 42 routes; and `git diff --check` passed. No schema, route, permission, or database-design change was required.
