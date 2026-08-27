@@ -28,7 +28,7 @@ The main roles are **Super Admin**, **Admin**, **Customer Support**, and **Viewe
 | Testing | PHPUnit 11 through `php artisan test` |
 | Local web server | XAMPP Apache serving the Laravel `public` directory |
 
-Important Composer dependencies are `laravel/framework`, `laravel/tinker`, `spatie/laravel-permission`, and `maatwebsite/excel`. Important NPM dependencies are Vite, `laravel-vite-plugin`, Tailwind CSS, `@tailwindcss/vite`, Axios, and Concurrently. The current picker implementation uses native `fetch()` rather than Axios.
+Important Composer dependencies are `laravel/framework`, `laravel/tinker`, `spatie/laravel-permission`, and `maatwebsite/excel`. Important NPM dependencies are Vite, `laravel-vite-plugin`, Tailwind CSS, `@tailwindcss/vite`, Axios, Concurrently, and Chart.js. The current picker implementation uses native `fetch()` rather than Axios; dashboard charts use Chart.js.
 
 ## Architecture
 
@@ -226,16 +226,16 @@ Authenticated pages are under the `auth` middleware group. Permission checks are
 
 ## Testing and Last Verification
 
-The test suite contains feature coverage for customer search and CRUD, complaint creation/update/status history, filters, export, authorization, role lifecycle, users filters, localization, PWA metadata/cache boundaries, and known Blade regression cases. Unit coverage currently contains the Laravel example unit test; application services are primarily covered through feature tests.
+The test suite contains feature coverage for customer search and CRUD, complaint creation/update/status history, filters, export, authorization, role lifecycle, users filters, localization, PWA metadata/cache boundaries, dashboard analytics/filter payloads, and known Blade regression cases. Unit coverage currently contains the Laravel example unit test; application services are primarily covered through feature tests.
 
-The last complete validation performed after the dark-mode implementation was successful:
+The latest complete validation after the advanced dashboard implementation was successful:
 
 - Blade views cleared and cached successfully.
 - Vite production build completed successfully.
-- Full Laravel suite: **35 tests passed, 152 assertions**.
+- Full Laravel suite: **42 tests passed, 195 assertions**.
 - Bilingual localization tests passed for complaint/customer/auth messages, login copy, customer status summaries, audit-log action rendering, and dark-mode labels.
 - Dark-mode layout tests passed for the theme switch markup and early localStorage bootstrap.
-- A static audit checked **143 translation helper keys** against both locale dictionaries and found **0 missing keys**.
+- Dashboard localization regression assertions passed for English and Arabic filter labels, branch-selection guidance, and the Solved/Closed resolution definition.
 
 ## Development Commands
 
@@ -263,7 +263,7 @@ There are no unverified feature changes currently pending from the previous impl
 
 ## Pending Features and Future Improvements
 
-The following are intentionally not implemented and may be considered later: full offline PWA behavior, complaint attachments, internal comments, notifications, email/WhatsApp integration, customer portal, password reset, branch-specific user scoping, SLA/escalation workflows, satisfaction ratings, advanced analytics, external API clients, scheduled synchronization, and background job workflows.
+The following are intentionally not implemented and may be considered later: full offline PWA behavior, complaint attachments, internal comments, notifications, email/WhatsApp integration, customer portal, password reset, branch-specific user scoping, SLA/escalation workflows, satisfaction ratings, external API clients, scheduled synchronization, and background job workflows.
 
 ## Known Issues and Operational Notes
 
@@ -334,3 +334,39 @@ The required living documents were synchronized in this task: `memory.md`, `comp
 On the complaints index, the Customer filter is now a closed, searchable single-select dropdown that continues to submit the existing `customer_id` value. The Branch filter is now a closed, searchable multi-select dropdown that continues to submit one hidden `branch_ids[]` input per selected branch. Both panels open from select-style trigger buttons, show bounded searchable results, display selected state, include a localized Clear action when applicable, close on outside click or Escape, and use compact summaries for the selected values. The complaint create/edit customer picker and the branch-report picker retain their legacy markup through compatibility branches in `resources/js/app.js`.
 
 The new controls reuse the existing form-input, border, spacing, and dark-mode palette. Feature coverage verifies the closed dropdown markup while the existing endpoint/filter tests continue to verify customer search, five-result branch search, single-customer filtering, and multi-branch filtering. Focused complaint-filter verification passed with 19 tests and 75 assertions; full verification on 2026-08-27 passed with 39 tests and 179 assertions, Blade view caching, the Vite production build, all migrations reported `Ran`, and 42 registered routes.
+
+
+## Dashboard redesign
+
+The attached advanced dashboard specification is now implemented and verified as a real-data Laravel/Blade analytics dashboard. `DashboardFilterRequest`, `DashboardStatsService`, and `DashboardController` provide validated filters, SQL-backed KPI/chart/ranking data, comparison periods, recent/attention/solved complaint lists, and rule-based insights. The dashboard Blade layout, Chart.js rendering, bilingual labels, regression tests, and final build/test verification are complete. The design keeps the existing authenticated root route and `complaint.view` authorization, treats Solved and Closed as resolved, and calculates average resolution time only from non-negative `created_at` to `resolved_at` intervals.
+
+
+The verified dashboard implementation includes validated filters, SQL/Eloquent metrics, trend/distribution charts, branch performance, recent/attention/solved complaint lists, rule-based insights, bilingual labels, Chart.js rendering, and actionable complaint-list/detail links. The final Vite build and Laravel suite passed after the intermediate Blade/chart and test assertion corrections.
+
+
+During dashboard implementation, the Blade chart-card variable, trend-date alias, and indexed branch-link test expectation were corrected. The final focused dashboard suite passed with 2 tests and 10 assertions, and the complete suite passed afterward.
+
+
+The dashboard regression assertion now matches Laravel’s indexed query-string encoding (`branch_ids[0]`) for actionable branch links. Focused dashboard verification is ready to rerun; the dashboard trend alias correction and Blade chart-card fix are both recorded, and the advanced dashboard remains pending final validation.
+
+
+The focused dashboard test now checks the rendered complaint ID for the filtered recent-complaints row rather than expecting the short description, which the dashboard intentionally summarizes through complaint ID/customer/branch/type. The branch actionable-link assertion remains aligned with indexed `branch_ids[0]` encoding. Focused verification must be rerun before completion.
+
+
+The dashboard total-complaints KPI now links to the complaint list with the complete active dashboard filter query, rather than incorrectly appending the Pending status. Pending, In Progress, and Solved KPI links still add their respective status filters. The dashboard feature tests passed before this navigation-only correction; final verification remains pending. A missing `multi_select_hint` translation key identified during review still needs to be added to both locales.
+
+
+The English locale now includes `multi_select_hint`, used by the dashboard’s native multi-branch select. The Arabic equivalent is still pending; dashboard verification remains in progress.
+
+
+The Arabic locale now includes `multi_select_hint` (`اضغط Ctrl/Cmd لاختيار عدة فروع`), completing the dashboard branch-filter hint pair. Focused dashboard tests previously passed; the updated locale and total-card navigation now require the final localization/build/test verification.
+
+
+Localization regression coverage now asserts the dashboard filter label, branch multi-select hint, and Solved/Closed resolution-definition text in both English and Arabic. The dashboard feature tests previously passed with 2 tests and 10 assertions; the new localization test must be included in the final full verification.
+
+
+## Dashboard final verification — 2026-08-27
+
+The advanced dashboard is complete and verified. It uses `DashboardFilterRequest`, `DashboardStatsService`, and `DashboardController` with the existing authenticated root route and `complaint.view` access. The Blade view provides date/master-data filters, KPI cards, trends, seven distribution charts, branch performance, recent/attention/solved lists, actionable complaint links, and rule-based insights. Chart.js renders the responsive trend/distribution canvases with light/dark-aware colors. Solved and Closed count as resolved; average resolution time uses only valid `created_at` to `resolved_at` intervals. No schema migration or new route/permission was required.
+
+Final checks passed: focused dashboard coverage 2 tests/10 assertions; full Laravel suite 42 tests/195 assertions; Blade views cleared and cached; Vite production build completed; all migrations reported `Ran`; route list reported 42 routes; and `git diff --check` passed. The sandbox browser could not connect to the user’s XAMPP-only localhost service, so independent live desktop/mobile visual inspection was not performed; automated Blade/frontend/feature checks passed. Earlier dashboard debugging notes in this file describe intermediate corrections and are superseded by this final record.

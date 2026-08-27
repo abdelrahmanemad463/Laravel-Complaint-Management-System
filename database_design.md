@@ -253,3 +253,21 @@ The implemented migration order follows this plan. Seeders now provide the four 
 ## 10. Test Coverage Required by the Design
 
 Feature tests must cover required and optional phone validation, search through each of the four phone columns, complaint creation with authenticated `created_by`, all required relationships, status-history creation, resolution metadata, Super Admin protection, permission denial, customer/date/status/priority filters, multiple-branch filtering, combined filters, filtered export, and English/Arabic export headings.
+
+
+## 11. Dashboard Analytics Data Definitions
+
+The authenticated dashboard reuses the complaint data model through `DashboardFilterRequest` and `DashboardStatsService`; it introduces no new table or column. All KPI, chart, ranking, recent-list, and insight results are calculated from the current filter set using Eloquent queries and SQL aggregation.
+
+| Metric | Definition |
+|---|---|
+| Total complaints | Count of complaints matching the selected date, branch, service, source, category, type, priority, and status filters. Date filtering uses `complaint_date`. |
+| Resolved complaints | Complaints whose current status is named `Solved` or `Closed`, matched case-insensitively against the status master data. |
+| Resolution rate | Resolved complaints divided by total filtered complaints multiplied by 100; zero when no filtered complaints exist. |
+| High + Critical | Complaints whose priority master-data name is `High` or `Critical`. |
+| Trend | Complaints grouped from `complaint_date`; periods of up to 31 days use daily buckets, up to 180 days use week-start buckets, and longer periods use month buckets. |
+| Average resolution time | Average non-negative duration from Laravel `created_at` to nullable `resolved_at`, calculated only for filtered complaints where both timestamps exist. It is omitted when no reliable interval exists. |
+| Branch performance | SQL grouping by `branch_id`, with total, percentage of filtered total, resolved, pending, high/critical, and resolution-rate values. |
+| Previous-period comparison | The same non-date filters applied to an immediately preceding period of equal length. |
+
+The dashboard reads existing foreign-key relationships to branches, services, sources, categories, types, priorities, and statuses. Master-data names remain database values rather than per-locale fields; interface labels and metric definitions are translated through Laravel dictionaries. No dashboard-specific schema migration or index was required after reviewing the existing `complaint_date`, branch/date, status/date, `created_at`, and `resolved_at` support.

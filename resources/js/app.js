@@ -1,5 +1,7 @@
 import './bootstrap';
 
+import Chart from 'chart.js/auto';
+
 const themeToggle = document.querySelector('[data-theme-toggle]');
 const themeColorMeta = document.querySelector('[data-theme-color]');
 
@@ -491,6 +493,110 @@ if (branchPicker?.hasAttribute('data-filter-dropdown')) {
     });
 }
 
+
+const dashboardChartData = document.querySelector('#dashboard-chart-data');
+
+if (dashboardChartData) {
+    try {
+        const { charts } = JSON.parse(dashboardChartData.textContent || '{}');
+        const chartInstances = [];
+        const palette = ['#4f46e5', '#0891b2', '#16a34a', '#ea580c', '#dc2626', '#9333ea', '#ca8a04', '#0f766e'];
+        const chartTextColor = () => document.documentElement.dataset.theme === 'dark' ? '#cbd5e1' : '#475569';
+        const chartGridColor = () => document.documentElement.dataset.theme === 'dark' ? '#334155' : '#e2e8f0';
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: {
+                legend: { labels: { color: chartTextColor(), usePointStyle: true, boxWidth: 8 } },
+                tooltip: { mode: 'index', intersect: false },
+            },
+        };
+
+        const addChart = (key, type, options = {}) => {
+            const canvas = document.querySelector(`#${key}-chart`);
+            const rows = charts?.[key] || [];
+            if (!canvas || !rows.length) return;
+            const isDoughnut = type === 'doughnut';
+            const chart = new Chart(canvas, {
+                type,
+                data: {
+                    labels: rows.map((row) => row.name),
+                    datasets: [{
+                        data: rows.map((row) => row.total),
+                        backgroundColor: rows.map((row, index) => row.color || palette[index % palette.length]),
+                        borderColor: isDoughnut ? (document.documentElement.dataset.theme === 'dark' ? '#0f172a' : '#ffffff') : '#4f46e5',
+                        borderWidth: isDoughnut ? 2 : 0,
+                        borderRadius: isDoughnut ? 0 : 5,
+                    }],
+                },
+                options: {
+                    ...commonOptions,
+                    ...options,
+                    plugins: { ...commonOptions.plugins, ...(options.plugins || {}) },
+                    scales: isDoughnut ? undefined : {
+                        x: { beginAtZero: true, ticks: { color: chartTextColor(), precision: 0 }, grid: { color: chartGridColor() } },
+                        y: { ticks: { color: chartTextColor() }, grid: { display: false } },
+                    },
+                },
+            });
+            chartInstances.push(chart);
+        };
+
+        const trendCanvas = document.querySelector('#trend-chart');
+        if (trendCanvas && charts?.trend) {
+            const trend = charts.trend;
+            chartInstances.push(new Chart(trendCanvas, {
+                type: 'line',
+                data: {
+                    labels: trend.labels,
+                    datasets: [{
+                        label: document.documentElement.lang === 'ar' ? 'الشكاوى' : 'Complaints',
+                        data: trend.values,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, .14)',
+                        fill: true,
+                        tension: .35,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                    }],
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: { ...commonOptions.plugins, legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: chartTextColor(), maxRotation: 0, autoSkip: true }, grid: { display: false } },
+                        y: { beginAtZero: true, ticks: { color: chartTextColor(), precision: 0 }, grid: { color: chartGridColor() } },
+                    },
+                },
+            }));
+        }
+
+        addChart('branches', 'bar', { indexAxis: 'y' });
+        addChart('categories', 'bar', { indexAxis: 'y' });
+        addChart('types', 'bar', { indexAxis: 'y' });
+        addChart('services', 'bar', { indexAxis: 'y' });
+        addChart('sources', 'doughnut', { cutout: '62%' });
+        addChart('statuses', 'doughnut', { cutout: '62%' });
+        addChart('priorities', 'doughnut', { cutout: '62%' });
+
+        const refreshChartTheme = () => {
+            chartInstances.forEach((chart) => {
+                if (chart.options.scales) {
+                    Object.values(chart.options.scales).forEach((scale) => {
+                        if (scale.ticks) scale.ticks.color = chartTextColor();
+                        if (scale.grid) scale.grid.color = chartGridColor();
+                    });
+                }
+                if (chart.options.plugins?.legend?.labels) chart.options.plugins.legend.labels.color = chartTextColor();
+                chart.update('none');
+            });
+        };
+        themeToggle?.addEventListener('click', () => window.setTimeout(refreshChartTheme, 0));
+    } catch (error) {
+        console.warn('Dashboard chart initialization failed.', error);
+    }
+}
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {

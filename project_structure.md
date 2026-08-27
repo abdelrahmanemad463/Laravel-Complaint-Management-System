@@ -78,6 +78,7 @@ There is no React, Vue, Inertia, Livewire, Filament, repository layer, custom AP
 | `@tailwindcss/vite` `^4.0.0` | Tailwind integration with Vite | `vite.config.js` |
 | `axios` `^1.11.0` | Installed frontend HTTP client dependency | Available to frontend code; the current picker implementation uses native `fetch()` |
 | `concurrently` `^9.0.1` | Runs Laravel/Vite development processes together through the Composer `dev` script | `composer.json` |
+| `chart.js` | Responsive dashboard trend and distribution charts | `resources/js/app.js`, `dashboard/index.blade.php` |
 
 ## 4. Technologies and Concepts Used
 
@@ -327,7 +328,7 @@ The permission migration creates package roles, permissions, model-role/model-pe
 | Module | Main entry points | Main data and rules |
 |---|---|---|
 | Authentication | `AuthController`, `auth/login.blade.php` | Session login/logout; failed credentials use localized messages |
-| Dashboard | `DashboardController`, `dashboard/index.blade.php` | Aggregate seven-day counts, status/priority distributions, and branch ranking |
+| Dashboard | `DashboardController`, `DashboardFilterRequest`, `DashboardStatsService`, `dashboard/index.blade.php` | Authenticated real-data analytics dashboard with validated global filters, SQL/Eloquent KPIs, trends, dimension charts, resolution metrics, branch performance, recent/attention/solved lists, insights, and actionable complaint links |
 | Customers | `CustomerController`, `Customer` model, `customers/` views | CRUD, four-phone/name search, complaint count/history, 30-record pagination, soft deletion model support; primary phone required |
 | Complaints | `ComplaintController`, `Complaint` model, `complaints/` views | CRUD, customer and master-data associations, filters, detail page, status transitions, resolution metadata, activity timeline, and 30-record pagination |
 | Complaint filtering | `ComplaintFilterRequest`, `Complaint::scopeFilter()` | Complaint ID, validated short/full description text search, customer, multi-branch, master-data, creator, and date filters; query strings retained in pagination |
@@ -517,7 +518,7 @@ tests/
 └── TestCase.php
 ```
 
-Current feature coverage includes customer phone/name search, customer and complaint workflows, authenticated complaint creator assignment, complaint filters including complaint ID, short/full description search, closed Customer single-select and Branch multi-select dropdown markup, and multiple branches, complaint status history and resolution metadata, authorization denial, role lifecycle safeguards, users filters, branch reports, localized Excel headings, description-filtered export reuse, English/Arabic localization, PWA manifest/service-worker boundaries, and Blade/runtime regression cases. Tests are feature-focused; the two application services do not currently have separate unit-test classes.
+Current feature coverage includes customer phone/name search, customer and complaint workflows, authenticated complaint creator assignment, complaint filters including complaint ID, short/full description search, closed Customer single-select and Branch multi-select dropdown markup, and multiple branches, complaint status history and resolution metadata, authorization denial, role lifecycle safeguards, users filters, branch reports, localized Excel headings, description-filtered export reuse, English/Arabic localization including dashboard labels, PWA manifest/service-worker boundaries, dashboard analytics/filter payloads, and Blade/runtime regression cases. Tests are feature-focused; application services do not currently have separate unit-test classes.
 
 ## 17. Important Development Commands
 
@@ -637,3 +638,36 @@ The complaints index uses a closed Customer dropdown that submits the existing s
 
 This document is synchronized with the current codebase as of 2026-08-27. The three living project documents must be read before every future code edit and synchronized after each meaningful change; schema changes additionally require `database_design.md` updates.
 
+
+
+### Advanced dashboard redesign
+
+The advanced dashboard is implemented around `DashboardFilterRequest`, `DashboardStatsService`, `DashboardController`, `dashboard/index.blade.php`, and Chart.js initialization in `resources/js/app.js`. The service keeps dashboard statistics on filtered Eloquent/SQL queries rather than loading all complaints into PHP, while preserving the existing authenticated root route and `complaint.view` authorization. The responsive view, chart bootstrap, bilingual labels, actionable links, and Chart.js dependency are verified by the dashboard and localization feature coverage.
+
+
+Dashboard verification corrected the trend query to use an explicit `DATE(complaint_date) AS bucket_date` alias before building day/week/month buckets. The dashboard regression now matches Laravel’s indexed `branch_ids[0]` link encoding and checks the rendered complaint identity. Focused dashboard tests passed with 2 tests and 10 assertions; the final full suite and build checks are recorded below.
+
+
+The dashboard regression test matches the existing multi-value branch filter contract by checking Laravel’s indexed `branch_ids[0]` query encoding in actionable links. No runtime dashboard behavior changed; focused dashboard verification passed with 2 tests and 10 assertions.
+
+
+The focused dashboard test checks the complaint ID shown by the compact recent-complaints dashboard row instead of asserting a description that the row does not render. This is test-only alignment; runtime dashboard behavior is unchanged.
+
+
+The dashboard total KPI links to `complaints.index` using the complete active dashboard query; only status-specific KPI cards append their own status constraint. This keeps actionable navigation aligned with visible filter semantics. Both locales contain the branch-filter hint translation, and final verification is recorded below.
+
+
+The English locale contains the dashboard branch multi-select hint key `multi_select_hint`; the Arabic equivalent is also present and covered by localization tests.
+
+
+The Arabic locale contains the dashboard branch multi-select hint key `multi_select_hint`, completing the bilingual dashboard-filter labels.
+
+
+`LocalizationTest` covers the dashboard filter label, multi-branch selection hint, and Solved/Closed resolution-definition label in both supported locales. The expanded localization suite passed as part of the final full suite.
+
+
+## Advanced dashboard — final verified implementation
+
+The advanced dashboard is complete. `DashboardFilterRequest` validates date and master-data filters; `DashboardStatsService` applies them to real Eloquent/SQL aggregations; `DashboardController` serves the authenticated root route; `dashboard/index.blade.php` renders the responsive analytics layout; and `resources/js/app.js` initializes bundled Chart.js trend/distribution charts with theme-aware colors. The dashboard includes KPI cards, day/week/month trends, branch/category/type/service/source/status/priority charts, resolution metrics, branch performance, recent/attention/solved lists, actionable complaint links, and rule-based insights. Solved and Closed count as resolved, and average resolution time is calculated only from valid `created_at` to `resolved_at` intervals.
+
+The final dashboard suite passed with 2 tests and 10 assertions; the full Laravel suite passed with 42 tests and 195 assertions. Blade caching, the Vite build, migration status, the 42-route listing, and `git diff --check` all passed on 2026-08-27. `chart.js` is now listed in `package.json` and the lockfile. No route, permission, or schema change was required. The sandbox browser could not reach the user’s XAMPP-only localhost service, so live desktop/mobile visual inspection was not independently performed; automated Blade/frontend/feature checks passed. Earlier progress notes in this section are superseded by this final record.

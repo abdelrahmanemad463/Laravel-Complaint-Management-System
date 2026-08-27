@@ -56,6 +56,16 @@ class LocalizationTest extends TestCase
         $this->assertSame('الوضع الفاتح', __('common.light_mode', [], 'ar'));
     }
 
+    public function test_dashboard_labels_are_localized(): void
+    {
+        $this->assertSame('Dashboard filters', __('common.dashboard_filters', [], 'en'));
+        $this->assertSame('Hold Ctrl/Cmd to select multiple branches', __('common.multi_select_hint', [], 'en'));
+        $this->assertSame('فلاتر لوحة التحكم', __('common.dashboard_filters', [], 'ar'));
+        $this->assertSame('اضغط Ctrl/Cmd لاختيار عدة فروع', __('common.multi_select_hint', [], 'ar'));
+        $this->assertSame('Solved and Closed are counted as resolved.', __('common.resolution_definition', [], 'en'));
+        $this->assertSame('تُحتسب حالتا تم الحل ومغلقة ضمن الحالات المحلولة.', __('common.resolution_definition', [], 'ar'));
+    }
+
     public function test_login_and_customer_summary_use_selected_locale(): void
     {
         $admin = User::where('email', 'admin@example.com')->firstOrFail();
