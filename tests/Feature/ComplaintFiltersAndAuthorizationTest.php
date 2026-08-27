@@ -168,6 +168,24 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
         $this->assertSame(1, substr_count($secondTableBody[1] ?? '', '<tr>'));
     }
 
+    public function test_branch_report_results_count_is_localized(): void
+    {
+        $admin = User::where('email', 'admin@example.com')->first();
+        $filters = ['date_from' => '2099-01-01', 'date_to' => '2099-01-31'];
+
+        $this->actingAs($admin)
+            ->withSession(['locale' => 'en'])
+            ->get(route('reports.branches', $filters))
+            ->assertOk()
+            ->assertSee('0 results');
+
+        $this->actingAs($admin)
+            ->withSession(['locale' => 'ar'])
+            ->get(route('reports.branches', $filters))
+            ->assertOk()
+            ->assertSee('عدد النتائج: 0');
+    }
+
     public function test_branch_reports_uses_the_top_five_searchable_branch_picker(): void
     {
         $admin = User::where('email', 'admin@example.com')->first();

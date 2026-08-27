@@ -439,3 +439,15 @@ A temporary root-level `.sqlsrv_dashboard_verify.php` script was created solely 
 
 
 Final verification for the SQL Server dashboard fix completed on 2026-08-27. The live SQL Server dashboard smoke check executed `DashboardStatsService::build([])` successfully and reported `total=100`, daily grouping, and 30 trend points. The temporary smoke script was removed. The full PHPUnit suite passed with 43 tests and 205 assertions using in-memory SQLite; Blade view caching passed; `npm.cmd run build` passed; Laravel reported 42 routes; and `git diff --check` passed. No schema, route, permission, or database-design change was required.
+
+
+The branch-report localization issue was traced to the missing `common.results_count` key. The English dictionary now defines `results_count` as `:count results`; the Arabic dictionary still needs its matching entry before verification is complete.
+
+
+The Arabic common dictionary now defines `results_count` as `عدد النتائج: :count`, completing the bilingual translation for the branch-report total shown above the paginated table. Focused localization and branch-report regression verification remain to be run.
+
+
+Regression coverage was added to `ComplaintFiltersAndAuthorizationTest` for the exact `/reports/branches` rendering path. It requests a future empty date range in English and Arabic and asserts `0 results` and `عدد النتائج: 0`, respectively. The focused and full test suites remain to be run after this addition.
+
+
+Final verification for the branch-report results-count localization completed on 2026-08-27. The focused localization and complaint/filter suites passed with 26 tests and 125 assertions, including the exact English `0 results` and Arabic `عدد النتائج: 0` branch-report rendering. The full suite passed with 44 tests and 209 assertions. Blade view caching, `npm.cmd run build`, and `git diff --check` also passed. No schema, route, permission, or database-design change was required.

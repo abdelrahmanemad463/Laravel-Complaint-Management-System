@@ -333,7 +333,7 @@ The permission migration creates package roles, permissions, model-role/model-pe
 | Complaints | `ComplaintController`, `Complaint` model, `complaints/` views | CRUD, customer and master-data associations, filters, detail page, status transitions, resolution metadata, activity timeline, and 30-record pagination |
 | Complaint filtering | `ComplaintFilterRequest`, `Complaint::scopeFilter()` | Complaint ID, validated short/full description text search, customer, multi-branch, master-data, creator, and date filters; query strings retained in pagination |
 | Master data | `MasterDataController`, `master-data/` views | Branches, services, sources, categories, types, priorities, and statuses; active flag controls new selections; records are ordered and paginated |
-| Branch reports | `ReportController`, `reports/branches.blade.php` | Date range and multi-branch filtering; SQL grouping by complaint date and branch |
+| Branch reports | `ReportController`, `reports/branches.blade.php` | Date range and multi-branch filtering; SQL grouping by complaint date and branch; localized paginated results count |
 | Excel export | `ComplaintsExport`, `ComplaintController::export()` | Exports the validated current complaint query and localized headings; permission protected |
 | Users | `UserController`, `users/` views | Authorized user creation/update, role assignment, name/email and role filters, paginated results |
 | Roles and permissions | `RoleController`, `roles/` views | Create custom roles, configure permissions, guarded deletion, protected baseline roles, assigned-user deletion prevention |
@@ -612,7 +612,7 @@ The shared layout provides a localized light/dark switch with accessible button 
 
 ### Branch report pagination
 
-`ReportController::branches()` now paginates grouped complaint-date/branch report rows at 30 per page and calls `withQueryString()` so date and multi-branch filters persist across pages. `reports/branches.blade.php` displays the localized filtered total and renders Laravel paginator links below the report table. The existing five-result branch picker and protected background search remain unchanged. The focused branch-report suite passed with 17 tests and 59 assertions. Full validation then passed with 35 tests and 152 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported Ran, and 42 routes were registered.
+`ReportController::branches()` now paginates grouped complaint-date/branch report rows at 30 per page and calls `withQueryString()` so date and multi-branch filters persist across pages. `reports/branches.blade.php` displays the filtered total through the bilingual `common.results_count` key and renders Laravel paginator links below the report table. The English value is `:count results`, and the Arabic value is `عدد النتائج: :count`. The existing five-result branch picker and protected background search remain unchanged. Regression coverage includes the exact English and Arabic rendering. The focused localization/filter suites passed with 26 tests and 125 assertions; the full suite passed with 44 tests and 209 assertions; Blade caching, the Vite production build, and `git diff --check` also passed.
 
 
 ### Complaint export columns and timeline mapping
