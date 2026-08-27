@@ -203,6 +203,20 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
         $this->assertSame(10, substr_count($response->getContent(), 'class="customer-option'));
     }
 
+    public function test_complaint_filters_render_closed_customer_and_branch_dropdowns(): void
+    {
+        $admin = User::where('email', 'admin@example.com')->first();
+        $content = $this->actingAs($admin)->get(route('complaints.index'))->assertOk()->getContent();
+
+        $this->assertSame(2, substr_count($content, 'data-picker-trigger'));
+        $this->assertSame(2, substr_count($content, 'data-filter-dropdown'));
+        $this->assertStringContainsString('name="customer_id"', $content);
+        $this->assertStringContainsString('aria-multiselectable="true"', $content);
+        $this->assertStringContainsString('id="customer-results" class="dropdown-panel absolute start-0 z-30 mt-2 hidden', $content);
+        $this->assertStringContainsString('id="branch-results" class="dropdown-panel absolute start-0 z-30 mt-2 hidden', $content);
+        $this->assertSame(2, substr_count($content, 'data-picker-clear'));
+    }
+
     public function test_admin_can_open_master_data_create_form(): void
     {
         $admin = User::where('email', 'admin@example.com')->first();

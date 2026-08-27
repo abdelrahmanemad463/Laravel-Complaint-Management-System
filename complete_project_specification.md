@@ -2376,7 +2376,7 @@ Do NOT start generating the complete application code until this design is revie
 
 This document began as the system requirements and implementation brief. The following addendum records the verified state of the codebase so future development can distinguish completed behavior from intentionally deferred requirements.
 
-**Last verified:** 2026-08-26  
+**Last verified:** 2026-08-27
 **Application path:** `C:\xampp\htdocs\complaint`  
 **Current local URL:** `http://localhost/complaint/public/`
 
@@ -2411,9 +2411,9 @@ The code intentionally avoids repositories, generic CRUD frameworks, excessive D
 | Requirement area | Current verified implementation |
 |---|---|
 | Customers | Customer CRUD, required primary phone, three optional phone fields, name/all-phone search, complaint summary, complaint history, and Add Complaint action |
-| Customer picker | Ten initial records, protected JSON search, 250 ms debounce, `fetch()`, `AbortController`, and selected-record preservation |
+| Customer picker | Complaint index uses a closed searchable single-select dropdown with ten initial records, protected JSON search, 250 ms debounce, `fetch()`, `AbortController`, selected-record preservation, compact summary, Clear action, and outside-click/Escape closing; create/edit retains its compatible searchable picker |
 | Complaints | Create/list/show/update, required relationships and descriptions, authenticated `created_by`, complaint ID and short/full description text filters, master-data filters, creator/date filters, pagination, and query-string preservation |
-| Branch filter | Multiple branch selection through `branch_ids[]` and `whereIn` |
+| Branch filter | Complaint index uses a closed searchable multi-select dropdown with checkbox-style selected states, compact count summary, Clear action, bounded scrolling results, outside-click/Escape closing, and existing `branch_ids[]`/`whereIn` filtering |
 | Master data | Dynamic branches, services, sources, categories, complaint types, priorities, and statuses with active flags, colors/order fields, pagination, soft deletes, and permission checks |
 | Branch report | Date range and multi-branch filters, five-record initial branch picker, name search, and SQL grouping by complaint date and branch |
 | Resolution | `resolution`, `resolved_by`, and `resolved_at`; moving to the status named Solved records the authenticated resolver and timestamp |
@@ -2505,13 +2505,13 @@ Complaint updates preserve old/new values, so priority, branch, service, categor
 
 The complaint index and export support `complaint_id`, a validated `description` term searched against both `short_description` and `description`, `customer_id`, `branch_ids[]`, `service_id`, `source_id`, `category_id`, `type_id`, `priority_id`, `status_id`, `created_by`, `date_from`, and `date_to`. The description-search control is placed at the end of the complaint filter grid. The description term is optional text limited to 255 characters, and the `date_to` validator requires it to be on or after `date_from`. Complaint results are paginated at 30 records, with query strings preserved.
 
-Customer list results are paginated at 30 records. The customer picker initially displays at most 10 records and searches all four phone fields plus name through a protected JSON route. Branch picker results are limited to 5 records and support name search. User results are paginated at 20 records and can be filtered by name/email and exact role.
+Customer list results are paginated at 30 records. On the complaint index, the Customer control is a closed single-select dropdown that initially displays at most 10 records and searches all four phone fields plus name through a protected JSON route. On the complaint index, the Branch control is a closed multi-select dropdown with at most five initial results and name search; it preserves the existing `branch_ids[]` submission. The create/edit customer picker and branch-report picker retain compatible legacy markup. User results are paginated at 20 records and can be filtered by name/email and exact role.
 
 ## 66.8 Localization and Error Handling Status
 
 The current translation directories contain `common.php`, `auth.php`, `complaints.php`, `customers.php`, `activity.php`, and `validation.php` for both `en` and `ar`. The application uses `SetLocale` to accept only `en` and `ar`, switches the main layout between LTR and RTL, and localizes flash messages, validation messages, login errors, audit actions, timeline entries, login copy, customer status-summary labels, and Excel headings.
 
-Both locale dictionaries now contain the localized short/full description search label, and the existing localization regression coverage remains green. Normal Laravel validation and session flash handling are used; sensitive internal errors are not intentionally exposed through the application UI.
+Both locale dictionaries now contain the localized short/full description search label and Clear action used by the complaint filter dropdowns, and the existing localization regression coverage remains green. Normal Laravel validation and session flash handling are used; sensitive internal errors are not intentionally exposed through the application UI.
 
 ## 66.9 Verification Status
 
@@ -2520,12 +2520,12 @@ The latest full verification completed successfully:
 ```text
 Blade views: cleared and cached successfully
 Vite production build: completed successfully
-Laravel test suite: 38 tests passed, 171 assertions
+Laravel test suite: 39 tests passed, 179 assertions
 Migration status: all current migrations reported Ran
 Registered routes: 42 routes reported by php artisan route:list
 ```
 
-Localization regression tests cover English/Arabic messages, login copy, customer status summaries, audit-log action rendering, theme labels, and the new description-search label. Complaint-filter regression tests verify that a single validated description term matches either the short or full description while excluding unrelated complaints; export regression tests verify the same filter is reused by `ComplaintsExport`. Pagination regression tests verify 30 complaint rows and 30 customer rows on the first two pages against the seeded larger dataset. PWA tests cover manifest metadata, icons, service-worker files, and the rule that private pages/API responses are not cached. Dark-mode layout tests verify the theme switch markup and early localStorage bootstrap. `php artisan db:seed --force` completed successfully with the expanded idempotent demo dataset; the latest full suite passed with 38 tests and 171 assertions.
+Localization regression tests cover English/Arabic messages, login copy, customer status summaries, audit-log action rendering, theme labels, the description-search label, and the dropdown Clear action. Complaint-filter regression tests verify that a single validated description term matches either the short or full description while excluding unrelated complaints, and that the complaint index renders closed Customer and Branch dropdown controls. Export regression tests verify the same filter is reused by `ComplaintsExport`. Pagination regression tests verify 30 complaint rows and 30 customer rows on the first two pages against the seeded larger dataset. PWA tests cover manifest metadata, icons, service-worker files, and the rule that private pages/API responses are not cached. Dark-mode layout tests verify the theme switch markup and early localStorage bootstrap. `php artisan db:seed --force` completed successfully with the expanded idempotent demo dataset; the latest full suite passed with 39 tests and 179 assertions.
 
 ## 66.10 Intentional Limitations and Deferred Requirements
 

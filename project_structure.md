@@ -1,6 +1,6 @@
 # Complaint Management System — Project Structure
 
-**Status:** Current-state implementation guide; last verified 2026-08-26  
+**Status:** Current-state implementation guide; last verified 2026-08-27
 **Application:** Complaint Desk  
 **Framework:** Laravel 12 on PHP 8.2+  
 **Rendering:** Server-rendered Blade with Tailwind CSS and progressive JavaScript enhancement  
@@ -40,7 +40,7 @@ The interface is a normal Laravel web application rather than a single-page appl
 | Backend | PHP 8.2+ and Laravel 12 | Routing, controllers, validation, authentication, sessions, migrations, Eloquent, localization, and responses |
 | UI rendering | Blade templates | All application screens under `resources/views/` |
 | Styling | Tailwind CSS 4 | Utility classes and reusable classes in `resources/css/app.css` |
-| Browser behavior | Plain JavaScript with `fetch()` | Debounced customer and branch searches, multi-branch picker behavior, and PWA registration |
+| Browser behavior | Plain JavaScript with `fetch()` | Closed complaint-index Customer/Branch dropdowns, debounced customer and branch searches, multi-branch picker behavior, outside-click/Escape closing, and PWA registration |
 | Asset build | Vite 7 with Laravel Vite plugin | Compiles `resources/css/app.css` and `resources/js/app.js` into `public/build/` |
 | Database | SQLite in the current local environment | Runtime development database; migrations use Laravel schema APIs and can be configured for another relational database |
 | Authentication | Laravel session authentication | Custom `AuthController` login/logout flow and `auth` middleware |
@@ -467,8 +467,8 @@ The frontend is Blade plus Tailwind CSS. `resources/views/layouts/app.blade.php`
 
 `resources/css/app.css` defines the application’s reusable visual classes, including cards, buttons, form controls, tables, badges, navigation states, and focus/hover/press behavior. `resources/js/app.js` contains:
 
-1. Customer-picker initialization, 10-result rendering, debounced `fetch()` search, abort handling, and selected-record preservation.
-2. Branch-picker initialization, five-result rendering, multi-selection, hidden `branch_ids[]` fields, debounced search, abort handling, and selected-record preservation.
+1. Complaint-index Customer initialization as a closed single-select dropdown with 10-result rendering, debounced `fetch()` search, abort handling, compact summary, Clear action, selected-record preservation, and outside-click/Escape closing; legacy create/edit customer picker compatibility is retained.
+2. Complaint-index Branch initialization as a closed multi-select dropdown with five-result rendering, checkbox-style selected states, compact count summary, Clear action, hidden `branch_ids[]` fields, debounced search, abort handling, selected-record preservation, and outside-click/Escape closing; legacy branch-report picker compatibility is retained.
 3. PWA service-worker registration derived from the manifest scope, with cache update settings.
 
 The application remains usable without JavaScript because the main forms and list pages are server-rendered. JavaScript improves large-data selection performance; it does not expose private data without the same protected JSON routes.
@@ -517,7 +517,7 @@ tests/
 └── TestCase.php
 ```
 
-Current feature coverage includes customer phone/name search, customer and complaint workflows, authenticated complaint creator assignment, complaint filters including complaint ID, short/full description search, and multiple branches, complaint status history and resolution metadata, authorization denial, role lifecycle safeguards, users filters, branch reports, localized Excel headings, description-filtered export reuse, English/Arabic localization, PWA manifest/service-worker boundaries, and Blade/runtime regression cases. Tests are feature-focused; the two application services do not currently have separate unit-test classes.
+Current feature coverage includes customer phone/name search, customer and complaint workflows, authenticated complaint creator assignment, complaint filters including complaint ID, short/full description search, closed Customer single-select and Branch multi-select dropdown markup, and multiple branches, complaint status history and resolution metadata, authorization denial, role lifecycle safeguards, users filters, branch reports, localized Excel headings, description-filtered export reuse, English/Arabic localization, PWA manifest/service-worker boundaries, and Blade/runtime regression cases. Tests are feature-focused; the two application services do not currently have separate unit-test classes.
 
 ## 17. Important Development Commands
 
@@ -601,7 +601,7 @@ Persistent project instructions require every code edit or code change to begin 
 
 ### Pagination verification
 
-Feature tests verify that the complaints and customers index pages each render 30 records on both the first and second pages when more than 100 records exist. The test setup uses the seeded demo dataset, ensuring the paginator is exercised with a realistic larger result set. The latest full suite passed with 38 tests and 171 assertions; Blade caching, the Vite production build, migration status, and `php artisan db:seed --force` also completed successfully.
+Feature tests verify that the complaints and customers index pages each render 30 records on both the first and second pages when more than 100 records exist. The test setup uses the seeded demo dataset, ensuring the paginator is exercised with a realistic larger result set. The latest full suite passed with 39 tests and 179 assertions; Blade caching, the Vite production build, migration status, and `php artisan db:seed --force` also completed successfully.
 
 
 ### Dark-mode theme system
@@ -627,9 +627,13 @@ Feature regression coverage verifies short-only and full-only matches exclude un
 
 ### Final verification for complaint description search
 
-The focused complaint-filter suite passed with 18 tests and 67 assertions, and the focused export suite passed with 4 tests and 15 assertions. Full verification passed with 38 tests and 171 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported `Ran`, and `php artisan route:list` reported 42 routes.
+The focused complaint-filter suite for description filtering passed with 18 tests and 67 assertions, and the focused export suite passed with 4 tests and 15 assertions. The subsequent dropdown UI regression brought the focused complaint-filter suite to 19 tests and 75 assertions. Latest full verification passed with 39 tests and 179 assertions; Blade views compiled and cached, the Vite production build completed, all migrations reported `Ran`, and `php artisan route:list` reported 42 routes.
+
+### Complaint filter dropdown controls
+
+The complaints index uses a closed Customer dropdown that submits the existing single `customer_id` value and a closed Branch dropdown that submits the existing multi-value `branch_ids[]` inputs. Their searchable result panels are hidden until the select-style trigger is activated, are bounded with scrolling, show selected states, provide localized Clear actions, and close when the user clicks outside or presses Escape. `resources/js/app.js` scopes this behavior to the complaint-index `data-filter-dropdown` markup and keeps the create/edit and branch-report picker markup compatible.
 
 ### Maintenance note
 
-This document is synchronized with the current codebase as of 2026-08-26. The three living project documents must be read before every future code edit and synchronized after each meaningful change; schema changes additionally require `database_design.md` updates.
+This document is synchronized with the current codebase as of 2026-08-27. The three living project documents must be read before every future code edit and synchronized after each meaningful change; schema changes additionally require `database_design.md` updates.
 

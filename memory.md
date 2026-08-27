@@ -1,6 +1,6 @@
 # Complaint Desk — Persistent Project Memory
 
-**Last synchronized:** 2026-08-26  
+**Last synchronized:** 2026-08-27
 **Project root:** `C:\xampp\htdocs\complaint`  
 **Application:** Complaint Desk / Complaint Management System  
 **Source of truth:** The current codebase, migrations, configuration, tests, and generated build output. This file is a concise continuation guide; `project_structure.md` and `database_design.md` contain the fuller architecture and database narratives.
@@ -328,3 +328,9 @@ Because `ComplaintController::index()` and `ComplaintController::export()` both 
 Regression coverage now includes a complaint-list test with short-only and full-only matches plus an unrelated complaint, and an export test confirming the shared filter scope excludes non-matching records. Focused suites passed with 18 filter tests/67 assertions and 4 export tests/15 assertions. Final verification on 2026-08-26 passed: Blade views cleared/cached, Vite production build completed, full Laravel suite **38 tests passed with 171 assertions**, all migrations reported `Ran`, and `php artisan route:list` reported 42 routes.
 
 The required living documents were synchronized in this task: `memory.md`, `complete_project_specification.md`, and `project_structure.md`. `database_design.md` was not changed because the feature uses existing complaint columns and introduces no schema change.
+
+## Complaint filter dropdown controls
+
+On the complaints index, the Customer filter is now a closed, searchable single-select dropdown that continues to submit the existing `customer_id` value. The Branch filter is now a closed, searchable multi-select dropdown that continues to submit one hidden `branch_ids[]` input per selected branch. Both panels open from select-style trigger buttons, show bounded searchable results, display selected state, include a localized Clear action when applicable, close on outside click or Escape, and use compact summaries for the selected values. The complaint create/edit customer picker and the branch-report picker retain their legacy markup through compatibility branches in `resources/js/app.js`.
+
+The new controls reuse the existing form-input, border, spacing, and dark-mode palette. Feature coverage verifies the closed dropdown markup while the existing endpoint/filter tests continue to verify customer search, five-result branch search, single-customer filtering, and multi-branch filtering. Focused complaint-filter verification passed with 19 tests and 75 assertions; full verification on 2026-08-27 passed with 39 tests and 179 assertions, Blade view caching, the Vite production build, all migrations reported `Ran`, and 42 registered routes.

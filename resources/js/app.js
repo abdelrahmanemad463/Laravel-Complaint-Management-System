@@ -28,7 +28,144 @@ themeToggle?.addEventListener('click', () => {
 
 const customerPicker = document.querySelector('[data-customer-picker]');
 
-if (customerPicker) {
+if (customerPicker?.hasAttribute('data-filter-dropdown')) {
+    const trigger = customerPicker.querySelector('[data-picker-trigger]');
+    const searchInput = customerPicker.querySelector('#customer-search');
+    const hiddenInput = customerPicker.querySelector('#customer_id');
+    const summary = customerPicker.querySelector('#customer-summary');
+    const results = customerPicker.querySelector('#customer-results');
+    const options = customerPicker.querySelector('[data-picker-options]');
+    const clearButton = customerPicker.querySelector('[data-picker-clear]');
+    const searchUrl = customerPicker.dataset.searchUrl;
+    const emptyText = customerPicker.dataset.emptyText;
+    const selectLabel = customerPicker.dataset.selectLabel;
+    const initialCustomers = [...options.querySelectorAll('.customer-option')].map((button) => ({
+        id: button.dataset.id,
+        name: button.dataset.name,
+        phone_primary: button.dataset.phone,
+    }));
+    let timer;
+    let controller;
+
+    const close = () => {
+        results.classList.add('hidden');
+        trigger.setAttribute('aria-expanded', 'false');
+    };
+
+    const open = () => {
+        results.classList.remove('hidden');
+        trigger.setAttribute('aria-expanded', 'true');
+        searchInput.focus();
+    };
+
+    const syncOptions = () => {
+        options.querySelectorAll('.customer-option').forEach((button) => {
+            const selected = button.dataset.id === hiddenInput.value;
+            button.dataset.selected = selected ? '1' : '0';
+            button.setAttribute('aria-selected', selected ? 'true' : 'false');
+            button.classList.toggle('bg-indigo-100', selected);
+            button.classList.toggle('text-indigo-800', selected);
+            const check = button.querySelector('.customer-check');
+            if (check) check.textContent = selected ? '✓' : '';
+        });
+        clearButton.classList.toggle('hidden', !hiddenInput.value);
+    };
+
+    const setSelected = (button) => {
+        hiddenInput.value = button.dataset.id;
+        summary.textContent = `${button.dataset.name} — ${button.dataset.phone}`;
+        summary.classList.remove('text-slate-500');
+        summary.classList.add('text-slate-900');
+        syncOptions();
+        close();
+    };
+
+    const bindOptions = () => {
+        options.querySelectorAll('.customer-option').forEach((button) => {
+            button.addEventListener('click', () => setSelected(button));
+        });
+        syncOptions();
+    };
+
+    const renderCustomers = (customers) => {
+        options.replaceChildren();
+        if (!customers.length) {
+            const empty = document.createElement('p');
+            empty.className = 'px-3 py-3 text-sm text-slate-500';
+            empty.textContent = emptyText;
+            options.appendChild(empty);
+            syncOptions();
+            return;
+        }
+        customers.slice(0, 10).forEach((customer) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'customer-option flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-sm hover:bg-indigo-50';
+            button.dataset.id = customer.id;
+            button.dataset.name = customer.name;
+            button.dataset.phone = customer.phone_primary;
+            button.setAttribute('role', 'option');
+            const name = document.createElement('span');
+            name.className = 'min-w-0 truncate font-medium';
+            name.textContent = customer.name;
+            const meta = document.createElement('span');
+            meta.className = 'flex shrink-0 items-center gap-2 text-xs text-slate-500';
+            const phone = document.createElement('span');
+            phone.textContent = customer.phone_primary;
+            const check = document.createElement('span');
+            check.className = 'customer-check text-indigo-600';
+            check.setAttribute('aria-hidden', 'true');
+            meta.append(phone, check);
+            button.append(name, meta);
+            options.appendChild(button);
+        });
+        bindOptions();
+    };
+
+    const searchCustomers = async () => {
+        const term = searchInput.value.trim();
+        if (!term) {
+            renderCustomers(initialCustomers);
+            return;
+        }
+        controller?.abort();
+        controller = new AbortController();
+        try {
+            const url = new URL(searchUrl, window.location.origin);
+            url.searchParams.set('q', term);
+            const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
+            if (!response.ok) throw new Error('Customer search failed');
+            renderCustomers(await response.json());
+        } catch (error) {
+            if (error.name !== 'AbortError') console.error(error);
+        }
+    };
+
+    trigger.addEventListener('click', () => {
+        if (results.classList.contains('hidden')) open();
+        else close();
+    });
+    clearButton.addEventListener('click', () => {
+        hiddenInput.value = '';
+        summary.textContent = selectLabel;
+        summary.classList.remove('text-slate-900');
+        summary.classList.add('text-slate-500');
+        searchInput.value = '';
+        renderCustomers(initialCustomers);
+        close();
+    });
+    document.addEventListener('click', (event) => {
+        if (!customerPicker.contains(event.target)) close();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') close();
+    });
+    searchInput.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(searchCustomers, 250);
+    });
+    bindOptions();
+} else if (customerPicker) {
     const searchInput = customerPicker.querySelector('#customer-search');
     const hiddenInput = customerPicker.querySelector('#customer_id');
     const selectedCustomer = customerPicker.querySelector('#selected-customer');
@@ -112,7 +249,147 @@ if (customerPicker) {
 
 const branchPicker = document.querySelector('[data-branch-picker]');
 
-if (branchPicker) {
+if (branchPicker?.hasAttribute('data-filter-dropdown')) {
+    const trigger = branchPicker.querySelector('[data-picker-trigger]');
+    const searchInput = branchPicker.querySelector('#branch-search');
+    const results = branchPicker.querySelector('#branch-results');
+    const options = branchPicker.querySelector('[data-picker-options]');
+    const selectedInputs = branchPicker.querySelector('#selected-branch-inputs');
+    const summary = branchPicker.querySelector('#branch-summary');
+    const clearButton = branchPicker.querySelector('[data-picker-clear]');
+    const searchUrl = branchPicker.dataset.searchUrl;
+    const emptyText = branchPicker.dataset.emptyText;
+    const selectLabel = branchPicker.dataset.selectLabel;
+    const singularLabel = branchPicker.dataset.singularLabel;
+    const pluralLabel = branchPicker.dataset.pluralLabel;
+    const initialBranches = [...options.querySelectorAll('.branch-option')].map((button) => ({ id: button.dataset.id, name: button.dataset.name }));
+    const selectedIds = new Set((branchPicker.dataset.selectedIds || '').split(',').filter(Boolean));
+    let timer;
+    let controller;
+
+    const close = () => {
+        results.classList.add('hidden');
+        trigger.setAttribute('aria-expanded', 'false');
+    };
+
+    const open = () => {
+        results.classList.remove('hidden');
+        trigger.setAttribute('aria-expanded', 'true');
+        searchInput.focus();
+    };
+
+    const syncSelectedInputs = () => {
+        selectedInputs.replaceChildren();
+        selectedIds.forEach((id) => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'branch_ids[]';
+            input.value = id;
+            selectedInputs.appendChild(input);
+        });
+    };
+
+    const syncButtons = () => {
+        options.querySelectorAll('.branch-option').forEach((button) => {
+            const selected = selectedIds.has(button.dataset.id);
+            button.dataset.selected = selected ? '1' : '0';
+            button.setAttribute('aria-selected', selected ? 'true' : 'false');
+            button.classList.toggle('bg-indigo-100', selected);
+            button.classList.toggle('text-indigo-800', selected);
+            const check = button.querySelector('.branch-check');
+            if (check) check.textContent = selected ? '✓' : '';
+        });
+        const count = selectedIds.size;
+        summary.textContent = count ? `${count} ${count === 1 ? singularLabel : pluralLabel}` : selectLabel;
+        summary.classList.toggle('text-slate-500', count === 0);
+        summary.classList.toggle('text-slate-900', count > 0);
+        clearButton.classList.toggle('hidden', count === 0);
+        syncSelectedInputs();
+    };
+
+    const bindButtons = () => {
+        options.querySelectorAll('.branch-option').forEach((button) => {
+            button.addEventListener('click', () => {
+                if (selectedIds.has(button.dataset.id)) selectedIds.delete(button.dataset.id);
+                else selectedIds.add(button.dataset.id);
+                syncButtons();
+            });
+        });
+        syncButtons();
+    };
+
+    const renderBranches = (branches) => {
+        options.replaceChildren();
+        if (!branches.length) {
+            const empty = document.createElement('p');
+            empty.className = 'px-3 py-3 text-sm text-slate-500';
+            empty.textContent = emptyText;
+            options.appendChild(empty);
+            syncButtons();
+            return;
+        }
+        branches.slice(0, 5).forEach((branch) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'branch-option flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-sm hover:bg-indigo-50';
+            button.dataset.id = branch.id;
+            button.dataset.name = branch.name;
+            const name = document.createElement('span');
+            name.className = 'min-w-0 truncate font-medium';
+            name.textContent = branch.name;
+            const checkBox = document.createElement('span');
+            checkBox.className = 'flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-300 text-xs text-indigo-600';
+            const check = document.createElement('span');
+            check.className = 'branch-check';
+            check.setAttribute('aria-hidden', 'true');
+            checkBox.appendChild(check);
+            button.append(name, checkBox);
+            options.appendChild(button);
+        });
+        bindButtons();
+    };
+
+    const searchBranches = async () => {
+        const term = searchInput.value.trim();
+        if (!term) {
+            renderBranches(initialBranches);
+            return;
+        }
+        controller?.abort();
+        controller = new AbortController();
+        try {
+            const url = new URL(searchUrl, window.location.origin);
+            url.searchParams.set('q', term);
+            const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
+            if (!response.ok) throw new Error('Branch search failed');
+            renderBranches(await response.json());
+        } catch (error) {
+            if (error.name !== 'AbortError') console.error(error);
+        }
+    };
+
+    trigger.addEventListener('click', () => {
+        if (results.classList.contains('hidden')) open();
+        else close();
+    });
+    clearButton.addEventListener('click', () => {
+        selectedIds.clear();
+        searchInput.value = '';
+        renderBranches(initialBranches);
+        close();
+    });
+    document.addEventListener('click', (event) => {
+        if (!branchPicker.contains(event.target)) close();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') close();
+    });
+    searchInput.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(searchBranches, 250);
+    });
+    bindButtons();
+} else if (branchPicker) {
     const searchInput = branchPicker.querySelector('#branch-search');
     const results = branchPicker.querySelector('#branch-results');
     const selectedInputs = branchPicker.querySelector('#selected-branch-inputs');
