@@ -2634,3 +2634,40 @@ The advanced dashboard specification is now implemented and verified. The authen
 Chart.js is bundled through Vite and renders responsive charts with theme-aware text/grid colors. English and Arabic dashboard labels, filter guidance, and metric definitions are covered by localization tests, and Arabic continues to use the application’s RTL layout. Solved and Closed are resolved statuses. Resolution rate is resolved-count divided by filtered total; average resolution time uses only non-negative `created_at` to `resolved_at` intervals and is omitted when no reliable interval exists. Trend buckets use `complaint_date`, with daily grouping through 31 days, week grouping through 180 days, and monthly grouping beyond that range. Previous-period comparison uses the same non-date filters over an immediately preceding equal-length period.
 
 Final verification completed on 2026-08-27: focused dashboard coverage passed with 2 tests and 10 assertions; the full Laravel suite passed with 42 tests and 195 assertions; Blade views cleared and cached; the Vite production build completed; all migrations reported `Ran`; `php artisan route:list` reported 42 routes; and `git diff --check` passed. The sandbox browser could not connect to the user’s XAMPP-only localhost service, so live desktop/mobile visual inspection was not independently performed here. No schema change was required; dashboard metric semantics are documented in `database_design.md`. Earlier progress sections in this addendum describe intermediate implementation corrections and are superseded by this final section.
+
+
+## 66.20 Picker standardization progress
+
+The dashboard statistics service now supplies the first five branches ordered by name and appends selected branch IDs outside that initial set. This preserves the existing bounded-search scalability pattern while allowing all active multi-branch selections to remain visible after filtering. Dashboard, branch-report, and complaint-create picker markup standardization remains in progress.
+
+
+## 66.21 Dashboard branch picker standardization progress
+
+The dashboard Branch filter now uses the shared closed searchable multi-select control with the existing `branch_ids[]` contract, bounded initial results, remote branch-name search, selected states, Clear action, and outside-click/Escape closing. The branch-report and complaint-create controls remain pending standardization in this task.
+
+
+## 66.22 Branch-report picker standardization progress
+
+The branch-report Branch filter now uses the shared closed searchable multi-select control with the existing `branch_ids[]` contract, bounded initial results, remote branch-name search, selected states, Clear action, and outside-click/Escape closing. The complaint-create Customer picker remains the final selector to standardize in this task.
+
+
+## 66.23 Complaint-create customer picker standardization progress
+
+The complaint create/edit Customer control now uses the shared closed searchable single-select control while preserving the required `customer_id` input, bounded initial ten-customer list, name/any-phone background search, selected state, Clear action, and outside-click/Escape closing. Dashboard and branch-report branch controls are also standardized; regression coverage and final verification remain pending.
+
+
+## 66.24 Cross-page picker regression coverage
+
+Feature coverage now verifies closed picker markup on all requested pages: the dashboard Branch control and branch-report Branch control use closed searchable multi-select inputs with `branch_ids[]`, while complaint creation uses a closed searchable Customer single-select with `customer_id`. Existing bounded result limits and backend filtering contracts remain unchanged.
+
+
+## 66.25 Cross-page picker standardization — final verified implementation
+
+The requested selectors are now standardized across all three pages. On the dashboard and `/reports/branches`, Branch is a closed searchable multi-select dropdown that preserves the existing `branch_ids[]` contract. On `/complaints/create` and complaint edit, Customer is a closed searchable single-select dropdown that preserves the existing `customer_id` contract. All three reuse the established native-JavaScript picker behavior: bounded initial results, debounced background search, `AbortController` cancellation, selected states, Clear actions, outside-click/Escape closing, responsive dropdown panels, dark-mode styling, localization, and RTL-compatible markup. Dashboard branch seeding uses five initial branches and appends selected branches outside that seed; reports already use the same five-branch seed; complaint forms use the ten-customer seed.
+
+Focused cross-page picker coverage passed with 22 tests and 95 assertions. Final verification on 2026-08-27 passed with 43 tests and 205 assertions; Blade views cleared/cached, the Vite production build completed, all migrations reported `Ran`, `php artisan route:list` reported 42 routes, and `git diff --check` passed. No schema migration, route, permission, or backend filter-contract change was required. The sandbox browser could not connect to the user’s XAMPP-only localhost service, so live desktop/mobile visual inspection was not independently performed here; automated Blade/frontend/feature checks passed. Earlier picker-standardization progress sections are superseded by this final section.
+
+
+## 66.26 Dashboard branch-hint correction
+
+The dashboard Branch dropdown no longer renders the incorrect `Hold Ctrl/Cmd to select multiple branches` helper text. The dropdown remains a closed searchable multi-select with the existing selection, Clear, closing, localization, and `branch_ids[]` behavior. The shared translation key remains available for other controls but is intentionally unused in the dashboard view.

@@ -671,3 +671,28 @@ The Arabic locale contains the dashboard branch multi-select hint key `multi_sel
 The advanced dashboard is complete. `DashboardFilterRequest` validates date and master-data filters; `DashboardStatsService` applies them to real Eloquent/SQL aggregations; `DashboardController` serves the authenticated root route; `dashboard/index.blade.php` renders the responsive analytics layout; and `resources/js/app.js` initializes bundled Chart.js trend/distribution charts with theme-aware colors. The dashboard includes KPI cards, day/week/month trends, branch/category/type/service/source/status/priority charts, resolution metrics, branch performance, recent/attention/solved lists, actionable complaint links, and rule-based insights. Solved and Closed count as resolved, and average resolution time is calculated only from valid `created_at` to `resolved_at` intervals.
 
 The final dashboard suite passed with 2 tests and 10 assertions; the full Laravel suite passed with 42 tests and 195 assertions. Blade caching, the Vite build, migration status, the 42-route listing, and `git diff --check` all passed on 2026-08-27. `chart.js` is now listed in `package.json` and the lockfile. No route, permission, or schema change was required. The sandbox browser could not reach the user’s XAMPP-only localhost service, so live desktop/mobile visual inspection was not independently performed; automated Blade/frontend/feature checks passed. Earlier progress notes in this section are superseded by this final record.
+
+
+The dashboard service seeds the branch filter with five name-ordered branches and appends selected IDs outside that seed, matching the bounded branch-picker scalability pattern used elsewhere. Dashboard, branch-report, and complaint-create picker markup standardization is in progress; runtime behavior and tests remain pending.
+
+
+The dashboard Branch filter now uses the shared closed `data-filter-dropdown` multi-select markup, preserving `branch_ids[]`, bounded initial results, remote branch-name search, selected states, Clear action, and outside-click/Escape closing. The branch-report and complaint-create controls remain pending standardization in this task.
+
+
+The branch-report Branch filter now uses the shared closed `data-filter-dropdown` multi-select markup, preserving `branch_ids[]`, bounded initial results, remote branch-name search, selected states, Clear action, and outside-click/Escape closing. The complaint-create Customer picker remains the final selector to standardize in this task.
+
+
+The complaint create/edit Customer control now uses the shared closed `data-filter-dropdown` single-select markup, preserving `customer_id`, the bounded ten-customer initial list, background name/any-phone search, selected state, Clear action, and outside-click/Escape closing. Dashboard and branch-report branch controls are also standardized; regression coverage and final verification remain pending.
+
+
+Feature coverage now verifies closed picker markup on the dashboard Branch filter, branch-report Branch filter, and complaint create Customer filter. Dashboard/report branches preserve `branch_ids[]`; complaint creation preserves `customer_id`; bounded search behavior remains implemented by the shared picker JavaScript.
+
+
+## Cross-page picker standardization — final verified implementation
+
+The dashboard Branch picker and branch-report Branch picker are closed searchable multi-select controls preserving `branch_ids[]`. The complaint create/edit Customer picker is a closed searchable single-select control preserving `customer_id`. All three reuse the shared native-JavaScript picker behavior in `resources/js/app.js`: bounded initial results, 250 ms debounce, background `fetch()` search, `AbortController` cancellation, selected states, Clear actions, outside-click/Escape closing, dark-mode-compatible classes, localization, and responsive scrollable panels. The dashboard now seeds five branches and appends selected branches outside that seed, while complaint forms continue to seed ten customers.
+
+Focused cross-page picker tests passed with 22 tests and 95 assertions. Final verification on 2026-08-27 passed with 43 tests and 205 assertions; Blade caching, the Vite build, migration status, 42 registered routes, and `git diff --check` all passed. No schema, route, permission, or backend filter-contract change was required. The sandbox browser could not reach the user’s XAMPP-only localhost service, so live desktop/mobile visual inspection was not independently performed; automated Blade/frontend/feature checks passed. Earlier picker-standardization progress notes are superseded by this final record.
+
+
+The dashboard Branch dropdown intentionally renders no helper hint beneath the trigger; the incorrect Ctrl/Cmd guidance was removed. Its closed searchable multi-select behavior and `branch_ids[]` contract remain unchanged. The shared translation key remains available for other controls but is not used by the dashboard view.

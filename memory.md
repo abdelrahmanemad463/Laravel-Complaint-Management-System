@@ -370,3 +370,28 @@ Localization regression coverage now asserts the dashboard filter label, branch 
 The advanced dashboard is complete and verified. It uses `DashboardFilterRequest`, `DashboardStatsService`, and `DashboardController` with the existing authenticated root route and `complaint.view` access. The Blade view provides date/master-data filters, KPI cards, trends, seven distribution charts, branch performance, recent/attention/solved lists, actionable complaint links, and rule-based insights. Chart.js renders the responsive trend/distribution canvases with light/dark-aware colors. Solved and Closed count as resolved; average resolution time uses only valid `created_at` to `resolved_at` intervals. No schema migration or new route/permission was required.
 
 Final checks passed: focused dashboard coverage 2 tests/10 assertions; full Laravel suite 42 tests/195 assertions; Blade views cleared and cached; Vite production build completed; all migrations reported `Ran`; route list reported 42 routes; and `git diff --check` passed. The sandbox browser could not connect to the user’s XAMPP-only localhost service, so independent live desktop/mobile visual inspection was not performed; automated Blade/frontend/feature checks passed. Earlier dashboard debugging notes in this file describe intermediate corrections and are superseded by this final record.
+
+
+The dashboard statistics service now seeds its branch filter with the first five branches ordered by name and appends any selected branch IDs that fall outside that seed. This keeps the dashboard aligned with the existing bounded branch-picker pattern while preserving active multi-branch selections. The dashboard/report/create selector standardization is now in progress; final tests remain pending.
+
+
+The dashboard Branch filter now uses the shared closed `data-filter-dropdown` multi-select markup with `branch_ids[]` hidden inputs, bounded initial branches, remote name search, selected-state checks, Clear action, and outside-click/Escape closing. Dashboard behavior remains backed by the existing branch filter contract; the report and complaint-create controls are still pending standardization.
+
+
+The branch-report Branch filter now uses the shared closed searchable multi-select markup while preserving the existing `branch_ids[]` inputs, five-result bounded seed, remote name search, selected-state checks, Clear action, and outside-click/Escape behavior. The complaint-create Customer picker remains the final selector to standardize.
+
+
+The complaint create/edit Customer control now uses the shared closed `data-filter-dropdown` single-select markup while preserving the required `customer_id` hidden input. It keeps the bounded initial ten-customer list, background name/any-phone search, selected state, Clear action, outside-click/Escape closing, and localized summary. Dashboard and branch-report branch controls are also now standardized; regression coverage and final verification remain pending.
+
+
+Regression coverage now verifies that the dashboard Branch picker, branch-report Branch picker, and complaint create Customer picker all render as closed dropdown controls with the expected hidden-input contracts. Focused tests remain to be run after this coverage addition.
+
+
+## Cross-page picker standardization — final verification
+
+The dashboard Branch picker, branch-report Branch picker, and complaint create/edit Customer picker now all use the shared closed dropdown patterns already implemented in `resources/js/app.js`. Dashboard and reports preserve searchable Branch multi-select with `branch_ids[]`; complaint creation preserves searchable Customer single-select with `customer_id`. The existing five-branch and ten-customer bounded initial-result rules, native `fetch()` search, 250 ms debounce, request cancellation, selected states, Clear actions, outside-click/Escape closing, dark styling, localization, and backend contracts remain intact. The dashboard service supplies five initial branches plus selected out-of-seed branches.
+
+Focused cross-page picker tests passed with 22 tests and 95 assertions. Final full verification passed with 43 tests and 205 assertions; Blade views cleared/cached, Vite production build completed, all migrations reported `Ran`, 42 routes were listed, and `git diff --check` passed. No schema migration, route, permission, or backend filter contract change was required. The sandbox browser still cannot connect to the user’s XAMPP-only localhost service, so live desktop/mobile visual inspection was not independently performed; automated Blade/frontend/feature checks passed. Earlier picker-standardization progress notes above are superseded by this final record.
+
+
+The dashboard Branch filter no longer renders the `Hold Ctrl/Cmd to select multiple branches` helper text. The closed multi-select control, internal search, selection state, Clear action, and backend `branch_ids[]` behavior remain unchanged. The hint remains available for other controls/localization but is intentionally unused on the dashboard.

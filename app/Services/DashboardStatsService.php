@@ -52,7 +52,7 @@ class DashboardStatsService
 
         return [
             'filters' => $normalizedFilters,
-            'filterData' => $this->filterData(),
+            'filterData' => $this->filterData(array_map('intval', $normalizedFilters['branch_ids'] ?? [])),
             'period' => [
                 'from' => $from->toDateString(),
                 'to' => $to->toDateString(),
@@ -88,10 +88,18 @@ class DashboardStatsService
         ];
     }
 
-    private function filterData(): array
+    private function filterData(array $selectedBranchIds = []): array
     {
+        $branches = Branch::query()->orderBy('name')->limit(5)->get(['id', 'name']);
+        $missingBranchIds = array_diff($selectedBranchIds, $branches->pluck('id')->all());
+        if ($missingBranchIds !== []) {
+            $branches = $branches->concat(
+                Branch::query()->whereIn('id', $missingBranchIds)->orderBy('name')->get(['id', 'name'])
+            );
+        }
+
         return [
-            'branches' => Branch::query()->orderBy('name')->get(['id', 'name']),
+            'branches' => $branches,
             'services' => Service::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
             'categories' => ComplaintCategory::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
             'sources' => ComplaintSource::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'name']),

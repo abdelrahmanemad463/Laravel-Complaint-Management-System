@@ -217,6 +217,23 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
         $this->assertSame(2, substr_count($content, 'data-picker-clear'));
     }
 
+    public function test_dashboard_report_and_complaint_create_use_closed_picker_controls(): void
+    {
+        $admin = User::where('email', 'admin@example.com')->first();
+
+        $dashboard = $this->actingAs($admin)->get(route('dashboard'))->assertOk()->getContent();
+        $report = $this->actingAs($admin)->get(route('reports.branches'))->assertOk()->getContent();
+        $create = $this->actingAs($admin)->get(route('complaints.create'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-branch-picker data-filter-dropdown', $dashboard);
+        $this->assertStringContainsString('id="branch-results" class="dropdown-panel absolute start-0 z-30 mt-2 hidden', $dashboard);
+        $this->assertStringContainsString('data-branch-picker data-filter-dropdown', $report);
+        $this->assertStringContainsString('id="branch-results" class="dropdown-panel absolute start-0 z-30 mt-2 hidden', $report);
+        $this->assertStringContainsString('data-customer-picker data-filter-dropdown', $create);
+        $this->assertStringContainsString('id="customer-results" class="dropdown-panel absolute start-4 end-4 top-full z-30 mt-2 hidden', $create);
+        $this->assertStringContainsString('name="customer_id"', $create);
+    }
+
     public function test_admin_can_open_master_data_create_form(): void
     {
         $admin = User::where('email', 'admin@example.com')->first();
