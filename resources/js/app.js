@@ -533,7 +533,11 @@ if (dashboardChartData) {
                 options: {
                     ...commonOptions,
                     ...options,
-                    plugins: { ...commonOptions.plugins, ...(options.plugins || {}) },
+                    plugins: {
+                        ...commonOptions.plugins,
+                        legend: { ...commonOptions.plugins.legend, display: isDoughnut },
+                        ...(options.plugins || {}),
+                    },
                     scales: isDoughnut ? undefined : {
                         x: { beginAtZero: true, ticks: { color: chartTextColor(), precision: 0 }, grid: { color: chartGridColor() } },
                         y: { ticks: { color: chartTextColor() }, grid: { display: false } },

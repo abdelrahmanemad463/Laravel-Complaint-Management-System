@@ -42,6 +42,17 @@ class DashboardTest extends TestCase
             ->assertSee('dashboard-chart-data', false);
     }
 
+    public function test_dashboard_bar_charts_suppress_undefined_dataset_legends(): void
+    {
+        $script = file_get_contents(resource_path('js/app.js'));
+
+        $this->assertNotFalse($script);
+        $this->assertStringContainsString(
+            'legend: { ...commonOptions.plugins.legend, display: isDoughnut }',
+            $script
+        );
+    }
+
     public function test_dashboard_filters_limit_real_data_and_preserve_actionable_branch_link(): void
     {
         $branch = Branch::first();

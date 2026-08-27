@@ -451,3 +451,14 @@ Regression coverage was added to `ComplaintFiltersAndAuthorizationTest` for the 
 
 
 Final verification for the branch-report results-count localization completed on 2026-08-27. The focused localization and complaint/filter suites passed with 26 tests and 125 assertions, including the exact English `0 results` and Arabic `عدد النتائج: 0` branch-report rendering. The full suite passed with 44 tests and 209 assertions. Blade view caching, `npm.cmd run build`, and `git diff --check` also passed. No schema, route, permission, or database-design change was required.
+
+
+## Dashboard undefined legend fix
+
+The dashboard distribution bar charts showed an `undefined` legend item because the shared Chart.js `addChart()` helper enabled legends globally while its single dataset had no `label`. The helper now keeps legends enabled for doughnut charts, whose legends correctly use their category labels, and explicitly disables legends for the single-dataset bar charts (branches, categories, types, and services). This removes the undefined legend without changing chart data or analytics. Regression and build verification are pending for this fix.
+
+
+Regression coverage was added to `DashboardTest` to ensure the shared Chart.js helper contains the explicit single-dataset bar-chart legend suppression. This protects the fix against future changes that could reintroduce an `undefined` legend item. Dashboard, full-suite, build, and diff verification are pending for this fix.
+
+
+Final verification for the dashboard undefined-legend fix completed on 2026-08-27. The dashboard-focused suite passed with 3 tests and 12 assertions, including the bar-chart legend regression. The full PHPUnit suite passed with 45 tests and 211 assertions. Blade view caching, `npm.cmd run build`, and `git diff --check` also passed. No schema, route, permission, or database-design change was required.
