@@ -338,7 +338,7 @@ The permission migration creates package roles, permissions, model-role/model-pe
 | Users | `UserController`, `users/` views | Authorized user creation/update, role assignment, name/email and role filters, paginated results |
 | Roles and permissions | `RoleController`, `roles/` views | Create custom roles, configure permissions, guarded deletion, protected baseline roles, assigned-user deletion prevention |
 | Audit logs | `AuditLogController`, `audit-logs/index.blade.php` | Permission-restricted, action-filtered, paginated audit list; known actions are localized at display time |
-| Localization | `SetLocale`, `LocaleController`, `lang/en/`, `lang/ar/` | Session locale selection, RTL Arabic layout, localized UI, validation, flash messages, activity labels, and exports |
+| Localization | `SetLocale`, `LocaleController`, `lang/en/`, `lang/ar/` | Session locale selection, RTL Arabic layout, localized UI, validation, flash messages, activity labels, exports, and shared footer content |
 | PWA | `public/manifest.json`, `public/service-worker.js`, `resources/js/app.js` | Installability, icons, standalone display, static hashed asset caching, no private-page/API caching |
 
 ## 11. Important Business Flows
@@ -464,7 +464,7 @@ All routes are defined in `routes/web.php`. There is no separate `routes/api.php
 
 ## 14. Frontend Architecture
 
-The frontend is Blade plus Tailwind CSS. `resources/views/layouts/app.blade.php` provides the authenticated shell, navigation, flash alerts, validation-error display, language direction, PWA metadata, and Vite asset loading. Individual modules use page views and a small number of form/list templates; they do not use a client-side router.
+The frontend is Blade plus Tailwind CSS. `resources/views/layouts/app.blade.php` provides the authenticated shell, navigation, flash alerts, validation-error display, language direction, localized contact/copyright footer, PWA metadata, and Vite asset loading. Footer contact values are supplied in the shared English and Arabic dictionaries, including the configured contact name and phone number. The footer is a minimal responsive horizontal bar containing contact and social links; it wraps only on narrow screens, and the location section was intentionally removed. English uses `Abdelrahman Emad`, while Arabic uses `عبدالرحمن عماد`; both locales retain the same phone number. The footer exposes safe external links to LinkedIn and Facebook and uses the current year in the copyright line. `PwaTest` verifies the minimal horizontal footer content in both locales, including the intentional absence of location content and the compact flex/padding structure. Final minimal-footer verification passed with 5 tests and 48 assertions; the full suite passed with 46 tests and 228 assertions, and Blade caching, the Vite build, and `git diff --check` passed. Individual modules use page views and a small number of form/list templates; they do not use a client-side router.
 
 `resources/css/app.css` defines the application’s reusable visual classes, including cards, buttons, form controls, tables, badges, navigation states, and focus/hover/press behavior. `resources/js/app.js` contains:
 

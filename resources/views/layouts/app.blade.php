@@ -22,7 +22,7 @@
     @vite(['resources/css/app.css','resources/js/app.js'])
 </head>
 <body class="bg-slate-50 text-slate-900">
-<div class="min-h-screen">
+<div class="flex min-h-screen flex-col">
     <header class="border-b border-slate-200 bg-white">
         <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
             <a href="{{ route('dashboard') }}" class="text-xl font-bold tracking-tight text-indigo-700">Complaint Desk</a>
@@ -49,13 +49,27 @@
             @endauth
         </div>
     </header>
-    <main class="mx-auto max-w-7xl px-4 py-8">
+    <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-8">
         @if(session('success'))<div class="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800">{{ session('success') }}</div>@endif
         @if(session('error'))<div class="mb-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800">{{ session('error') }}</div>@endif
         @if($errors->any())<div class="mb-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-rose-800"><p class="font-semibold">{{ __('common.fix_errors') }}</p><ul class="mt-1 list-disc ps-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
         {{ $slot ?? '' }}
         @yield('content')
     </main>
+    <footer class="border-t border-slate-200 bg-white">
+        <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-2 text-xs text-slate-600 sm:justify-between">
+            <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+                <span class="font-semibold text-indigo-600">{{ __('common.footer_contact') }}:</span>
+                <span class="font-semibold text-slate-900">{{ __('common.footer_name') }}</span>
+                <a class="text-indigo-700 hover:underline" href="tel:{{ __('common.footer_phone_value') }}">{{ __('common.footer_phone') }}: {{ __('common.footer_phone_value') }}</a>
+                <span class="text-slate-400" aria-hidden="true">•</span>
+                <span class="font-semibold text-indigo-600">{{ __('common.footer_social') }}:</span>
+                <a class="text-indigo-700 hover:underline" href="https://www.linkedin.com/in/abdelrahman-emad1" target="_blank" rel="noopener noreferrer">{{ __('common.footer_linkedin') }}</a>
+                <a class="text-indigo-700 hover:underline" href="https://www.facebook.com/abdelrahman.emad.660867/" target="_blank" rel="noopener noreferrer">{{ __('common.footer_facebook') }}</a>
+            </div>
+            <p class="text-center text-slate-500">{{ __('common.footer_copyright', ['year' => now()->year]) }}</p>
+        </div>
+    </footer>
 </div>
 </body>
 </html>

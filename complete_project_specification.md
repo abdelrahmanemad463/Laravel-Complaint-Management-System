@@ -2771,3 +2771,68 @@ Regression coverage was added to `DashboardTest` to ensure the shared Chart.js h
 ## 66.46 Verified dashboard undefined-legend fix
 
 Final verification for the dashboard undefined-legend fix completed on 2026-08-27. The dashboard-focused suite passed with 3 tests and 12 assertions, including the bar-chart legend regression. The full PHPUnit suite passed with 45 tests and 211 assertions. Blade view caching, `npm.cmd run build`, and `git diff --check` also passed. No schema, route, permission, or database-design change was required.
+
+
+## 66.47 Footer localization in progress
+
+The shared layout footer implementation has started with English localization keys for contact, phone, location, social links, LinkedIn, Facebook, and the copyright message. The Arabic equivalents and shared layout markup remain to be added before verification is complete.
+
+
+## 66.48 Arabic footer localization
+
+Arabic footer localization is now defined for the same contact, phone, location, social-link, LinkedIn, Facebook, and copyright concepts. The shared layout footer markup remains to be added before verification is complete.
+
+
+## 66.49 English footer contact values
+
+The English footer contact values are now localized as `Abdelrahman Emad`, `01110174868`, and `Alexandria`, alongside the footer labels and social/copyright keys. The Arabic value equivalents and shared layout markup remain to be completed and verified.
+
+
+## 66.50 Arabic footer contact values
+
+Arabic footer contact values are now localized as `عبدالرحمن عماد`, `01110174868`, and `الإسكندرية`, matching the user-provided contact details. The shared layout footer markup remains to be completed and verified.
+
+
+## 66.51 Shared contact and copyright footer
+
+The shared `resources/views/layouts/app.blade.php` now includes a responsive footer on all layout pages. It displays the localized contact name, clickable phone number, Alexandria location, LinkedIn and Facebook links opening safely in a new tab, and a localized copyright line using the current year. The page shell uses a flex column with a flexible main area so the footer sits at the bottom on short pages. Footer regression and build verification are pending.
+
+
+## 66.52 Shared footer regression coverage
+
+`PwaTest` now covers the shared footer on the authenticated dashboard in both locales, asserting the provided contact name, city, phone link, LinkedIn/Facebook URLs, and copyright text. Footer and full verification are pending.
+
+
+## 66.53 Verified shared contact and copyright footer
+
+Final verification for the shared contact and copyright footer completed on 2026-08-27. `PwaTest` passed with 5 tests and 42 assertions, including English/Arabic footer content and contact links. The full PHPUnit suite passed with 46 tests and 222 assertions. Blade view caching, `npm.cmd run build`, and `git diff --check` passed. The footer displays the provided contact name, phone, Alexandria location, LinkedIn/Facebook links, and current-year copyright text. No schema, route, permission, or database-design change was required.
+
+
+## 66.54 Compact footer revision
+
+The footer was revised per the latest UI request: the location column was removed, the layout now uses two compact columns for contact and social links, vertical spacing was reduced, and the copyright row was shortened. The footer remains localized and responsive. Verification is pending for this revision.
+
+
+## 66.55 Compact footer regression coverage
+
+`PwaTest` was updated for the compact footer revision: it now verifies the contact and social links remain present in English and Arabic while Alexandria/الإسكندرية and the location labels are absent. Focused and full verification are pending.
+
+
+## 66.56 Verified compact footer revision
+
+Final verification for the compact footer revision completed on 2026-08-27. `PwaTest` passed with 5 tests and 44 assertions, verifying contact/social content and the absence of the location section in English and Arabic. The full PHPUnit suite passed with 46 tests and 224 assertions. Blade view caching, `npm.cmd run build`, and `git diff --check` passed. The footer is now a compact two-column contact/social layout with a shortened copyright row; no location content is rendered. No schema, route, permission, or database-design change was required.
+
+
+## 66.57 Minimal horizontal footer revision
+
+The footer was compacted again per the latest UI request. The contact name, phone, social links, and copyright now share one responsive horizontal bar with minimal padding and wrapping only when the viewport is narrow. The location section remains removed, and localization, dark mode, and RTL behavior are preserved. Verification is pending for this revision.
+
+
+## 66.58 Minimal footer structure regression coverage
+
+`PwaTest` now also checks the minimal footer structure: the shared layout uses a flex-wrapping horizontal bar with compact padding and no location translation usage. Focused and full verification are pending for this revision.
+
+
+## 66.59 Verified minimal horizontal footer
+
+Final verification for the minimal horizontal footer completed on 2026-08-27. `PwaTest` passed with 5 tests and 48 assertions, including contact/social content, the absence of location content, and the compact layout structure. The full PHPUnit suite passed with 46 tests and 228 assertions. Blade view caching, `npm.cmd run build`, and `git diff --check` passed. The footer now uses one compact responsive bar with minimal padding and no rendered location section. No schema, route, permission, or database-design change was required.

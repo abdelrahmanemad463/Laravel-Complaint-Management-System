@@ -46,6 +46,39 @@ class PwaTest extends TestCase
         $this->assertStringContainsString("html[data-theme='dark'] .nav-link", $styles);
     }
 
+    public function test_shared_footer_exposes_localized_contact_details_without_location(): void
+    {
+        $this->seed();
+        $user = User::where('email', 'admin@example.com')->firstOrFail();
+
+        $this->actingAs($user)
+            ->withSession(['locale' => 'en'])
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Abdelrahman Emad')
+            ->assertDontSee('Alexandria')
+            ->assertDontSee('Location')
+            ->assertSee('tel:01110174868', false)
+            ->assertSee('https://www.linkedin.com/in/abdelrahman-emad1', false)
+            ->assertSee('https://www.facebook.com/abdelrahman.emad.660867/', false)
+            ->assertSee('Complaint Desk. All rights reserved.');
+
+        $this->actingAs($user)
+            ->withSession(['locale' => 'ar'])
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('عبدالرحمن عماد')
+            ->assertDontSee('الإسكندرية')
+            ->assertDontSee('الموقع')
+            ->assertSee('© '.now()->year.' نظام الشكاوى. جميع الحقوق محفوظة.');
+
+        $layout = (string) file_get_contents(resource_path('views/layouts/app.blade.php'));
+        $this->assertStringContainsString('flex max-w-7xl flex-wrap items-center', $layout);
+        $this->assertStringContainsString('px-4 py-2 text-xs', $layout);
+        $this->assertStringNotContainsString("__('common.footer_location')", $layout);
+        $this->assertStringNotContainsString("__('common.footer_city')", $layout);
+    }
+
     public function test_pwa_manifest_and_assets_are_valid(): void
     {
         $manifestPath = public_path('manifest.json');
