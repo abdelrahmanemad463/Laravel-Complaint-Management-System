@@ -1,6 +1,6 @@
 # Complaint Management System — Project Structure
 
-**Status:** Current-state implementation guide; last verified 2026-08-27
+**Status:** Current-state implementation guide; last verified 2026-08-29
 **Application:** Complaint Desk  
 **Framework:** Laravel 12 on PHP 8.2+  
 **Rendering:** Server-rendered Blade with Tailwind CSS and progressive JavaScript enhancement  
@@ -637,9 +637,6 @@ The complaints index uses a closed Customer dropdown that submits the existing s
 ### Maintenance note
 
 This document is synchronized with the current codebase as of 2026-08-27. The three living project documents must be read before every future code edit and synchronized after each meaningful change; schema changes additionally require `database_design.md` updates.
-
-
-
 ### Advanced dashboard redesign
 
 The advanced dashboard is implemented around `DashboardFilterRequest`, `DashboardStatsService`, `DashboardController`, `dashboard/index.blade.php`, and Chart.js initialization in `resources/js/app.js`. The service keeps dashboard statistics on filtered Eloquent/SQL queries rather than loading all complaints into PHP, while preserving the existing authenticated root route and `complaint.view` authorization. The responsive view, chart bootstrap, bilingual labels, actionable links, and Chart.js dependency are verified by the dashboard and localization feature coverage.
@@ -702,3 +699,8 @@ The attached local `.env` selects the SQL Server driver and database `complaints
 
 
 The `sqlsrv` connection in `config/database.php` now consumes `DB_ENCRYPT` and `DB_TRUST_SERVER_CERTIFICATE`. ODBC Driver 17 required the local environment to use the ODBC-compatible string `DB_ENCRYPT=no`; `DB_TRUST_SERVER_CERTIFICATE=true` remains enabled for local development. Credentials are kept only in `.env` and are not documented. The complaints and complaint-history migrations use explicit `noActionOnDelete()` for required foreign keys because SQL Server rejects `ON DELETE RESTRICT`; this preserves the intended restrictive/no-action policy. The SQL Server migration sequence and seeders completed successfully. Verified counts are 100 customers, 100 complaints, 4 roles, 3 branches, 3 services, 6 sources, 6 categories, 6 types, 4 priorities, 5 statuses, and 1 seeded admin user. The temporary verifier was removed.
+
+
+## Customer show SQL Server compatibility — 2026-08-29
+
+`CustomerController::show()` previously issued a raw aggregate query whose correlated subquery used `limit 1` (`select id from complaint_statuses where name = 'Pending' limit 1`), which SQL Server rejects with `Incorrect syntax near 'limit'` (SQL Server requires `TOP 1`). This surfaced when viewing a customer (`/customers/{customer}`) against the local SQL Server runtime. The `$summary` SQL block was unused dead code: `customers/show.blade.php` already computes the total/pending/in-progress/solved/closed counts in PHP by filtering the loaded complaint collection (`$customer->complaints->where('status.name', ...)`). `CustomerController::show()` now only load the complaint relationships and passes `$customer` to the view; no `$summary` variable is built or passed. No schema, route, permission, or frontend change was required. Full verification on 2026-08-29 passed with **46 tests / 228 assertions**. `memory.md` and `complete_project_specification.md` were synchronized with this fix.

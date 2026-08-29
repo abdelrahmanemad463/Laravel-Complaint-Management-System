@@ -2376,9 +2376,13 @@ Do NOT start generating the complete application code until this design is revie
 
 This document began as the system requirements and implementation brief. The following addendum records the verified state of the codebase so future development can distinguish completed behavior from intentionally deferred requirements.
 
-**Last verified:** 2026-08-27
+**Last verified:** 2026-08-29
 **Application path:** `C:\xampp\htdocs\complaint`  
 **Current local URL:** `http://localhost/complaint/public/`
+
+## 66.0 Recent Bug Fix — Customer show SQL Server compatibility
+
+On 2026-08-29, `CustomerController::show()` was corrected for SQL Server compatibility. It had issued a raw aggregate query whose correlated subquery used `limit 1` (`select id from complaint_statuses where name = 'Pending' limit 1`), which SQL Server rejects (`Incorrect syntax near 'limit'`). This surfaced when opening `/customers/{customer}` against the local SQL Server runtime. The query was dead code: `customers/show.blade.php` already computes the complaint summary (total / pending / in progress / solved / closed) in PHP from the loaded complaint collection, and the localization tests assert those summary labels from the Blade template. The controller now loads only the complaint relationships and passes `$customer` to the view without a `$summary` variable. No schema, route, permission, or frontend change was required. Full verification on 2026-08-29 passed with **46 tests / 228 assertions**. `memory.md` and `project_structure.md` were synchronized with this fix.
 
 ## 66.1 Implemented Technology and Architecture
 

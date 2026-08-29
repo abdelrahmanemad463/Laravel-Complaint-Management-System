@@ -1,6 +1,6 @@
 # Complaint Desk — Persistent Project Memory
 
-**Last synchronized:** 2026-08-27
+**Last synchronized:** 2026-08-29
 **Project root:** `C:\xampp\htdocs\complaint`  
 **Application:** Complaint Desk / Complaint Management System  
 **Source of truth:** The current codebase, migrations, configuration, tests, and generated build output. This file is a concise continuation guide; `project_structure.md` and `database_design.md` contain the fuller architecture and database narratives.
@@ -260,6 +260,11 @@ For the current XAMPP setup, Apache serves the `public` directory and the applic
 ## Current Tasks
 
 There are no unverified feature changes currently pending from the previous implementation work. The most recent completed work was the project documentation and persistent-memory documentation update. Future development should first read this file and `project_structure.md`, then update both when a meaningful architectural, schema, feature, configuration, or workflow change is made.
+
+
+## Customer show SQL Server fix — 2026-08-29
+
+`CustomerController::show()` previously ran a raw aggregate query whose subquery used `limit 1` (`select id from complaint_statuses where name = 'Pending' limit 1`), which SQL Server rejects with `Incorrect syntax near 'limit'` (it requires `TOP 1`). The `$summary` query was already unused: `customers/show.blade.php` computes the total/pending/in-progress/solved/closed counts by filtering the loaded `complaints` collection in PHP (`$customer->complaints->where('status.name', ...)`). The controller no longer builds or passes a `$summary` variable. No schema, route, permission, or frontend change was required. Full verification on 2026-08-29 passed: focused customer/localization suites and the full Laravel suite **46 tests passed / 228 assertions**. `project_structure.md` and `complete_project_specification.md` were synchronized with this fix.
 
 ## Pending Features and Future Improvements
 
