@@ -214,3 +214,46 @@ html[data-theme='dark'] .card .text-slate-600,
 html[data-theme='dark'] .card .text-slate-700 {
     color: #cbd5e1 !important;
 }
+
+/* Mobile drawer – explicit dark overrides (must be after @layer components to win cascade) */
+html[data-theme='dark'] [data-mobile-menu-panel] {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+}
+html[data-theme='dark'] [data-mobile-menu-panel] .border-slate-200 {
+    border-color: #334155 !important;
+}
+html[data-theme='dark'] .mobile-nav-link,
+html[data-theme='dark'] .mobile-nav-summary,
+html[data-theme='dark'] .mobile-nav-sublink {
+    color: #e2e8f0 !important;
+}
+html[data-theme='dark'] .mobile-nav-link:hover,
+html[data-theme='dark'] .mobile-nav-summary:hover,
+html[data-theme='dark'] .mobile-nav-sublink:hover {
+    background-color: #334155 !important;
+    color: #f1f5f9 !important;
+}
+html[data-theme='dark'] .mobile-nav-link-active,
+html[data-theme='dark'] .mobile-nav-sublink-active {
+    background-color: #3730a3 !important;
+    color: #ffffff !important;
+    border-color: #4338ca !important;
+}
+html[data-theme='dark'] .mobile-nav-link-active:hover,
+html[data-theme='dark'] .mobile-nav-sublink-active:hover {
+    background-color: #4338ca !important;
+    color: #ffffff !important;
+}
+html[data-theme='dark'] [data-mobile-menu-panel] .bg-slate-50 {
+    background-color: #0f172a !important;
+    border-color: #334155 !important;
+}
+html[data-theme='dark'] [data-mobile-menu-panel] .bg-white {
+    background-color: #1e293b !important;
+    border-color: #334155 !important;
+    color: #e2e8f0 !important;
+}
+html[data-theme='dark'] [data-mobile-menu-panel] details {
+    border-color: #334155 !important;
+}

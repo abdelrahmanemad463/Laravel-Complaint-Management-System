@@ -2,7 +2,7 @@ import './bootstrap';
 
 import Chart from 'chart.js/auto';
 
-const themeToggle = document.querySelector('[data-theme-toggle]');
+const themeToggles = document.querySelectorAll('[data-theme-toggle]');
 const themeColorMeta = document.querySelector('[data-theme-color]');
 
 const applyTheme = (theme) => {
@@ -11,21 +11,25 @@ const applyTheme = (theme) => {
     document.documentElement.dataset.theme = normalizedTheme;
     document.documentElement.style.colorScheme = normalizedTheme;
     if (themeColorMeta) themeColorMeta.content = isDark ? '#0f172a' : '#4f46e5';
-    if (!themeToggle) return;
-    themeToggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
-    themeToggle.setAttribute('aria-label', themeToggle.dataset.themeSwitcher || themeToggle.getAttribute('aria-label') || 'Switch theme');
-    const icon = themeToggle.querySelector('[data-theme-icon]');
-    const label = themeToggle.querySelector('[data-theme-label]');
-    if (icon) icon.textContent = isDark ? '☀' : '☾';
-    if (label) label.textContent = isDark ? themeToggle.dataset.lightLabel : themeToggle.dataset.darkLabel;
+    if (!themeToggles.length) return;
+    themeToggles.forEach((toggle) => {
+        toggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+        toggle.setAttribute('aria-label', toggle.dataset.themeSwitcher || toggle.getAttribute('aria-label') || 'Switch theme');
+        const icon = toggle.querySelector('[data-theme-icon]');
+        const label = toggle.querySelector('[data-theme-label]');
+        if (icon) icon.textContent = isDark ? '☀' : '☾';
+        if (label) label.textContent = isDark ? toggle.dataset.lightLabel : toggle.dataset.darkLabel;
+    });
 };
 
 applyTheme(document.documentElement.dataset.theme || 'light');
 
-themeToggle?.addEventListener('click', () => {
-    const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-    applyTheme(nextTheme);
-    window.localStorage.setItem('complaint-theme', nextTheme);
+themeToggles.forEach((toggle) => {
+    toggle.addEventListener('click', () => {
+        const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        applyTheme(nextTheme);
+        window.localStorage.setItem('complaint-theme', nextTheme);
+    });
 });
 
 const customerPicker = document.querySelector('[data-customer-picker]');
@@ -596,7 +600,7 @@ if (dashboardChartData) {
                 chart.update('none');
             });
         };
-        themeToggle?.addEventListener('click', () => window.setTimeout(refreshChartTheme, 0));
+        themeToggles.forEach((t) => t.addEventListener('click', () => window.setTimeout(refreshChartTheme, 0)));
     } catch (error) {
         console.warn('Dashboard chart initialization failed.', error);
     }
@@ -700,7 +704,7 @@ if (visitReportDashboard) {
                 chart.update('none');
             });
         };
-        themeToggle?.addEventListener('click', () => window.setTimeout(refreshReportChartTheme, 0));
+        themeToggles.forEach((t) => t.addEventListener('click', () => window.setTimeout(refreshReportChartTheme, 0)));
     } catch (error) {
         console.warn('Visit report chart initialization failed.', error);
     }

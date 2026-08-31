@@ -53,9 +53,9 @@
             </nav>
             <div class="flex shrink-0 items-center gap-1.5 sm:gap-2 text-sm xl:gap-3">
                 <a href="{{ route('locale', app()->getLocale() === 'ar' ? 'en' : 'ar') }}" class="hidden shrink-0 whitespace-nowrap rounded-md border px-2 py-1 text-xs sm:inline-flex sm:text-sm">{{ app()->getLocale() === 'ar' ? 'English' : 'العربية' }}</a>
-                <button type="button" class="theme-toggle hidden shrink-0 whitespace-nowrap sm:inline-flex" data-theme-toggle data-light-label="{{ __('common.light_mode') }}" data-dark-label="{{ __('common.dark_mode') }}" data-theme-switcher="{{ __('common.theme_switcher') }}" aria-pressed="false" aria-label="{{ __('common.theme_switcher') }}">
+                <button type="button" class="theme-toggle inline-flex h-10 w-10 shrink-0 items-center justify-center whitespace-nowrap p-0 sm:h-auto sm:w-auto sm:px-2.5 sm:py-1.5" data-theme-toggle data-light-label="{{ __('common.light_mode') }}" data-dark-label="{{ __('common.dark_mode') }}" data-theme-switcher="{{ __('common.theme_switcher') }}" aria-pressed="false" aria-label="{{ __('common.theme_switcher') }}">
                     <span data-theme-icon aria-hidden="true">☾</span>
-                    <span data-theme-label class="hidden sm:inline">{{ __('common.dark_mode') }}</span>
+                    <span data-theme-label class="hidden sm:inline ms-1">{{ __('common.dark_mode') }}</span>
                 </button>
                 <span class="hidden shrink-0 whitespace-nowrap text-slate-600 lg:inline">{{ auth()->user()->name }}</span>
                 <form method="POST" action="{{ route('logout') }}" class="hidden shrink-0 sm:block">@csrf<button class="whitespace-nowrap text-sm text-rose-600 hover:underline">{{ __('common.logout') }}</button></form>
