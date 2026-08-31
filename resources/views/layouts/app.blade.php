@@ -86,6 +86,10 @@
 
                     <a href="{{ route('complaints.index') }}" class="mobile-nav-link {{ request()->routeIs('complaints.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.customer_complaints') }}</a>
 
+                    @can('visit.view')
+                    <a href="{{ url('/visitors') }}" class="mobile-nav-link {{ request()->routeIs('visitors.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.quality_visits') }}</a>
+                    @endcan
+
                     @can('report.view')<a href="{{ route('reports.branches') }}" class="mobile-nav-link {{ request()->routeIs('reports.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.reports') }}</a>@endcan
                     @can('branch.view')<a href="{{ route('master.index','branches') }}" class="mobile-nav-link {{ request()->routeIs('master.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.master_data') }}</a>@endcan
                     @can('user.view')<a href="{{ route('users.index') }}" class="mobile-nav-link {{ request()->routeIs('users.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.users') }}</a>@endcan
