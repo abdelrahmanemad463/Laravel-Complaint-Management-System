@@ -50,6 +50,8 @@
 'support_dept_senior_management'=>'Senior Management',
 'evidence_photo'=>'Evidence photo',
 'photo_help'=>'Acceptable formats: JPG, PNG, WEBP. Maximum 20 MB.',
+'photo_required_critical'=>'Photo is required for Critical violations',
+'evidence_photo_required'=>'A photo/evidence is required for Critical non-compliant items.',
 'approved_actions'=>'Approved actions',
 'immediate_action'=>'Immediate action',
 'corrective_action'=>'Corrective action',

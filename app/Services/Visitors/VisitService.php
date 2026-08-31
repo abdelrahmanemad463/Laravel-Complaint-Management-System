@@ -108,13 +108,14 @@ class VisitService
                 throw new RuntimeException('All checklist items must be reviewed before submission.');
             }
 
-            // Validate required photos for the visit items not already satisfied.
+            // Validate required evidence for Critical (or photo-required)
+            // non-compliant items that do not yet have any photo uploaded.
             $missingPhotoItems = $visit->items->filter(function ($item) {
                 if (!$item->isNonCompliant() || !$item->requiresPhoto()) return false;
                 return $item->photos->isEmpty();
             });
             if ($missingPhotoItems->isNotEmpty()) {
-                throw new RuntimeException('Evidence photos are required for critical or photo-required non-compliant items.');
+                throw new RuntimeException(__('visitors.evidence_photo_required'));
             }
 
             $this->capa->createForVisit($visit);

@@ -32,7 +32,7 @@
             <div class="mt-1 text-xs text-slate-500">{{ __('visitors.items_reviewed') }}</div>
         </div>
         @unless($visit->isCompleted())
-        <form method="POST" action="{{ route('visitors.submit', $visit) }}" onsubmit="return confirm('{{ __('visitors.submit_confirm') }}');">
+        <form id="submit-visit-form" method="POST" action="{{ route('visitors.submit', $visit) }}">
             @csrf
             <button type="submit" class="btn-primary">{{ __('visitors.submit_visit') }}</button>
         </form>
@@ -71,13 +71,10 @@
         </h2>
         <div class="space-y-4">
             @foreach($sectionItems->sortBy('sort_order') as $itemIndex => $item)
-            @php
-                $ncRequired = $item->requiresPhoto();
-            @endphp
-            <article class="card visit-item" data-status="{{ $item->status }}" data-visited="{{ $item->visited_at ? '1' : '0' }}" data-item-id="{{ $item->id }}">
+            <article class="card visit-item" data-status="{{ $item->status }}" data-visited="{{ $item->visited_at ? '1' : '0' }}" data-item-id="{{ $item->id }}" data-critical="{{ $item->isCritical() ? '1' : '0' }}">
                 <div class="mb-3 flex flex-wrap items-center gap-2">
                     <span class="badge" style="--badge-color:#475569">{{ $item->item_code }}</span>
-                    <span class="badge" style="--badge-color:{{ $item->severity === 'critical' ? '#dc2626' : ($item->severity === 'major' ? '#ea580c' : '#16a34a') }}">{{ ucfirst($item->severity) }}</span>
+                    <span class="badge" style="--badge-color:{{ $item->isCritical() ? '#dc2626' : ($item->severity === 'major' ? '#ea580c' : '#16a34a') }}">{{ ucfirst($item->severity) }}</span>
                     <span class="text-base font-semibold text-slate-900">{{ $item->item_title }}</span>
                 </div>
 
@@ -129,8 +126,11 @@
                     @endif
 
                     <div>
-                        <label class="form-label">{{ __('visitors.evidence_photo') }} @if($ncRequired)<span class="text-rose-600">*</span>@endif</label>
-                        <input type="file" class="photo-input form-input" accept="image/jpeg,image/png,image/webp" @if($visit->isCompleted()) disabled @endif>
+                        <label class="form-label">{{ __('visitors.evidence_photo') }} @if($item->isCritical())<span class="text-rose-600">*</span>@endif</label>
+                        <input type="file" class="photo-input form-input" accept="image/jpeg,image/png,image/webp" @if($item->isCritical()) aria-required="true" @endif @if($visit->isCompleted()) disabled @endif>
+                        @if($item->isCritical())
+                        <p class="photo-required-msg {{ $item->status === 'nc' ? '' : 'hidden' }} mt-1 text-xs font-bold text-rose-600">📷 {{ __('visitors.evidence_photo') }} * — {{ __('visitors.photo_required_critical') }}</p>
+                        @endif
                         <p class="mt-1 text-xs text-slate-500">{{ __('visitors.photo_help') }}</p>
                         <div class="mt-2 flex flex-wrap gap-2 photo-list">
                             @foreach($item->photos as $photo)
@@ -276,6 +276,8 @@
                 itemEl.dataset.status = value;
                 itemEl.querySelector('.status-btn').blur();
                 ncPanel.classList.toggle('hidden', value !== 'nc');
+                const requiredMsg = itemEl.querySelector('.photo-required-msg');
+                if (requiredMsg) requiredMsg.classList.toggle('hidden', !(itemEl.dataset.critical === '1' && value === 'nc'));
                 if (value === 'nc') {
                     await saveItem(itemEl, { status: value, ...collectNcPayload(itemEl) });
                 } else {
@@ -351,6 +353,32 @@
         };
         tab.addEventListener('click', activate);
     });
+
+    const missingMessage = `{{ __('visitors.evidence_photo_required') }}`;
+
+    const submitForm = document.getElementById('submit-visit-form');
+    if (submitForm) {
+        submitForm.addEventListener('submit', (e) => {
+            const missing = [];
+            document.querySelectorAll('.visit-item').forEach((itemEl) => {
+                if (itemEl.dataset.critical !== '1') return;
+                if (itemEl.dataset.status !== 'nc') return;
+                const hasPhoto = itemEl.querySelectorAll('.photo-list a').length > 0;
+                if (!hasPhoto) missing.push(itemEl.dataset.itemId);
+            });
+            if (missing.length > 0) {
+                e.preventDefault();
+                alert(missingMessage);
+                missing.forEach((id) => {
+                    const el = document.querySelector(`.visit-item[data-item-id="${id}"]`);
+                    const firstInput = el?.querySelector('.photo-input');
+                    firstInput?.focus();
+                });
+            } else if (!confirm('{{ __('visitors.submit_confirm') }}')) {
+                e.preventDefault();
+            }
+        });
+    }
 
     refreshCounts();
 })().catch((e) => console.warn('Visit JS init failed', e));

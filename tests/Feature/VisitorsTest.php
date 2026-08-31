@@ -171,7 +171,7 @@ class VisitorsTest extends TestCase
         $critical->update(['status' => 'nc', 'root_cause_id' => VisitorRootCause::firstOrFail()->id]);
         // All other items stay default ok + reviewed.
         $this->actingAs($this->user)->post(route('visitors.submit', $visit))
-            ->assertSessionHas('error');
+            ->assertSessionHas('error', __('visitors.evidence_photo_required'));
         $this->assertSame('in_progress', $visit->fresh()->status);
     }
 
@@ -214,7 +214,7 @@ class VisitorsTest extends TestCase
         $visit->items()->whereKeyNot($critical->id)->update(['visited_at' => now()]);
 
         $this->actingAs($this->user)->post(route('visitors.submit', $visit))
-            ->assertSessionHas('error');
+            ->assertSessionHas('error', __('visitors.evidence_photo_required'));
         $this->assertSame('in_progress', $visit->fresh()->status);
     }
 

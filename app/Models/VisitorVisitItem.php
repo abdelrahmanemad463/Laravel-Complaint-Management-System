@@ -60,8 +60,24 @@ class VisitorVisitItem extends Model
         return $this->status === 'nc';
     }
 
+    /**
+     * Whether this item's severity snapshot is Critical. Severity is stored
+     * normalized to lowercase on both the master item and the visit snapshot,
+     * so "Critical"/"critical"/"CRITICAL" all compare equal here.
+     */
+    public function isCritical(): bool
+    {
+        return strtolower((string) $this->severity) === 'critical';
+    }
+
+    /**
+     * Evidence/photo is mandatory when the item is both Non-Compliant and
+     * Critical (regardless of the item code/section). The snapshot
+     * photo_required flag additionally forces evidence where a checklist item
+     * was configured to require a photo.
+     */
     public function requiresPhoto(): bool
     {
-        return ($this->status === 'nc' && $this->severity === 'critical') || $this->photo_required;
+        return ($this->status === 'nc' && $this->isCritical()) || $this->photo_required;
     }
 }

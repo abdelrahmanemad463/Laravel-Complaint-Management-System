@@ -50,6 +50,8 @@
 'support_dept_senior_management'=>'الإدارة العليا',
 'evidence_photo'=>'صورة الدليل',
 'photo_help'=>'الصيغ المسموحة: JPG, PNG, WEBP. الحد الأقصى 20 ميغابايت.',
+'photo_required_critical'=>'الصورة مطلوبة للمخالفات الحرجة',
+'evidence_photo_required'=>'صورة/دليل مطلوبة لعناصر عدم الامتثال الحرجة.',
 'approved_actions'=>'الإجراءات المعتمدة',
 'immediate_action'=>'إجراء فوري',
 'corrective_action'=>'إجراء تصحيحي',
