@@ -2840,3 +2840,29 @@ The footer was compacted again per the latest UI request. The contact name, phon
 ## 66.59 Verified minimal horizontal footer
 
 Final verification for the minimal horizontal footer completed on 2026-08-27. `PwaTest` passed with 5 tests and 48 assertions, including contact/social content, the absence of location content, and the compact layout structure. The full PHPUnit suite passed with 46 tests and 228 assertions. Blade view caching, `npm.cmd run build`, and `git diff --check` passed. The footer now uses one compact responsive bar with minimal padding and no rendered location section. No schema, route, permission, or database-design change was required.
+
+
+## 66.60 Quality Visits module - implemented status
+
+A new **Quality Visits** (quality inspection) module was added as a sibling module to the existing complaint system. This is outside the original complaint-focused requirements but was requested as a new feature; this addendum records the implemented status.
+
+Implemented:
+- `visitors_`-prefixed schema (visit types, sections, root causes, checklist items, visits, visit items with snapshot, visit photos, CAPA actions, CAPA updates).
+- `Visitor*` models, `app/Services/Visitors/*` services (visit scoring, submission, CAPA, photo compression, checklist import), controllers under `app/Http/Controllers/Visitors`, `VisitorVisitPolicy`, `visitors.` routes, visitors seeders, bilingual `visitors.php` dictionaries, and `visitors/` Blade views with vanilla-JS autosave and live score.
+- Rules: items default to `ok` with `visited_at` set at creation (default reviewed, so a new visit can be submitted immediately without clicking each item); progress from `visited_at`; backend-only score (available minus NC deduction over non-NA items) with blue/green/yellow/red classes; owner-only in-progress access; photos required for critical/photo-required NC items and served through an authenticated route; submission is transactional, rejects unreviewed items or missing required photos, creates CAPA from NC items, and sets `completed`/`completed_at`.
+
+Deferred/out of scope for this task: CAPA management screens/VCAP workflow. Verification on 2026-08-31 passed with **60 tests / 296 assertions** (46 existing + 14 new `tests/Feature/VisitorsTest.php`); migrations and seeders run against SQL Server and the SQLite test DB. `memory.md`, `project_structure.md`, and `database_design.md` were synchronized with this module.
+
+## 66.61 Quality Visits Reports module - implemented status
+
+A **Quality Visits Reports** module was built on top of the inspection module, reusing its data, scoring, and authorization without duplicating business logic:
+
+- **Report list** (`visitors/reports`): paginated completed visits with DB-aggregated score/violation counts and filters (branch, visit type, inspector, date range, score color). Score percentiles are derived in SQL via a `HAVING` filter using repeated aggregate expressions (SQL Server cannot reference select aliases in `HAVING`).
+- **Individual report** (`visitors/reports/{visit}`): QHSE-style report with header, visit info, score summary, non-compliances by severity, performance by section, root-cause analysis, violation details with evidence thumbnails/lightbox, and an action plan of CAPA records. All historical values come from the immutable `visitors_visit_items` snapshot columns (`item_code`, `item_title`, `section_name`, `severity`, `deduction_score`, immediate/corrective/preventive actions, responsible, deadline), never the master checklist.
+- **Analytics dashboard** (`visitors/reports/dashboard`): summary cards, severity/section/root-cause distributions, per-branch weighted score comparison plus best/worst branches, recurring and critical violations, CAPA status analytics with overdue splitting and average time-to-close (computed in PHP for cross-DB compatibility), inspector performance, and a day/week/month score-trend chart. Aggregations use SQL joins/groupBy/HAVING rather than loading rows into PHP.
+- **PDF export** (`visitors/reports/{visit}/pdf`): `barryvdh/laravel-dompdf` renders a self-contained-CSS print view that embeds private evidence photos (resolved to absolute paths) — ready for email/WhatsApp.
+- **Authorization**: reports are **not** owner-restricted. `VisitorVisitPolicy::viewReport()` requires a completed visit and (`visit.manage` OR (`report.view` AND owner)); a new `visitors.reports` Gate grants list/dashboard access to anyone with `report.view` OR `visit.manage`; Super Admin bypasses via the existing `Gate::before`. Customer Support (inspectors) is denied.
+- **Reuse**: `VisitScoreService` stays the single source of score truth (`fromAggregates()` now used by `calculate()`, the list, and charts); `VisitorCapaAction::effectiveStatus()` provides overdue status reused by views and analytics.
+- **Frontend**: Chart.js renders the `#report-*`-prefixed canvases with theme-refresh support wired in `resources/js/app.js`; a home Reports card link was added; bilingual keys added to `lang/en|ar/visitors.php`.
+
+Verification on 2026-08-31 passed with **76 tests / 433 assertions** (61 existing + 15 new `tests/Feature/VisitorReportsTest.php`); report list filtering, individual report, PDF (881 KB), and dashboard analytics were also smoke-tested against live SQL Server. `memory.md` and `project_structure.md` were synchronized with this module; no schema changes were introduced (reports read existing tables).

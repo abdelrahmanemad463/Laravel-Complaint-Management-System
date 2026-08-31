@@ -42,4 +42,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(ActivityLog::class);
     }
+
+    public function visitorVisits()
+    {
+        return $this->hasMany(VisitorVisit::class, 'inspector_id');
+    }
 }

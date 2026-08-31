@@ -13,6 +13,22 @@ Route::middleware('auth')->group(function () {
     Route::get('complaints/export',[ComplaintController::class,'export'])->name('complaints.export')->middleware('permission:complaint.export');
     Route::resource('complaints',ComplaintController::class)->only(['index','create','store','show','edit','update']);
     Route::get('reports/branches',[ReportController::class,'branches'])->name('reports.branches')->middleware('permission:report.view');
+    Route::prefix('visitors')->name('visitors.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Visitors\VisitController::class,'home'])->name('home');
+        Route::get('open', [\App\Http\Controllers\Visitors\VisitController::class,'open'])->name('open');
+        Route::get('create', [\App\Http\Controllers\Visitors\VisitController::class,'create'])->name('create');
+        Route::get('create/{visitType}', [\App\Http\Controllers\Visitors\VisitController::class,'setup'])->name('setup');
+        Route::post('/', [\App\Http\Controllers\Visitors\VisitController::class,'store'])->name('store');
+        Route::get('reports', [\App\Http\Controllers\Visitors\VisitorReportController::class,'index'])->name('reports');
+        Route::get('reports/dashboard', [\App\Http\Controllers\Visitors\VisitorReportController::class,'dashboard'])->name('reports.dashboard');
+        Route::get('reports/{visit}/pdf', [\App\Http\Controllers\Visitors\VisitorReportController::class,'pdf'])->name('reports.pdf');
+        Route::get('reports/{visit}', [\App\Http\Controllers\Visitors\VisitorReportController::class,'show'])->name('reports.show');
+        Route::post('{visit}/submit', [\App\Http\Controllers\Visitors\VisitController::class,'submit'])->name('submit');
+        Route::get('{visit}', [\App\Http\Controllers\Visitors\VisitController::class,'show'])->name('show');
+        Route::put('items/{visitItem}', [\App\Http\Controllers\Visitors\VisitItemController::class,'update'])->name('items.update');
+        Route::post('items/{visitItem}/photo', [\App\Http\Controllers\Visitors\VisitPhotoController::class,'store'])->name('items.photo');
+        Route::get('photos/{photo}', [\App\Http\Controllers\Visitors\VisitPhotoController::class,'serve'])->name('photos.serve');
+    });
     Route::resource('users', UserController::class)->only(['index','create','store','edit','update']);
     Route::get('roles',[RoleController::class,'index'])->name('roles.index');
     Route::get('roles/create',[RoleController::class,'create'])->name('roles.create');

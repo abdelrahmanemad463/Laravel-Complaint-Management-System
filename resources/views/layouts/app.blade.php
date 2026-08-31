@@ -30,7 +30,13 @@
             <nav class="hidden items-center gap-4 text-sm font-medium lg:flex">
                 <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'nav-link-active' : '' }}">{{ __('common.dashboard') }}</a>
                 <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'nav-link-active' : '' }}">{{ __('common.customers') }}</a>
-                <a href="{{ route('complaints.index') }}" class="nav-link {{ request()->routeIs('complaints.*') ? 'nav-link-active' : '' }}">{{ __('common.complaints') }}</a>
+                <details class="group relative" @if(request()->routeIs('complaints.*') || request()->routeIs('visitors.*')) data-nav-details open @endif>
+                    <summary class="nav-link cursor-pointer list-none {{ (request()->routeIs('complaints.*') || request()->routeIs('visitors.*')) ? 'nav-link-active' : '' }}">{{ __('common.complaints') }}<span class="ms-1 text-xs"></span></summary>
+                    <div class="absolute left-0 top-full z-20 mt-1 w-56 rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+                        <a href="{{ route('complaints.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 {{ request()->routeIs('complaints.*') ? 'bg-indigo-50 text-indigo-700' : '' }}">{{ __('common.customer_complaints') }}</a>
+                        @can('visit.view')<a href="{{ route('visitors.home') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 {{ request()->routeIs('visitors.*') ? 'bg-indigo-50 text-indigo-700' : '' }}">{{ __('common.quality_visits') }}</a>@endcan
+                    </div>
+                </details>
                 @can('report.view')<a href="{{ route('reports.branches') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'nav-link-active' : '' }}">{{ __('common.reports') }}</a>@endcan
                 @can('branch.view')<a href="{{ route('master.index','branches') }}" class="nav-link {{ request()->routeIs('master.*') ? 'nav-link-active' : '' }}">{{ __('common.master_data') }}</a>@endcan
                 @can('user.view')<a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'nav-link-active' : '' }}">{{ __('common.users') }}</a>@endcan
@@ -71,5 +77,15 @@
         </div>
     </footer>
 </div>
+@stack('scripts')
+<script>
+    (() => {
+        // Force the Complaints nav dropdown open when landing on a page that
+        // belongs to the complaints/visitors sections, so it is never shown
+        // collapsed (guards against browser session-restore of the <details>).
+        const details = document.querySelector('[data-nav-details]');
+        if (details && typeof details.open === 'boolean') details.open = true;
+    })();
+</script>
 </body>
 </html>

@@ -63,6 +63,7 @@ There is no React, Vue, Inertia, Livewire, Filament, repository layer, custom AP
 | `laravel/tinker` `^2.10.1` | Interactive Laravel shell for development and inspection | Artisan integration |
 | `spatie/laravel-permission` `6.24.0` | Roles, permissions, model-role pivots, permission checks, and permission cache | `app/Models/User.php`, `app/Http/Controllers/RoleController.php`, `config/permission.php`, permission migration |
 | `maatwebsite/excel` `3.1.67` | Excel export of the current complaint filter query | `app/Exports/ComplaintsExport.php`, `ComplaintController::export()` |
+| `barryvdh/laravel-dompdf` `^3.1` | Server-side HTML→PDF rendering for quality visit reports | `app/Services/Visitors/VisitorPdfService.php`, `resources/views/visitors/reports/print.blade.php` |
 | `phpunit/phpunit` `^11.5.50` | Unit and feature test runner | `phpunit.xml`, `tests/` |
 | `fakerphp/faker` | Factory data generation in tests and seeders | `database/factories/` |
 | `laravel/pint` | Optional PHP code formatting during development | Composer development dependency |
@@ -78,7 +79,7 @@ There is no React, Vue, Inertia, Livewire, Filament, repository layer, custom AP
 | `@tailwindcss/vite` `^4.0.0` | Tailwind integration with Vite | `vite.config.js` |
 | `axios` `^1.11.0` | Installed frontend HTTP client dependency | Available to frontend code; the current picker implementation uses native `fetch()` |
 | `concurrently` `^9.0.1` | Runs Laravel/Vite development processes together through the Composer `dev` script | `composer.json` |
-| `chart.js` | Responsive dashboard trend and distribution charts | `resources/js/app.js`, `dashboard/index.blade.php` |
+| `chart.js` | Responsive dashboard trend and distribution charts | `resources/js/app.js`, `dashboard/index.blade.php`, `visitors/reports/dashboard.blade.php` |
 
 ## 4. Technologies and Concepts Used
 
@@ -117,15 +118,19 @@ complaint/
 │   │   │   ├── MasterDataController.php
 │   │   │   ├── ReportController.php
 │   │   │   ├── RoleController.php
-│   │   │   └── UserController.php
+│   │   │   ├── UserController.php
+│   │   │   └── Visitors/ (VisitController, VisitItemController, VisitPhotoController, VisitorReportController)
 │   │   ├── Middleware/
 │   │   │   └── SetLocale.php
+│   │   ├── Policies/
+│   │   │   └── VisitorVisitPolicy.php
 │   │   └── Requests/
 │   │       ├── ComplaintFilterRequest.php
 │   │       ├── StoreComplaintRequest.php
 │   │       ├── StoreCustomerRequest.php
 │   │       ├── UpdateComplaintRequest.php
-│   │       └── UpdateCustomerRequest.php
+│   │       ├── UpdateCustomerRequest.php
+│   │       └── Visitors/ (StartVisitRequest, UpdateVisitItemRequest, StoreVisitPhotoRequest)
 │   ├── Models/
 │   │   ├── ActivityLog.php
 │   │   ├── Branch.php
@@ -138,12 +143,14 @@ complaint/
 │   │   ├── Customer.php
 │   │   ├── Priority.php
 │   │   ├── Service.php
-│   │   └── User.php
+│   │   ├── User.php
+│   │   └── Visitor*.php (VisitType, Section, RootCause, ChecklistItem, Visit, VisitItem, VisitPhoto, CapaAction, CapaUpdate)
 │   ├── Providers/
 │   │   └── AppServiceProvider.php
 │   └── Services/
 │       ├── ActivityLogService.php
-│       └── ComplaintStatusService.php
+│       ├── ComplaintStatusService.php
+│       └── Visitors/ (VisitScoreService, VisitService, CapaService, VisitorPhotoService, ChecklistImportService, VisitorReportService, VisitorReportDashboardService, VisitorPdfService)
 ├── bootstrap/
 │   └── app.php
 ├── config/
@@ -164,14 +171,16 @@ complaint/
 │   │   ├── common.php
 │   │   ├── complaints.php
 │   │   ├── customers.php
-│   │   └── validation.php
+│   │   ├── validation.php
+│   │   └── visitors.php
 │   └── en/
 │       ├── activity.php
 │       ├── auth.php
 │       ├── common.php
 │       ├── complaints.php
 │       ├── customers.php
-│       └── validation.php
+│       ├── validation.php
+│       └── visitors.php
 ├── public/
 │   ├── build/
 │   ├── icons/
@@ -191,7 +200,8 @@ complaint/
 │       ├── master-data/
 │       ├── reports/
 │       ├── roles/
-│       └── users/
+│       ├── users/
+│       └── visitors/ (home, create, setup, open, show; reports/ → index, show, dashboard, print)
 ├── routes/
 │   ├── console.php
 │   └── web.php
@@ -207,7 +217,7 @@ complaint/
 └── vite.config.js
 ```
 
-`app/Http/Controllers/` contains the request-facing application actions. `app/Models/` contains Eloquent entities and relationships. `app/Services/` contains the two focused cross-cutting business services. `database/` contains schema, factories, and seed data. `resources/views/` contains all Blade UI. `lang/` contains the bilingual dictionaries. `public/` contains the PWA and compiled public assets.
+`app/Http/Controllers/` contains the request-facing application actions. `app/Models/` contains Eloquent entities and relationships. `app/Services/` contains cross-cutting business services (complaint status/activity) and the Quality Visits domain services under `Visitors/` (including report building, analytics, and PDF generation). `app/Policies/` contains the `VisitorVisitPolicy`. `database/` contains schema, factories, seed data, and the visitors migrations/seeders. `resources/views/` contains all Blade UI including `visitors/` and `visitors/reports/`. `lang/` contains the bilingual dictionaries. `public/` contains the PWA and compiled public assets.
 
 ## 6. Application Architecture and Component Communication
 
@@ -298,6 +308,15 @@ The Spatie permission tables are standard package tables: `permissions`, `roles`
 | `complaints` | Main complaint record | Required foreign keys to customer, branch, service, source, category, type, priority, status; required descriptions/date/creator; nullable resolver, resolved time, resolution; soft deletes |
 | `complaint_status_histories` | Append-only status transitions | Complaint, optional previous status, new status, reason, actor, and `changed_at`; restrictive complaint/status/user foreign keys |
 | `activity_logs` | Audit trail | Nullable actor, stable action string, nullable polymorphic subject, description, JSON old/new snapshots, indexed action/date |
+| `visitors_visit_types` | Quality inspection types | `name`, `code`, `is_active` |
+| `visitors_sections` | Inspection checklist sections | `name`, `code`, `sort_order`, `is_active` |
+| `visitors_root_causes` | Non-compliance root causes | `name`, `code`, `is_active` |
+| `visitors_checklist_items` | Checklist questions per type | `visit_type_id`/`section_id` FKs, severity, deduction_score, photo_required, predefined actions, responsible, deadline; no soft delete |
+| `visitors_visits` | Inspection header | `visit_type_id`/`branch_id`/`inspector_id` FKs, `visit_date`, `status` (in_progress/completed), started/completed timestamps; indexed inspector/status and branch/date |
+| `visitors_visit_items` | Snapshot per visit item | Unique `(visit_id, checklist_item_id)`; snapshot columns; `root_cause_id`/`main_kitchen`/`support_department` nullable; no soft delete |
+| `visitors_visit_photos` | Private evidence photos | `visit_id` cascade, `visit_item_id` noAction FKs, path/names/sizes; stored on private `local` disk |
+| `visitors_capa_actions` | CAPA from non-compliances | `visit_id` cascade, `visit_item_id` noAction FKs, actions, responsible/reviewer FKs (noAction), status/due dates |
+| `visitors_capa_updates` | CAPA history timeline | `capa_action_id` cascade FK, user, status, comment, optional photo, created_at |
 
 The complaint foreign keys use restrictive deletion behavior so referenced master data, customers, and creator users cannot be physically deleted while historical complaints depend on them. `resolved_by` and `activity_logs.user_id` use nullable foreign keys with `nullOnDelete` because the application can preserve the record if the actor reference is removed. Business records prefer deactivation or soft deletion over physical deletion.
 
@@ -317,11 +336,15 @@ Migrations are stored in `database/migrations/` and use Laravel timestamped file
 2026_08_23_161300_create_complaints_table
         ↓
 2026_08_23_161400_create_complaint_history_tables
+        ↓
+2026_08_31_170000_create_visitors_master_data_tables
+        ↓
+2026_08_31_170100_create_visitors_transaction_tables
 ```
 
-The permission migration creates package roles, permissions, model-role/model-permission pivots, and role-permission pivots. The master-data migration creates customers, branches, services, sources, categories, types, priorities, and statuses. The complaints migration depends on those tables and creates complaint foreign keys plus branch/date and status/date composite indexes. The final migration creates status history and polymorphic activity logs.
+The permission migration creates package roles, permissions, model-role/model-permission pivots, and role-permission pivots. The master-data migration creates customers, branches, services, sources, categories, types, priorities, and statuses. The complaints migration depends on those tables and creates complaint foreign keys plus branch/date and status/date composite indexes. The final complaint migration creates status history and polymorphic activity logs. The visitors master-data migration creates visit types, sections, root causes, and checklist items; the visitors transaction migration creates visits, visit items (snapshot), photos, CAPA actions, and CAPA updates. The visitors transaction migration uses `noActionOnDelete()` on derived foreign keys to satisfy SQL Server's single-cascade-path rule.
 
-`DatabaseSeeder` runs `PermissionSeeder`, `MasterDataSeeder`, and `DemoDataSeeder` in that order. Future schema changes should add a new migration rather than editing an already-applied migration and should update this document when they affect project structure or data design.
+`DatabaseSeeder` runs `PermissionSeeder`, `MasterDataSeeder`, `DemoDataSeeder`, `VisitorsSeeder`, and `VisitorChecklistSeeder` in that order. Future schema changes should add a new migration rather than editing an already-applied migration and should update this document when they affect project structure or data design.
 
 ## 10. Main Features and Modules
 
@@ -339,6 +362,7 @@ The permission migration creates package roles, permissions, model-role/model-pe
 | Roles and permissions | `RoleController`, `roles/` views | Create custom roles, configure permissions, guarded deletion, protected baseline roles, assigned-user deletion prevention |
 | Audit logs | `AuditLogController`, `audit-logs/index.blade.php` | Permission-restricted, action-filtered, paginated audit list; known actions are localized at display time |
 | Localization | `SetLocale`, `LocaleController`, `lang/en/`, `lang/ar/` | Session locale selection, RTL Arabic layout, localized UI, validation, flash messages, activity labels, exports, and shared footer content |
+| Quality Visits | `Visitors\VisitController`, `VisitItemController`, `VisitPhotoController`, `VisitorReportController`, `VisitorVisitPolicy`, `VisitService`, `VisitScoreService`, `CapaService`, `VisitorPhotoService`, `VisitorReportService`, `VisitorReportDashboardService`, `VisitorPdfService`, `visitors/` views | Inspection type → branch/date setup → checklist with vanilla-JS autosave and live score → private photo upload → submission that creates CAPA and blocks unreviewed/missing-photo items; owner-only in-progress access; backend-only score computation; completed-visit QHSE reports + analytics dashboard + dompdf PDF export (not owner-restricted) |
 | PWA | `public/manifest.json`, `public/service-worker.js`, `resources/js/app.js` | Installability, icons, standalone display, static hashed asset caching, no private-page/API caching |
 
 ## 11. Important Business Flows
@@ -438,7 +462,7 @@ The baseline roles are:
 | `Customer Support` | Can work with customers and complaints using create/view/update permissions, but does not administer users, roles, or master data |
 | `Viewer` | Read-only access to selected customer, complaint, master-data, and report areas |
 
-Permission names use dot notation. The seeder creates systematic CRUD permissions for customers, complaints, branches, services, sources, categories, types, priorities, statuses, reports, users, roles, and audit logs, plus complaint log/export and report export permissions.
+Permission names use dot notation. The seeder creates systematic CRUD permissions for customers, complaints, branches, services, sources, categories, types, priorities, statuses, reports, users, roles, audit, and visits, plus complaint log/export, report export, `visit.submit`, and `visit.manage` permissions. Customer Support and Viewer roles grant the visit view/create/update permissions.
 
 Authorization is enforced server-side in controllers and route middleware; navigation/button visibility is only a usability layer. Super Admin role and permission protections are also checked in role/user administration. The application does not expose public registration or password-reset routes.
 
@@ -458,6 +482,7 @@ All routes are defined in `routes/web.php`. There is no separate `routes/api.php
 | Users | `/users`, create, edit, update | Authenticated and controller permission checks |
 | Roles | `/roles`, `/roles/create`, `/roles/{role}/edit`, POST/PUT/DELETE role actions | Authenticated and controller permission checks |
 | Audit | `/audit-logs` | Authenticated and `audit.view` permission |
+| Quality Visits | `/visitors`, `/visitors/create`, `/visitors/create/{visitType}`, `/visitors/open`, GET/POST `/visitors/{visit}`, POST `/visitors/{visit}/submit`, PUT `/visitors/items/{visitItem}`, POST `/visitors/items/{visitItem}/photo`, GET `/visitors/photos/{photo}`, `visitors/reports`, `visitors/reports/dashboard`, `visitors/reports/{visit}`, `visitors/reports/{visit}/pdf` | Authenticated `visitors.` prefix; permission checks in controllers/requests and `VisitorVisitPolicy` (owner + not-completed; completed-report access via `visit.manage` or `report.view`-and-owner); JSON autosave/photo endpoints and streamed photo serving; report routes registered before the `{visit}` wildcard |
 | Framework | `/up`, `/storage/{path}` | Laravel health/storage routes |
 
 `bootstrap/app.php` registers the web routes, the `permission` and `role` middleware aliases, and appends `SetLocale` to the web middleware group.
@@ -704,3 +729,12 @@ The `sqlsrv` connection in `config/database.php` now consumes `DB_ENCRYPT` and `
 ## Customer show SQL Server compatibility — 2026-08-29
 
 `CustomerController::show()` previously issued a raw aggregate query whose correlated subquery used `limit 1` (`select id from complaint_statuses where name = 'Pending' limit 1`), which SQL Server rejects with `Incorrect syntax near 'limit'` (SQL Server requires `TOP 1`). This surfaced when viewing a customer (`/customers/{customer}`) against the local SQL Server runtime. The `$summary` SQL block was unused dead code: `customers/show.blade.php` already computes the total/pending/in-progress/solved/closed counts in PHP by filtering the loaded complaint collection (`$customer->complaints->where('status.name', ...)`). `CustomerController::show()` now only load the complaint relationships and passes `$customer` to the view; no `$summary` variable is built or passed. No schema, route, permission, or frontend change was required. Full verification on 2026-08-29 passed with **46 tests / 228 assertions**. `memory.md` and `complete_project_specification.md` were synchronized with this fix.
+
+
+## Quality Visits module - 2026-08-31
+
+A new `visitors_`-prefixed Quality Visits (inspection) module was added without breaking the existing complaint system. It introduces `Visitor*` models under `app/Models` (each with explicit `` and explicit foreign keys because the `visitors_` table names deviate from Eloquent snake-case), services under `app/Services/Visitors` (`VisitService`, `VisitScoreService`, `CapaService`, `VisitorPhotoService`, `ChecklistImportService`), controllers under `app/Http/Controllers/Visitors`, the `VisitorVisitPolicy` registered in `AppServiceProvider`, routes under a `visitors.` prefix, seeders (`VisitorsSeeder`, `VisitorChecklistSeeder`), `visitors.php` dictionaries, and `visitors/` Blade views with vanilla-JS autosave, live score, progress, section pills, an NC panel, and private photo upload.
+
+The visitors transaction migration uses `noActionOnDelete()` on derived foreign keys (`visitors_visit_photos.visit_item_id`, `visitors_capa_actions.visit_item_id`/`responsible_user_id`/`reviewed_by`) because SQL Server rejects multiple cascade paths. Scores are computed only on the backend; the checklist configuration is snapshotted onto `visitors_visit_items` at visit creation. Full verification on 2026-08-31 passed with **60 tests / 296 assertions** (46 existing + 14 new visitors tests), migrations and seeders run against both SQL Server and the SQLite test DB. `memory.md`, `database_design.md`, and `complete_project_specification.md` were synchronized with this module.
+
+A Quality Visits Reports module was added on top of the inspection module without duplicating business logic. `VisitScoreService` remains the single source of score truth (new `fromAggregates()` used by `calculate()`, the report list, and charts). Reports are **not** owner-restricted: `VisitorVisitPolicy::viewReport()` requires a completed visit and `visit.manage` OR (`report.view` AND owner); a new `visitors.reports` Gate covers list/dashboard access; Super Admin bypasses via the existing `Gate::before`. `VisitorReportService` builds a single report (`build()`: score, counts, severity, sections, root causes, only-NC violations from snapshot columns, CAPA with `VisitorCapaAction::effectiveStatus()` overdue splitting) and a DB-aggregated paginated list (`listReports()`) whose score-color filter uses `HAVING` with repeated aggregate expressions (SQL Server cannot reference select aliases in `HAVING`). `VisitorReportDashboardService` computes cards, severity/section/root-cause distributions, per-branch weighted score comparison + best/worst, recurring and critical violations, CAPA status analytics + average time-to-close (computed in PHP for cross-DB compatibility), inspector performance, and a day/week/month score trend — all with SQL joins/groupBy/HAVING rather than loading rows into PHP. `VisitorPdfService` renders a self-contained-CSS dompdf view (`visitors/reports/print`) embedding private photos resolved to absolute paths. Views `visitors/reports/{index,show,dashboard,print}` and a home Reports card link were added; Chart.js renders `#report-*`-prefixed canvases with theme-refresh support in `app.js`. Full verification on 2026-08-31 passed with **76 tests / 433 assertions** (61 existing + 15 new `tests/Feature/VisitorReportsTest.php`), and the list/PDF/dashboard were smoke-tested against live SQL Server. `memory.md` and `complete_project_specification.md` were synchronized with this module.

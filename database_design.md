@@ -25,6 +25,15 @@ All timestamps use Laravel’s normal timestamp handling. Business dates are sto
 | complaints | Customer complaints and resolution metadata | Yes |
 | complaint_status_histories | Immutable status transitions and reasons | No |
 | activity_logs | Append-oriented audit events and snapshots | No |
+| visitors_visit_types | Quality inspection types | No |
+| visitors_sections | Inspection checklist sections | No |
+| visitors_root_causes | Non-compliance root causes | No |
+| visitors_checklist_items | Checklist questions per inspection type | No |
+| visitors_visits | Inspection visit header (branch/inspector/date/status) | No |
+| visitors_visit_items | Snapshot of each checklist item for a visit | No |
+| visitors_visit_photos | Private evidence photos for visit items | No |
+| visitors_capa_actions | Corrective/preventive actions from non-compliances | No |
+| visitors_capa_updates | CAPA history timeline entries | No |
 | Spatie permission tables | Roles, permissions, and model assignments | No |
 | cache/jobs tables | Existing Laravel infrastructure | Existing skeleton behavior |
 
@@ -271,3 +280,26 @@ The authenticated dashboard reuses the complaint data model through `DashboardFi
 | Previous-period comparison | The same non-date filters applied to an immediately preceding period of equal length. |
 
 The dashboard reads existing foreign-key relationships to branches, services, sources, categories, types, priorities, and statuses. Master-data names remain database values rather than per-locale fields; interface labels and metric definitions are translated through Laravel dictionaries. No dashboard-specific schema migration or index was required after reviewing the existing `complaint_date`, branch/date, status/date, `created_at`, and `resolved_at` support.
+
+## 6. Quality Visits (Inspection) Schema (2026-08-31)
+
+A separate `visitors_`-prefixed set of tables models quality inspections. They are independent of the complaint schema and deliberately omit soft deletes. Because SQL Server forbids multiple cascade paths, derived foreign keys use `noActionOnDelete()` rather than cascading.
+
+### Master data
+| Table | Columns | Notes |
+|---|---|---|
+| `visitors_visit_types` | id, name, code, is_active | Inspection type (daily, monthly, occupational_safety) |
+| `visitors_sections` | id, name, code, sort_order, is_active | Checklist grouping |
+| `visitors_root_causes` | id, name, code, is_active | Non-compliance root causes |
+| `visitors_checklist_items` | id, visit_type_id (FK), section_id (FK), code, title, severity, deduction_score, photo_required, immediate_action, corrective_action, preventive_action, responsible, deadline, sort_order, is_active | Questionnaire; `photo_required` set when severity = critical |
+
+### Transactions
+| Table | Columns | Notes |
+|---|---|---|
+| `visitors_visits` | id, visit_type_id, branch_id, inspector_id, visit_date, status, started_at, completed_at | status = in_progress/completed; indexed on inspector/status and branch/date |
+| `visitors_visit_items` | id, visit_id (FK cascade), checklist_item_id (FK), status, visited_at, root_cause_id, note, main_kitchen, support_department, and snapshot columns (item_code, item_title, section_name, severity, deduction_score, photo_required, immediate/corrective/preventive_action, responsible, deadline) | unique(visit_id, checklist_item_id); snapshot is immutable at creation |
+| `visitors_visit_photos` | id, visit_id (FK cascade), visit_item_id (FK noAction), path, original_name, mime_type, original_size, compressed_size | Stored privately on the `local` disk; served via authenticated route |
+| `visitors_capa_actions` | id, visit_id (FK cascade), visit_item_id (FK noAction), title, immediate/corrective/preventive_action, responsible_user_id (FK noAction), due_date, status, completed_at, reviewed_at, reviewed_by (FK noAction) | status = open/in_progress/overdue/closed/rejected |
+| `visitors_capa_updates` | id, capa_action_id (FK cascade), user_id, status, comment, photo, created_at | Append-only CAPA timeline |
+
+Key decisions: progress is derived from `visited_at` being non-null (items are created with `visited_at` set so a new visit defaults to fully reviewed/`ok`); the checklist configuration is copied onto each `visitors_visit_items` row at visit creation so historical inspections remain stable even if the checklist changes later; score is computed only on the backend from the snapshot `deduction_score` values.

@@ -1,6 +1,6 @@
 # Complaint Desk — Persistent Project Memory
 
-**Last synchronized:** 2026-08-29
+**Last synchronized:** 2026-08-31
 **Project root:** `C:\xampp\htdocs\complaint`  
 **Application:** Complaint Desk / Complaint Management System  
 **Source of truth:** The current codebase, migrations, configuration, tests, and generated build output. This file is a concise continuation guide; `project_structure.md` and `database_design.md` contain the fuller architecture and database narratives.
@@ -136,6 +136,10 @@ The migration order is:
 2026_08_23_161300_create_complaints_table
         ↓
 2026_08_23_161400_create_complaint_history_tables
+        ↓
+2026_08_31_170000_create_visitors_master_data_tables
+        ↓
+2026_08_31_170100_create_visitors_transaction_tables
 ```
 
 ### Core tables
@@ -190,12 +194,12 @@ The `.env.example` specifies `SESSION_DRIVER=database`, and the default Laravel 
 | `app/Services/ComplaintStatusService.php` | Transactional status transition/history/resolution logic |
 | `app/Services/ActivityLogService.php` | Activity-log persistence |
 | `app/Exports/ComplaintsExport.php` | Query-based localized Excel export |
-| `app/Providers/AppServiceProvider.php` | Super Admin Gate bypass |
+| `app/Providers/AppServiceProvider.php` | Super Admin Gate bypass + visitors policy registration |
 | `app/Http/Middleware/SetLocale.php` | Session locale validation and application locale selection |
 | `resources/views/layouts/app.blade.php` | Main shell, navigation, flash alerts, validation errors, PWA metadata |
-| `resources/js/app.js` | Customer/branch pickers and service-worker registration |
+| `resources/js/app.js` | Customer/branch pickers, Chart.js report dashboard charts, and service-worker registration |
 | `resources/css/app.css` | Tailwind source and shared UI classes |
-| `lang/en/` and `lang/ar/` | English/Arabic common, auth, complaint, customer, activity, and validation dictionaries |
+| `lang/en/` and `lang/ar/` | English/Arabic common, auth, complaint, customer, activity, validation, and visitors dictionaries |
 | `public/manifest.json` | PWA install metadata |
 | `public/service-worker.js` | Static-asset-only cache policy |
 | `database/seeders/PermissionSeeder.php` | Permissions, baseline roles, and initial Super Admin |
@@ -217,6 +221,7 @@ There is no separate business API route file. JSON search endpoints are protecte
 | Customers | `/customers`, `/customers/create`, `/customers/search`, `/customers/{customer}`, edit/update |
 | Complaints | `/complaints`, create/show/edit/update, `/complaints/branches/search`, `/complaints/export` |
 | Reports | `/reports/branches` |
+| Quality Visits | `/visitors`, `/visitors/create`, `/visitors/create/{visitType}`, `/visitors/open`, `/visitors/{visit}`, POST `/visitors`, POST `/visitors/{visit}/submit`, PUT `/visitors/items/{visitItem}`, POST `/visitors/items/{visitItem}/photo`, GET `/visitors/photos/{photo}`; reports: `/visitors/reports`, `/visitors/reports/dashboard`, `/visitors/reports/{visit}`, `/visitors/reports/{visit}/pdf` |
 | Master data | `/master-data/{type}` and type-specific create/edit/store/update/destroy routes |
 | Users | `/users`, create, edit, store, update |
 | Roles | `/roles`, `/roles/create`, role edit/update/store/destroy |
@@ -260,6 +265,31 @@ For the current XAMPP setup, Apache serves the `public` directory and the applic
 ## Current Tasks
 
 There are no unverified feature changes currently pending from the previous implementation work. The most recent completed work was the project documentation and persistent-memory documentation update. Future development should first read this file and `project_structure.md`, then update both when a meaningful architectural, schema, feature, configuration, or workflow change is made.
+
+
+## Quality Visits (Inspection) module — 2026-08-31
+
+A new **Quality Visits** inspection module was added alongside the existing complaint management without breaking it. It uses `visitors_`-prefixed tables, `Visitor*` models, dedicated services, a policy, seeders, routes under a `visitors.` prefix, and Blade views (`visitors/home`, `create`, `setup`, `open`, `show`) with vanilla-JS autosave.
+
+- **Schema (all SQL Server-compatible):** `visitors_visit_types`, `visitors_sections`, `visitors_root_causes`, `visitors_checklist_items`, `visitors_visits`, `visitors_visit_items` (with immutable snapshot columns), `visitors_visit_photos`, `visitors_capa_actions`, `visitors_capa_updates`. The visitors transaction migration initially failed on SQL Server due to its "multiple cascade paths" rule; the `visit_item_id` FKs on `visitors_visit_photos` and `visitors_capa_actions` and the two `users` FKs on `visitors_capa_actions` now use `noActionOnDelete()` instead of `cascadeOnDelete()`/`nullOnDelete()`. The `visitors_`-prefixed table names deviate from Eloquent's snake-case convention, so every `Visitor*` model declares `protected $table` and every `belongsTo`/`hasMany` relation declares its foreign key explicitly.
+- **Models:** `VisitorVisitType`, `VisitorSection`, `VisitorRootCause`, `VisitorChecklistItem`, `VisitorVisit`, `VisitorVisitItem`, `VisitorVisitPhoto`, `VisitorCapaAction`, `VisitorCapaUpdate`.
+- **Services:** `VisitScoreService` (single source of truth for score), `VisitService` (start/saveItem/submit), `CapaService` (create CAPA for non-compliant items on submit), `VisitorPhotoService` (GD compression, 20 MB cap), `ChecklistImportService` (Excel import helper).
+- **Authorization:** `VisitorVisitPolicy` (view/update/submit: owner + not-completed) registered in `AppServiceProvider` via `Gate::policy`; Super Admin bypasses via the existing `Gate::before`. Controllers manually import `AuthorizesRequests` because the base `Controller` is empty.
+- **Permissions/routes:** added `visit.submit`/`visit.manage` plus module `visit.*`; Customer Support and Viewer roles grant `visit.view`/`visit.create`/`visit.update`. Routes are registered under `visitors.` prefix with static `open`/`create` routes defined before the `{visit}` wildcard.
+- **Score rules:** available = sum deduction of non-NA items; deduction = sum for NC; final = available − deduction; percentage = (final/available)×100 with colors ≥85 blue, 75–84 green, 68–74 yellow, <68 red, all in `VisitScoreService`.
+- **Workflow rules:** items default `status=ok` with `visited_at` set at creation (default reviewed/chosen so a new visit can be submitted immediately without clicking every item); progress based on `visited_at`; snapshots copied to `visitors_visit_items` at creation; score computed only on the backend; photos stored privately on the `local` disk and served through an authenticated route; photos required when `nc` + critical OR `photo_required`; `submit()` validates all items reviewed + required photos, creates CAPA from NC items, sets `completed`+`completed_at` inside a transaction; users only access their own `in_progress` visits (Open Visits scoped to `inspector_id = auth user AND status = in_progress`).
+- **Localization:** added `lang/en/visitors.php` and `lang/ar/visitors.php`; added `customer_complaints`/`quality_visits` nav keys to `common.php` in both locales; added `@stack('scripts')` to the layout.
+- **Verification:** added `tests/Feature/VisitorsTest.php` (14 tests). Full suite: **60 tests passed / 296 assertions**. Migrations + seeders run against SQL Server and the SQLite test DB.
+
+### Quality Visits Reports module (2026-08-31)
+
+- **Reuse/no duplication:** `VisitScoreService::fromAggregates()` is the single source of score truth, used by `calculate()`, the report list, and charts. Reports read only the immutable `visitors_visit_items` snapshot columns (never master checklist values) and existing CAPA rows; `VisitorCapaAction::effectiveStatus()` provides overdue splitting reused by views and the dashboard.
+- **Services:** `VisitorReportService` (`build()` single QHSE report; `listReports()` paginated DB-aggregated list with branch/type/inspector/date/score-color filters), `VisitorReportDashboardService` (SQL joins/groupBy analytics: cards, severity/section/root-cause distributions, per-branch weighted score + best/worst, recurring/critical violations, CAPA status + average time-to-close, inspector performance, day/week/month trend), `VisitorPdfService` (dompdf `render()/stream()/download()` of the self-contained-CSS `visitors/reports/print` view, embedding private photos via `Storage::disk('local')->path()`). Dependencies: `barryvdh/laravel-dompdf ^3.1` (composer).
+- **Authorization:** reports are NOT owner-restricted. `VisitorVisitPolicy::viewReport()` = visit completed AND (`visit.manage` OR (`report.view` AND owner)); new `Gate::define('visitors.reports', ...)` = `report.view` OR `visit.manage`; Super Admin bypasses via existing `Gate::before`. Customer Support (inspectors) → 403.
+- **Controller/routes:** `VisitorReportController` (index/show/dashboard/pdf); routes `visitors/reports`, `visitors/reports/dashboard`, `visitors/reports/{visit}`, `visitors/reports/{visit}/pdf` registered BEFORE the `{visit}` wildcard. Views `visitors/reports/{index,show,dashboard,print}` plus a home Reports card link.
+- **SQL Server gotchas:** color filter uses `HAVING` with repeated aggregate expressions (aliases can't be referenced in `HAVING`, and subquery select lists for `IN` must have one column); average time-to-close CAPA computed in PHP (`DATEDIFF(DAY,...)` unsupported on SQLite).
+- **Verification:** added `tests/Feature/VisitorReportsTest.php` (15 tests; manager uses `Admin` role so in-progress 403 is enforceable, since Super Admin bypasses the gate). Full suite: **76 tests passed / 433 assertions**. List filter, individual report, PDF (~881 KB), and dashboard analytics smoke-tested against live SQL Server.
+
 
 
 ## Customer show SQL Server fix — 2026-08-29

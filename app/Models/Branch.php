@@ -11,4 +11,5 @@ class Branch extends \Illuminate\Database\Eloquent\Model
     protected $fillable = ['name', 'code', 'is_active', 'sort_order'];
     protected function casts(): array { return ['is_active' => 'boolean', 'sort_order' => 'integer']; }
     public function complaints() { return $this->hasMany(Complaint::class); }
+    public function visitorVisits() { return $this->hasMany(VisitorVisit::class); }
 }

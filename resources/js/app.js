@@ -602,6 +602,110 @@ if (dashboardChartData) {
     }
 }
 
+const visitReportDashboard = document.querySelector('#visit-report-chart-data');
+
+if (visitReportDashboard) {
+    try {
+        const { charts } = JSON.parse(visitReportDashboard.textContent || '{}');
+        const chartInstances = [];
+        const palette = ['#4f46e5', '#0891b2', '#16a34a', '#ea580c', '#dc2626', '#9333ea', '#ca8a04', '#0f766e'];
+        const chartTextColor = () => document.documentElement.dataset.theme === 'dark' ? '#cbd5e1' : '#475569';
+        const chartGridColor = () => document.documentElement.dataset.theme === 'dark' ? '#334155' : '#e2e8f0';
+        const commonOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false,
+            plugins: {
+                legend: { labels: { color: chartTextColor(), usePointStyle: true, boxWidth: 8 } },
+                tooltip: { mode: 'index', intersect: false },
+            },
+        };
+
+        const addChart = (key, type, options = {}) => {
+            const canvas = document.querySelector(`#report-${key}-chart`);
+            const rows = charts?.[key] || [];
+            if (!canvas || !rows.length) return;
+            const isDoughnut = type === 'doughnut';
+            const chart = new Chart(canvas, {
+                type,
+                data: {
+                    labels: rows.map((row) => row.name),
+                    datasets: [{
+                        data: rows.map((row) => row.total),
+                        backgroundColor: rows.map((row, index) => row.color || palette[index % palette.length]),
+                        borderColor: isDoughnut ? (document.documentElement.dataset.theme === 'dark' ? '#0f172a' : '#ffffff') : '#4f46e5',
+                        borderWidth: isDoughnut ? 2 : 0,
+                        borderRadius: isDoughnut ? 0 : 5,
+                    }],
+                },
+                options: {
+                    ...commonOptions,
+                    ...options,
+                    plugins: {
+                        ...commonOptions.plugins,
+                        legend: { ...commonOptions.plugins.legend, display: isDoughnut },
+                        ...(options.plugins || {}),
+                    },
+                    scales: isDoughnut ? undefined : {
+                        x: { beginAtZero: true, ticks: { color: chartTextColor(), precision: 0 }, grid: { color: chartGridColor() } },
+                        y: { ticks: { color: chartTextColor() }, grid: { display: false } },
+                    },
+                },
+            });
+            chartInstances.push(chart);
+        };
+
+        const trendCanvas = document.querySelector('#report-trend-chart');
+        if (trendCanvas && charts?.trend?.labels?.length) {
+            chartInstances.push(new Chart(trendCanvas, {
+                type: 'line',
+                data: {
+                    labels: charts.trend.labels,
+                    datasets: [{
+                        label: document.documentElement.lang === 'ar' ? 'متوسط النتيجة' : 'Average score',
+                        data: charts.trend.values,
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, .14)',
+                        fill: true,
+                        tension: .35,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                    }],
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: { ...commonOptions.plugins, legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: chartTextColor(), maxRotation: 0, autoSkip: true }, grid: { display: false } },
+                        y: { beginAtZero: true, max: 100, ticks: { color: chartTextColor(), callback: (v) => v + '%' }, grid: { color: chartGridColor() } },
+                    },
+                },
+            }));
+        }
+
+        addChart('branch', 'bar', { indexAxis: 'y' });
+        addChart('severity', 'doughnut', { cutout: '62%' });
+        addChart('section', 'bar', { indexAxis: 'y' });
+        addChart('rootCause', 'doughnut', { cutout: '62%' });
+
+        const refreshReportChartTheme = () => {
+            chartInstances.forEach((chart) => {
+                if (chart.options.scales) {
+                    Object.values(chart.options.scales).forEach((scale) => {
+                        if (scale.ticks) scale.ticks.color = chartTextColor();
+                        if (scale.grid) scale.grid.color = chartGridColor();
+                    });
+                }
+                if (chart.options.plugins?.legend?.labels) chart.options.plugins.legend.labels.color = chartTextColor();
+                chart.update('none');
+            });
+        };
+        themeToggle?.addEventListener('click', () => window.setTimeout(refreshReportChartTheme, 0));
+    } catch (error) {
+        console.warn('Visit report chart initialization failed.', error);
+    }
+}
+
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', async () => {
         const manifestLink = document.querySelector('link[rel="manifest"]');
