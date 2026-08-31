@@ -26,8 +26,8 @@ $charts = [
 </div>
 
 {{-- Filters --}}
-<form method="GET" action="{{ route('visitors.reports.dashboard') }}" class="card mb-6">
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-8">
+<form method="GET" action="{{ route('visitors.reports.dashboard') }}" class="card mb-6 p-4 sm:p-6">
+    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-8">
         <div><label class="form-label">{{ __('common.date_from') }}</label><input type="date" name="date_from" value="{{ $f['date_from'] ?? '' }}" class="form-input"></div>
         <div><label class="form-label">{{ __('common.date_to') }}</label><input type="date" name="date_to" value="{{ $f['date_to'] ?? '' }}" class="form-input"></div>
         <div><label class="form-label">{{ __('common.branch') }}</label>
@@ -61,14 +61,14 @@ $charts = [
             </select>
         </div>
     </div>
-    <div class="mt-4 flex flex-wrap items-center gap-3">
-        <button type="submit" class="btn-primary">{{ __('common.apply_filters') }}</button>
-        <a href="{{ route('visitors.reports.dashboard') }}" class="btn-secondary">{{ __('common.clear') }}</a>
+    <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <button type="submit" class="btn-primary min-h-[44px] w-full sm:w-auto">{{ __('common.apply_filters') }}</button>
+        <a href="{{ route('visitors.reports.dashboard') }}" class="btn-secondary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto">{{ __('common.clear') }}</a>
     </div>
 </form>
 
 {{-- Cards --}}
-<div class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+<div class="mb-8 grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.total_visits') }}</div><div class="mt-1 text-3xl font-black text-slate-900">{{ $cards['totalVisits'] }}</div></div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.avg_score') }}</div><div class="mt-1 text-3xl font-black" style="color:{{ $scoreHex }}">{{ $cards['avgScore'] !== null ? $cards['avgScore'].'%' : 'â€”' }}</div></div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.critical_violations') }}</div><div class="mt-1 text-3xl font-black {{ $cards['criticalViolations'] ? 'text-rose-600' : 'text-slate-900' }}">{{ $cards['criticalViolations'] }}</div></div>
@@ -80,22 +80,22 @@ $charts = [
 <script type="application/json" id="visit-report-chart-data">{!! json_encode(['charts' => $charts]) !!}</script>
 
 {{-- Charts --}}
-<div class="mb-8 grid gap-6 lg:grid-cols-2">
-    <div class="card"><h3 class="section-title mb-4">{{ __('visitors.branch_performance') }}</h3><div class="h-72"><canvas id="report-branch-chart"></canvas></div></div>
-    <div class="card"><h3 class="section-title mb-4">{{ __('visitors.violations_by_severity') }}</h3><div class="h-72"><canvas id="report-severity-chart"></canvas></div></div>
-    <div class="card"><h3 class="section-title mb-4">{{ __('visitors.violations_by_section') }}</h3><div class="h-72"><canvas id="report-section-chart"></canvas></div></div>
-    <div class="card"><h3 class="section-title mb-4">{{ __('visitors.root_cause_distribution') }}</h3><div class="h-72"><canvas id="report-rootCause-chart"></canvas></div></div>
+<div class="mb-8 grid gap-6 grid-cols-1 lg:grid-cols-2">
+    <div class="card p-4 sm:p-6"><h3 class="section-title mb-4">{{ __('visitors.branch_performance') }}</h3><div class="h-64 sm:h-72"><canvas id="report-branch-chart"></canvas></div></div>
+    <div class="card p-4 sm:p-6"><h3 class="section-title mb-4">{{ __('visitors.violations_by_severity') }}</h3><div class="h-64 sm:h-72"><canvas id="report-severity-chart"></canvas></div></div>
+    <div class="card p-4 sm:p-6"><h3 class="section-title mb-4">{{ __('visitors.violations_by_section') }}</h3><div class="h-64 sm:h-72"><canvas id="report-section-chart"></canvas></div></div>
+    <div class="card p-4 sm:p-6"><h3 class="section-title mb-4">{{ __('visitors.root_cause_distribution') }}</h3><div class="h-64 sm:h-72"><canvas id="report-rootCause-chart"></canvas></div></div>
 </div>
 
 {{-- Score trend --}}
-<div class="mb-8 card">
+<div class="mb-8 card p-4 sm:p-6">
     <h3 class="section-title mb-4">{{ __('visitors.score_trend') }}</h3>
-    <div class="h-72"><canvas id="report-trend-chart"></canvas></div>
+    <div class="h-64 sm:h-72"><canvas id="report-trend-chart"></canvas></div>
 </div>
 
 {{-- Branch comparison + best/worst --}}
-<div class="mb-8 grid gap-6 lg:grid-cols-3">
-    <div class="card lg:col-span-2 overflow-x-auto">
+<div class="mb-8 grid gap-6 grid-cols-1 lg:grid-cols-3">
+    <div class="card lg:col-span-2 overflow-x-auto p-4 sm:p-6">
         <h3 class="section-title mb-4">{{ __('visitors.branch_comparison') }}</h3>
         <table class="w-full text-sm">
             <thead><tr class="border-b border-slate-200 text-left text-xs font-bold uppercase tracking-wide text-slate-500"><th class="py-2">{{ __('common.branch') }}</th><th class="py-2">{{ __('visitors.avg_score') }}</th><th class="py-2">{{ __('visitors.visits') }}</th><th class="py-2">{{ __('visitors.violations') }}</th></tr></thead>
@@ -132,8 +132,8 @@ $charts = [
 </div>
 
 {{-- Recurring + critical violations --}}
-<div class="mb-8 grid gap-6 lg:grid-cols-2">
-    <div class="card overflow-x-auto">
+<div class="mb-8 grid gap-6 grid-cols-1 lg:grid-cols-2">
+    <div class="card overflow-x-auto p-4 sm:p-6">
         <h3 class="section-title mb-4">{{ __('visitors.most_repeated_violations') }}</h3>
         @if($d['recurring'])
         <table class="w-full text-sm">
@@ -148,7 +148,7 @@ $charts = [
         <p class="text-slate-500">{{ __('visitors.no_data') }}</p>
         @endif
     </div>
-    <div class="card overflow-x-auto">
+    <div class="card overflow-x-auto p-4 sm:p-6">
         <h3 class="section-title mb-4">{{ __('visitors.critical_violations') }}</h3>
         @if($d['criticalViolations'])
         <table class="w-full text-sm">
@@ -166,10 +166,10 @@ $charts = [
 </div>
 
 {{-- CAPA analytics + inspector performance --}}
-<div class="mb-8 grid gap-6 lg:grid-cols-2">
-    <div class="card">
+<div class="mb-8 grid gap-6 grid-cols-1 lg:grid-cols-2">
+    <div class="card p-4 sm:p-6">
         <h3 class="section-title mb-4">{{ __('visitors.capa_analytics') }}</h3>
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div class="grid grid-cols-1 xs:grid-cols-2 gap-3 sm:grid-cols-3">
             <div class="rounded-xl border p-3 text-center"><div class="text-xs font-bold uppercase text-blue-600">{{ __('visitors.capa_open') }}</div><div class="text-2xl font-black">{{ $d['capa']['open'] }}</div></div>
             <div class="rounded-xl border p-3 text-center"><div class="text-xs font-bold uppercase text-violet-600">{{ __('visitors.capa_in_progress') }}</div><div class="text-2xl font-black">{{ $d['capa']['in_progress'] }}</div></div>
             <div class="rounded-xl border p-3 text-center"><div class="text-xs font-bold uppercase text-rose-600">{{ __('visitors.capa_overdue') }}</div><div class="text-2xl font-black">{{ $d['capa']['overdue'] }}</div></div>
@@ -178,7 +178,7 @@ $charts = [
             <div class="rounded-xl border p-3 text-center"><div class="text-xs font-bold uppercase text-slate-500">{{ __('visitors.avg_time_to_close') }}</div><div class="text-2xl font-black">{{ $d['averageTimeToCloseCapa'] !== null ? $d['averageTimeToCloseCapa'].'d' : 'â€”' }}</div></div>
         </div>
     </div>
-    <div class="card overflow-x-auto">
+    <div class="card overflow-x-auto p-4 sm:p-6">
         <h3 class="section-title mb-4">{{ __('visitors.inspector_performance') }}</h3>
         @if($d['inspectorPerformance'])
         <table class="w-full text-sm">

@@ -7,18 +7,18 @@
         <h1 class="page-title mt-4">{{ $customer->name }}</h1>
         <p class="page-subtitle">{{ $customer->phone_primary }}</p>
     </div>
-    <div class="flex gap-3">
+    <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         @can('customer.update')
-            <a class="btn-secondary" href="{{ route('customers.edit', $customer) }}">{{ __('common.edit') }}</a>
+            <a class="btn-secondary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto" href="{{ route('customers.edit', $customer) }}">{{ __('common.edit') }}</a>
         @endcan
         @can('complaint.create')
-            <a class="btn-primary" href="{{ route('complaints.create', ['customer' => $customer->id]) }}">{{ __('common.add_complaint') }}</a>
+            <a class="btn-primary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto" href="{{ route('complaints.create', ['customer' => $customer->id]) }}">{{ __('common.add_complaint') }}</a>
         @endcan
     </div>
 </div>
 
-<div class="grid gap-6 lg:grid-cols-3">
-    <div class="card lg:col-span-1">
+<div class="grid gap-6 grid-cols-1 lg:grid-cols-3">
+    <div class="card p-4 sm:p-6 lg:col-span-1">
         <h2 class="section-title">{{ __('common.customer_information') }}</h2>
         <dl class="mt-5 space-y-4 text-sm">
             <div><dt class="text-slate-500">{{ __('common.primary_phone') }}</dt><dd class="font-semibold">{{ $customer->phone_primary }}</dd></div>
@@ -28,9 +28,9 @@
             <div><dt class="text-slate-500">{{ __('common.address') }}</dt><dd>{{ $customer->address ?: '—' }}</dd></div>
         </dl>
     </div>
-    <div class="card lg:col-span-2">
+    <div class="card p-4 sm:p-6 lg:col-span-2">
         <h2 class="section-title">{{ __('common.complaint_summary') }}</h2>
-        <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div class="mt-5 grid grid-cols-1 xs:grid-cols-2 gap-3 sm:grid-cols-4">
             <div class="stat"><b>{{ $customer->complaints->count() }}</b><span>{{ __('common.total') }}</span></div>
             @foreach(['Pending' => 'pending', 'In Progress' => 'in_progress', 'Solved' => 'solved', 'Closed' => 'closed'] as $status => $statusKey)
                 <div class="stat"><b>{{ $customer->complaints->where('status.name', $status)->count() }}</b><span>{{ __('common.' . $statusKey) }}</span></div>

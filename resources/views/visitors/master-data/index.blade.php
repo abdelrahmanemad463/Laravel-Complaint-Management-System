@@ -29,23 +29,23 @@ $statusLabel = [
         <h1 class="page-title mt-4">{{ __('visitors.master') }}</h1>
         <p class="page-subtitle">{{ __('visitors.master_subtitle') }}</p>
     </div>
-    <div class="flex flex-wrap items-center gap-3">
+    <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         @can('visit.master.export')
-        <form method="GET" action="{{ route('visitors.master-data.download') }}" class="inline-flex gap-2">
+        <form method="GET" action="{{ route('visitors.master-data.download') }}" class="inline-flex gap-2 w-full sm:w-auto">
             <input type="hidden" name="visit_type_id" value="{{ $filters['visit_type_id'] ?? '' }}">
             <input type="hidden" name="section_id" value="{{ $filters['section_id'] ?? '' }}">
-            <button class="btn-secondary">{{ __('visitors.master_download_current') }}</button>
+            <button class="btn-secondary min-h-[44px] w-full sm:w-auto">{{ __('visitors.master_download_current') }}</button>
         </form>
         @endcan
         @can('visit.master.view')
-        <a href="{{ route('visitors.master-data.template') }}" class="btn-secondary">{{ __('visitors.master_download_template') }}</a>
-        <a href="{{ route('visitors.master-data.template-example') }}" class="btn-secondary">{{ __('visitors.master_download_template_example') }}</a>
+        <a href="{{ route('visitors.master-data.template') }}" class="btn-secondary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto">{{ __('visitors.master_download_template') }}</a>
+        <a href="{{ route('visitors.master-data.template-example') }}" class="btn-secondary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto">{{ __('visitors.master_download_template_example') }}</a>
         @endcan
     </div>
 </div>
 
 {{-- Statistics --}}
-<div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+<div class="mb-6 grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
     <div class="card"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ __('visitors.master_total_items') }}</div><div class="mt-1 text-2xl font-bold text-slate-900">{{ $stats['total'] }}</div></div>
     <div class="card"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ __('visitors.master_daily_items') }}</div><div class="mt-1 text-2xl font-bold text-indigo-700">{{ $stats['daily'] }}</div></div>
     <div class="card"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ __('visitors.master_monthly_items') }}</div><div class="mt-1 text-2xl font-bold text-emerald-700">{{ $stats['monthly'] }}</div></div>
@@ -56,14 +56,14 @@ $statusLabel = [
 
 {{-- Upload --}}
 @can('visit.master.import')
-<div class="card mb-6">
+<div class="card mb-6 p-4 sm:p-6">
     <h2 class="mb-1 text-lg font-bold text-slate-900">{{ __('visitors.master_upload_excel') }}</h2>
     <p class="mb-4 text-sm text-slate-500">{{ __('visitors.master_upload_help') }}</p>
     <form method="POST" action="{{ route('visitors.master-data.import') }}" enctype="multipart/form-data">
         @csrf
-        <div class="flex flex-wrap items-center gap-3">
-            <input type="file" name="file" accept=".xlsx,.xls" required class="form-input">
-            <button type="submit" class="btn-primary">{{ __('visitors.master_upload_submit') }}</button>
+        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <input type="file" name="file" accept=".xlsx,.xls" required class="form-input flex-1 min-w-0">
+            <button type="submit" class="btn-primary min-h-[44px] w-full sm:w-auto">{{ __('visitors.master_upload_submit') }}</button>
         </div>
         @error('file')<p class="mt-2 text-sm text-rose-600">{{ $message }}</p>@enderror
     </form>
@@ -72,8 +72,8 @@ $statusLabel = [
 
 {{-- Filters + current data --}}
 <h2 class="mb-3 text-lg font-bold text-slate-900">{{ __('visitors.master_current_data') }}</h2>
-<form method="GET" action="{{ route('visitors.master-data') }}" class="card mb-6">
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+<form method="GET" action="{{ route('visitors.master-data') }}" class="card mb-6 p-4 sm:p-6">
+    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
         <div>
             <label class="form-label">{{ __('visitors.master_filter_type') }}</label>
             <select name="visit_type_id" class="form-input">
@@ -106,14 +106,15 @@ $statusLabel = [
             <input type="text" name="q" value="{{ $filters['q'] ?? '' }}" class="form-input" placeholder="{{ __('visitors.master_search') }}">
         </div>
     </div>
-    <div class="mt-4 flex flex-wrap items-center gap-3">
-        <button type="submit" class="btn-primary">{{ __('visitors.master_filter') }}</button>
-        <a href="{{ route('visitors.master-data') }}" class="btn-secondary">{{ __('visitors.master_clear') }}</a>
+    <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <button type="submit" class="btn-primary min-h-[44px] w-full sm:w-auto">{{ __('visitors.master_filter') }}</button>
+        <a href="{{ route('visitors.master-data') }}" class="btn-secondary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto">{{ __('visitors.master_clear') }}</a>
     </div>
 </form>
 
 @if($items->count())
-<div class="card overflow-x-auto !p-0">
+<div class="card overflow-hidden !p-0">
+    <div class="overflow-x-auto -mx-3 sm:mx-0">
     <table class="w-full text-sm">
         <thead>
             <tr class="border-b border-slate-200 bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -142,16 +143,18 @@ $statusLabel = [
             @endforeach
         </tbody>
     </table>
+    </div>
 </div>
 <div class="mt-4">{{ $items->links() }}</div>
 @else
-<div class="card text-center text-slate-500">{{ __('visitors.master_no_items') }}</div>
+<div class="card p-4 sm:p-6 text-center text-slate-500">{{ __('visitors.master_no_items') }}</div>
 @endif
 
 {{-- Import history --}}
 <h2 class="mb-3 mt-10 text-lg font-bold text-slate-900">{{ __('visitors.master_import_history') }}</h2>
 @if($history->count())
-<div class="card overflow-x-auto !p-0">
+<div class="card overflow-hidden !p-0">
+    <div class="overflow-x-auto -mx-3 sm:mx-0">
     <table class="w-full text-sm">
         <thead>
             <tr class="border-b border-slate-200 bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -182,9 +185,10 @@ $statusLabel = [
             @endforeach
         </tbody>
     </table>
+    </div>
 </div>
 <div class="mt-4">{{ $history->links('pagination::tailwind') }}</div>
 @else
-<div class="card text-center text-slate-500">{{ __('visitors.master_no_history') }}</div>
+<div class="card p-4 sm:p-6 text-center text-slate-500">{{ __('visitors.master_no_history') }}</div>
 @endif
 @endsection

@@ -8,7 +8,7 @@
 </div>
 
 @if($visits->count())
-<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+<div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
     @foreach($visits as $visit)
     <div class="card flex flex-col gap-4">
         <div class="flex items-start justify-between gap-3">
@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="text-xs text-slate-500">{{ __('visitors.last_updated') }}: {{ $visit->updated_at?->diffForHumans() }}</div>
-        <a href="{{ route('visitors.show', $visit) }}" class="btn-secondary w-full">{{ __('visitors.continue_visit') }}</a>
+        <a href="{{ route('visitors.show', $visit) }}" class="btn-secondary w-full min-h-[44px] inline-flex items-center justify-center">{{ __('visitors.continue_visit') }}</a>
     </div>
     @endforeach
 </div>

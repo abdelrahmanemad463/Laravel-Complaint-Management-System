@@ -66,31 +66,33 @@ $visit = $report['visit'];
 </div>
 
 {{-- 4. Non-compliant items by severity --}}
-<div class="mb-8 card">
+<div class="mb-8 card p-4 sm:p-6">
     <h3 class="section-title mb-4">{{ __('visitors.nc_by_severity') }}</h3>
     @if($report['severity']->count())
-    <table class="w-full text-sm">
-        <thead><tr class="border-b border-slate-200 text-left text-xs font-bold uppercase tracking-wide text-slate-500"><th class="py-2">{{ __('visitors.severity') }}</th><th class="py-2">{{ __('common.total') }}</th><th class="py-2">{{ __('visitors.total_deduction') }}</th></tr></thead>
-        <tbody>
-            @foreach($report['severity'] as $row)
-            <tr class="border-b border-slate-100">
-                <td class="py-2"><span class="badge" style="--badge-color:{{ $severityBadge[$row->severity] ?? '#475569' }}">{{ ucfirst($row->severity) }}</span></td>
-                <td class="py-2 font-semibold">{{ $row->count }}</td>
-                <td class="py-2 font-semibold text-rose-600">{{ $row->deduction }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
+    <div class="overflow-x-auto -mx-3 sm:mx-0">
+        <table class="w-full text-sm min-w-[320px]">
+            <thead><tr class="border-b border-slate-200 text-left text-xs font-bold uppercase tracking-wide text-slate-500"><th class="py-2 px-3 sm:px-4 text-xs sm:text-sm">{{ __('visitors.severity') }}</th><th class="py-2 px-3 sm:px-4 text-xs sm:text-sm">{{ __('common.total') }}</th><th class="py-2 px-3 sm:px-4 text-xs sm:text-sm">{{ __('visitors.total_deduction') }}</th></tr></thead>
+            <tbody>
+                @foreach($report['severity'] as $row)
+                <tr class="border-b border-slate-100">
+                    <td class="py-2 px-3 sm:px-4"><span class="badge" style="--badge-color:{{ $severityBadge[$row->severity] ?? '#475569' }}">{{ ucfirst($row->severity) }}</span></td>
+                    <td class="py-2 px-3 sm:px-4 font-semibold">{{ $row->count }}</td>
+                    <td class="py-2 px-3 sm:px-4 font-semibold text-rose-600">{{ $row->deduction }}</td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
     @else
     <p class="text-slate-500">{{ __('visitors.no_violations') }}</p>
     @endif
 </div>
 
 {{-- 5. Performance by section --}}
-<div class="mb-8 card">
+<div class="mb-8 card p-4 sm:p-6">
     <h3 class="section-title mb-4">{{ __('visitors.performance_by_section') }}</h3>
     @if($report['sections']->count())
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto -mx-3 sm:mx-0">
     <table class="w-full text-sm">
         <thead><tr class="border-b border-slate-200 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
             <th class="py-2">{{ __('visitors.section') }}</th><th class="py-2">{{ __('visitors.total') }}</th>
@@ -119,27 +121,29 @@ $visit = $report['visit'];
 </div>
 
 {{-- 6. Root cause analysis --}}
-<div class="mb-8 card">
+<div class="mb-8 card p-4 sm:p-6">
     <h3 class="section-title mb-4">{{ __('visitors.root_cause_analysis') }}</h3>
     @if($report['rootCauses']->count())
-    <table class="w-full text-sm">
-        <thead><tr class="border-b border-slate-200 text-left text-xs font-bold uppercase tracking-wide text-slate-500"><th class="py-2">{{ __('visitors.root_cause') }}</th><th class="py-2">{{ __('visitors.number_of_violations') }}</th></tr></thead>
-        <tbody>
-            @foreach($report['rootCauses'] as $row)
-            <tr class="border-b border-slate-100"><td class="py-2">{{ $row->name }}</td><td class="py-2 font-semibold">{{ $row->count }}</td></tr>
-            @endforeach
-        </tbody>
-    </table>
+    <div class="overflow-x-auto -mx-3 sm:mx-0">
+        <table class="w-full text-sm min-w-[280px]">
+            <thead><tr class="border-b border-slate-200 text-left text-xs font-bold uppercase tracking-wide text-slate-500"><th class="py-2 px-3 sm:px-4 text-xs sm:text-sm">{{ __('visitors.root_cause') }}</th><th class="py-2 px-3 sm:px-4 text-xs sm:text-sm">{{ __('visitors.number_of_violations') }}</th></tr></thead>
+            <tbody>
+                @foreach($report['rootCauses'] as $row)
+                <tr class="border-b border-slate-100"><td class="py-2 px-3 sm:px-4">{{ $row->name }}</td><td class="py-2 px-3 sm:px-4 font-semibold">{{ $row->count }}</td></tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
     @else
     <p class="text-slate-500">{{ __('visitors.no_root_causes') }}</p>
     @endif
 </div>
 
 {{-- 7. Violation details --}}
-<div class="mb-8 card">
+<div class="mb-8 card p-4 sm:p-6">
     <h3 class="section-title mb-4">{{ __('visitors.violation_details') }}</h3>
     @if($report['violations']->count())
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto -mx-3 sm:mx-0">
     <table class="w-full text-sm">
         <thead><tr class="border-b border-slate-200 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
             <th class="py-2">#</th><th class="py-2">{{ __('common.code') }}</th><th class="py-2">{{ __('visitors.section') }}</th>
@@ -185,10 +189,10 @@ $visit = $report['visit'];
 </div>
 
 {{-- 8. Corrective action plan / CAPA --}}
-<div class="mb-8 card">
+<div class="mb-8 card p-4 sm:p-6">
     <h3 class="section-title mb-4">{{ __('visitors.corrective_action_plan') }}</h3>
     @if($report['capa']['actions']->count())
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto -mx-3 sm:mx-0">
     <table class="w-full text-sm">
         <thead><tr class="border-b border-slate-200 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
             <th class="py-2">#</th><th class="py-2">{{ __('visitors.item') }}</th><th class="py-2">{{ __('visitors.severity') }}</th>

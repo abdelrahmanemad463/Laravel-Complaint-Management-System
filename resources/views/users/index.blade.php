@@ -34,32 +34,34 @@
 </form>
 
 <div class="card overflow-hidden p-0">
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>{{ __('common.name') }}</th>
-                <th>{{ __('common.email') }}</th>
-                <th>{{ __('common.roles') }}</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($users as $user)
+    <div class="overflow-x-auto -mx-3 sm:mx-0">
+        <table class="data-table">
+            <thead>
                 <tr>
-                    <td class="font-semibold">{{ $user->name }}</td>
-                    <td>{{ $user->email }}</td>
-                    <td>{{ $user->roles->pluck('name')->join(', ') }}</td>
-                    <td class="text-end">
-                        @can('user.update')
-                            <a class="btn-small" href="{{ route('users.edit', $user) }}">{{ __('common.edit') }}</a>
-                        @endcan
-                    </td>
+                    <th class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm">{{ __('common.name') }}</th>
+                    <th class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm">{{ __('common.email') }}</th>
+                    <th class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm">{{ __('common.roles') }}</th>
+                    <th class="px-3 sm:px-4 lg:px-6"></th>
                 </tr>
-            @empty
-                <tr><td colspan="4" class="empty">{{ __('common.no_data') }}</td></tr>
-            @endforelse
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @forelse($users as $user)
+                    <tr>
+                        <td class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm font-semibold">{{ $user->name }}</td>
+                        <td class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm break-all">{{ $user->email }}</td>
+                        <td class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm">{{ $user->roles->pluck('name')->join(', ') }}</td>
+                        <td class="px-3 sm:px-4 lg:px-6 text-end">
+                            @can('user.update')
+                                <a class="btn-small min-h-[36px] inline-flex items-center" href="{{ route('users.edit', $user) }}">{{ __('common.edit') }}</a>
+                            @endcan
+                        </td>
+                    </tr>
+                @empty
+                    <tr><td colspan="4" class="empty">{{ __('common.no_data') }}</td></tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
     <div class="p-4">{{ $users->links() }}</div>
 </div>
 @endsection

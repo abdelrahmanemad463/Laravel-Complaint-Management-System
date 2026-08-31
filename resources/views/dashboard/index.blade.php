@@ -56,7 +56,7 @@
             @endforeach
         </div>
     </div>
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <div>
             <label class="form-label">{{ __('common.date_from') }}</label>
             <input class="form-input" type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}">
@@ -101,13 +101,13 @@
             </div>
         @endforeach
     </div>
-    <div class="flex flex-wrap gap-3">
-        <button class="btn-primary">{{ __('common.apply_filters') }}</button>
-        <a class="btn-secondary" href="{{ route('dashboard') }}">{{ __('common.reset') }}</a>
+    <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <button class="btn-primary min-h-[44px] w-full sm:w-auto">{{ __('common.apply_filters') }}</button>
+        <a class="btn-secondary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto" href="{{ route('dashboard') }}">{{ __('common.reset') }}</a>
     </div>
 </form>
 
-<div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+<div class="mb-6 grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 xl:grid-cols-6">
     @php($pendingId = $statusByKey['pending']->id ?? null)
     @php($inProgressId = $statusByKey['in progress']->id ?? null)
     @php($solvedId = $statusByKey['solved']->id ?? null)
@@ -139,8 +139,8 @@
     </div>
 </div>
 
-<div class="mb-6 grid gap-6 lg:grid-cols-3">
-    <div class="card lg:col-span-2">
+<div class="mb-6 grid gap-6 grid-cols-1 lg:grid-cols-3">
+    <div class="card p-4 sm:p-6 lg:col-span-2">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h2 class="section-title">{{ __('common.complaints_over_time') }}</h2>
@@ -148,11 +148,11 @@
             </div>
             <span class="badge" style="--badge-color:#4f46e5">{{ $period['days'] }} {{ __('common.date') }}</span>
         </div>
-        <div class="mt-5 h-72">@if($total > 0)<canvas id="trend-chart"></canvas>@else<div class="empty flex h-full items-center justify-center">{{ __('common.no_dashboard_data') }}</div>@endif</div>
+        <div class="mt-5 h-64 sm:h-72">@if($total > 0)<canvas id="trend-chart"></canvas>@else<div class="empty flex h-full items-center justify-center">{{ __('common.no_dashboard_data') }}</div>@endif</div>
     </div>
-    <div class="card">
+    <div class="card p-4 sm:p-6">
         <h2 class="section-title">{{ __('common.resolution_performance') }}</h2>
-        <div class="mt-6 flex items-center gap-5">
+        <div class="mt-6 flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-5">
             <div class="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-full" style="background:conic-gradient(#10b981 {{ $kpis['resolution_rate'] }}%, #e2e8f0 0)">
                 <div class="flex h-24 w-24 items-center justify-center rounded-full bg-white text-2xl font-bold text-slate-900">{{ number_format($kpis['resolution_rate'], 1) }}%</div>
             </div>
@@ -165,7 +165,7 @@
     </div>
 </div>
 
-<div class="mb-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+<div class="mb-6 grid gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
     @foreach([
         ['key' => 'branches', 'title' => 'complaints_by_branch', 'type' => 'bar'],
         ['key' => 'categories', 'title' => 'complaints_by_category', 'type' => 'bar'],
@@ -175,21 +175,21 @@
         ['key' => 'statuses', 'title' => 'complaints_by_status', 'type' => 'doughnut'],
         ['key' => 'priorities', 'title' => 'priority_distribution', 'type' => 'doughnut'],
     ] as $chartCard)
-        <div class="card">
+        <div class="card p-4 sm:p-6">
             <h2 class="section-title">{{ __('common.'.$chartCard['title']) }}</h2>
-            <div class="mt-5 h-64">@if($total > 0 && !empty($charts[$chartCard['key']]))<canvas id="{{ $chartCard['key'] }}-chart" data-chart-type="{{ $chartCard['type'] }}"></canvas>@else<div class="empty flex h-full items-center justify-center">{{ __('common.no_dashboard_data') }}</div>@endif</div>
+            <div class="mt-5 h-64 sm:h-72">@if($total > 0 && !empty($charts[$chartCard['key']]))<canvas id="{{ $chartCard['key'] }}-chart" data-chart-type="{{ $chartCard['type'] }}"></canvas>@else<div class="empty flex h-full items-center justify-center">{{ __('common.no_dashboard_data') }}</div>@endif</div>
         </div>
     @endforeach
 </div>
 
 <div class="card mb-6 overflow-hidden p-0">
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 p-4 sm:p-6">
         <div><h2 class="section-title">{{ __('common.branch_performance') }}</h2><p class="mt-1 text-sm text-slate-500">{{ __('common.complaints_by_branch') }}</p></div>
         @if($total > 0)<span class="badge" style="--badge-color:#0891b2">{{ count($branchRows) }} {{ __('common.branches') }}</span>@endif
     </div>
-    <div class="overflow-x-auto">
+    <div class="overflow-x-auto -mx-3 sm:mx-0">
         <table class="data-table">
-            <thead><tr><th>{{ __('common.rank') }}</th><th>{{ __('common.branch') }}</th><th>{{ __('common.total') }}</th><th>{{ __('common.percentage') }}</th><th>{{ __('common.resolved') }}</th><th>{{ __('common.pending') }}</th><th>{{ __('common.high_critical') }}</th><th>{{ __('common.resolution_rate') }}</th></tr></thead>
+            <thead><tr><th class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm">{{ __('common.rank') }}</th><th class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm">{{ __('common.branch') }}</th><th class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm">{{ __('common.total') }}</th><th class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm">{{ __('common.percentage') }}</th><th class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm">{{ __('common.resolved') }}</th><th class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm">{{ __('common.pending') }}</th><th class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm">{{ __('common.high_critical') }}</th><th class="px-3 sm:px-4 lg:px-6 text-xs sm:text-sm">{{ __('common.resolution_rate') }}</th></tr></thead>
             <tbody>
             @forelse($branchRows as $row)
                 <tr>
@@ -205,8 +205,8 @@
     </div>
 </div>
 
-<div class="mb-6 grid gap-6 lg:grid-cols-3">
-    <div class="card lg:col-span-2">
+<div class="mb-6 grid gap-6 grid-cols-1 lg:grid-cols-3">
+    <div class="card p-4 sm:p-6 lg:col-span-2">
         <div class="flex items-center justify-between gap-3"><h2 class="section-title">{{ __('common.recent_complaints') }}</h2><a class="back-link" href="{{ route('complaints.index', $dashboardQuery) }}">{{ __('common.view_all') }}</a></div>
         <div class="mt-5 divide-y divide-slate-200">
             @forelse($recentComplaints as $complaint)
@@ -219,7 +219,7 @@
             @endforelse
         </div>
     </div>
-    <div class="card">
+    <div class="card p-4 sm:p-6">
         <div class="flex items-center justify-between gap-3"><h2 class="section-title">{{ __('common.attention_required') }}</h2><a class="back-link" href="{{ route('complaints.index', $dashboardQuery) }}">{{ __('common.view_all') }}</a></div>
         <div class="mt-5 space-y-3">
             @forelse($attentionComplaints as $complaint)
@@ -234,8 +234,8 @@
     </div>
 </div>
 
-<div class="mb-6 grid gap-6 lg:grid-cols-2">
-    <div class="card">
+<div class="mb-6 grid gap-6 grid-cols-1 lg:grid-cols-2">
+    <div class="card p-4 sm:p-6">
         <div class="flex items-center justify-between gap-3"><h2 class="section-title">{{ __('common.recently_solved') }}</h2><a class="back-link" href="{{ route('complaints.index', $dashboardQuery) }}">{{ __('common.view_all') }}</a></div>
         <div class="mt-5 space-y-3">
             @forelse($recentlySolved as $complaint)
@@ -245,7 +245,7 @@
             @endforelse
         </div>
     </div>
-    <div class="card">
+    <div class="card p-4 sm:p-6">
         <h2 class="section-title">{{ __('common.insights') }}</h2>
         <div class="mt-5 space-y-3">
             @forelse($insights as $insight)

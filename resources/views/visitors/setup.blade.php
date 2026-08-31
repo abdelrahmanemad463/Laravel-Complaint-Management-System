@@ -6,7 +6,7 @@
     <p class="page-subtitle">{{ __('visitors.setup_help') }}</p>
 </div>
 
-<div class="card max-w-xl">
+<div class="card max-w-xl mx-auto p-4 sm:p-6">
     <form method="POST" action="{{ route('visitors.store') }}" class="space-y-5">
         @csrf
         <input type="hidden" name="visit_type_id" value="{{ $visitType->id }}">
@@ -34,7 +34,7 @@
             @error('visit_date')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
         </div>
 
-        <button type="submit" class="btn-primary w-full">{{ __('visitors.start_visit') }}</button>
+        <button type="submit" class="btn-primary w-full min-h-[44px]">{{ __('visitors.start_visit') }}</button>
     </form>
 </div>
 @endsection

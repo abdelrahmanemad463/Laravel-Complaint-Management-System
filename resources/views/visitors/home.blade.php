@@ -2,7 +2,7 @@
 @section('content')
 <div class="mb-8"><p class="eyebrow">{{ __('common.quality_visits') }}</p><h1 class="page-title">{{ __('visitors.quality_visits') }}</h1><p class="page-subtitle">{{ __('visitors.home_subtitle') }}</p></div>
 
-<div class="grid gap-6 sm:grid-cols-1 md:grid-cols-3">
+<div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
     @can('visit.create')
     <a href="{{ route('visitors.create') }}" class="card group flex flex-col items-center justify-center gap-4 text-center transition duration-150 hover:-translate-y-1 hover:border-indigo-300 hover:shadow-md">
         <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-100 text-3xl text-indigo-700">+</span>

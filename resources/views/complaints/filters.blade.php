@@ -2,8 +2,8 @@
 @php($selectedCustomer = $data['customers']->firstWhere('id', $selectedCustomerId))
 @php($selectedBranchIds = array_map('intval', $filters['branch_ids'] ?? []))
 
-<form method="GET" action="{{ route('complaints.index') }}" class="card mb-6 space-y-5">
-    <div class="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+<form method="GET" action="{{ route('complaints.index') }}" class="card mb-6 space-y-5 p-4 sm:p-6">
+    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <div>
             <label class="form-label">{{ __('common.complaint_id') }}</label>
             <input class="form-input" type="number" min="1" name="complaint_id" value="{{ $filters['complaint_id'] ?? '' }}" placeholder="#123">
@@ -86,9 +86,9 @@
         </div>
     </div>
 
-    <div class="flex flex-wrap gap-3">
-        <button class="btn-primary">{{ __('common.apply_filters') }}</button>
-        <a class="btn-secondary" href="{{ route('complaints.index') }}">{{ __('common.reset') }}</a>
-        <a class="btn-secondary" href="{{ route('complaints.export', request()->query()) }}">{{ __('common.export_excel') }}</a>
+    <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <button class="btn-primary min-h-[44px] w-full sm:w-auto">{{ __('common.apply_filters') }}</button>
+        <a class="btn-secondary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto" href="{{ route('complaints.index') }}">{{ __('common.reset') }}</a>
+        <a class="btn-secondary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto" href="{{ route('complaints.export', request()->query()) }}">{{ __('common.export_excel') }}</a>
     </div>
 </form>

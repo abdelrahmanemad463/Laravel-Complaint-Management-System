@@ -7,14 +7,15 @@
     <p class="page-subtitle">{{ __('common.audit_logs_subtitle') }}</p>
 </div>
 
-<form class="card mb-6 flex gap-3" method="GET">
-    <input class="form-input max-w-md" name="action" value="{{ request('action') }}" placeholder="{{ __('common.action_filter') }}">
-    <button class="btn-primary">{{ __('common.filter') }}</button>
-    <a class="btn-secondary" href="{{ route('audit-logs.index') }}">{{ __('common.reset') }}</a>
+<form class="card mb-6 flex flex-wrap gap-3" method="GET">
+    <input class="form-input max-w-md flex-1 min-w-[200px]" name="action" value="{{ request('action') }}" placeholder="{{ __('common.action_filter') }}">
+    <button class="btn-primary min-h-[44px]">{{ __('common.filter') }}</button>
+    <a class="btn-secondary min-h-[44px] inline-flex items-center" href="{{ route('audit-logs.index') }}">{{ __('common.reset') }}</a>
 </form>
 
 <div class="card overflow-hidden p-0">
-    <table class="data-table">
+    <div class="overflow-x-auto -mx-3 sm:mx-0">
+        <table class="data-table">
         <thead>
             <tr>
                 <th>{{ __('common.date') }}</th>
@@ -41,6 +42,7 @@
             @endforelse
         </tbody>
     </table>
+    </div>
     <div class="p-4">{{ $logs->links() }}</div>
 </div>
 @endsection

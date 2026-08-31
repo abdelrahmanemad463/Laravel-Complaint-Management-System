@@ -7,8 +7,8 @@
     <p class="page-subtitle">{{ __('common.branch_reports_subtitle') }}</p>
 </div>
 
-<form method="GET" action="{{ route('reports.branches') }}" class="card mb-6">
-    <div class="grid gap-4 md:grid-cols-3">
+<form method="GET" action="{{ route('reports.branches') }}" class="card mb-6 p-4 sm:p-6">
+    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <div>
             <label class="form-label">{{ __('common.date_from') }}</label>
             <input class="form-input" type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}">
@@ -43,9 +43,9 @@
         </div>
     </div>
 
-    <div class="mt-5 flex gap-3">
-        <button class="btn-primary">{{ __('common.apply_filters') }}</button>
-        <a class="btn-secondary" href="{{ route('reports.branches') }}">{{ __('common.reset') }}</a>
+    <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <button class="btn-primary min-h-[44px] w-full sm:w-auto">{{ __('common.apply_filters') }}</button>
+        <a class="btn-secondary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto" href="{{ route('reports.branches') }}">{{ __('common.reset') }}</a>
     </div>
 </form>
 
@@ -54,7 +54,8 @@
 </div>
 
 <div class="card overflow-hidden p-0">
-    <table class="data-table">
+    <div class="overflow-x-auto -mx-3 sm:mx-0">
+        <table class="data-table">
         <thead>
             <tr>
                 <th>{{ __('common.date') }}</th>
@@ -74,6 +75,7 @@
             @endforelse
         </tbody>
     </table>
+    </div>
     <div class="border-t border-slate-200 p-4">
         {{ $rows->links() }}
     </div>

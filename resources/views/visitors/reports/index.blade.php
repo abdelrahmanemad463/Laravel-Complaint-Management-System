@@ -24,7 +24,7 @@ $selectedColors = $filters['colors'] ?? [];
 
 {{-- Filters --}}
 <form method="GET" action="{{ route('visitors.reports') }}" class="card mb-6">
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6">
         <div>
             <label class="form-label">{{ __('common.branch') }}</label>
             <select name="branch_id" class="form-input">
@@ -72,15 +72,16 @@ $selectedColors = $filters['colors'] ?? [];
             </div>
         </div>
     </div>
-    <div class="mt-4 flex flex-wrap items-center gap-3">
-        <button type="submit" class="btn-primary">{{ __('common.apply_filters') }}</button>
-        <a href="{{ route('visitors.reports') }}" class="btn-secondary">{{ __('common.clear') }}</a>
+    <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <button type="submit" class="btn-primary min-h-[44px] w-full sm:w-auto">{{ __('common.apply_filters') }}</button>
+        <a href="{{ route('visitors.reports') }}" class="btn-secondary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto">{{ __('common.clear') }}</a>
     </div>
 </form>
 
 @if($visits->count())
-<div class="card overflow-x-auto !p-0">
-    <table class="w-full text-sm">
+<div class="card overflow-hidden !p-0">
+    <div class="overflow-x-auto -mx-3 sm:mx-0">
+        <table class="w-full text-sm">
         <thead>
             <tr class="border-b border-slate-200 bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
                 <th class="px-4 py-3">{{ __('common.complaint_id') }}</th>
@@ -114,15 +115,16 @@ $selectedColors = $filters['colors'] ?? [];
                 <td class="px-4 py-3"><span class="{{ $visit->getAttribute('violations') ? 'font-bold text-rose-600' : 'text-slate-500' }}">{{ $visit->getAttribute('violations') }}</span></td>
                 <td class="px-4 py-3"><span class="badge" style="--badge-color:#16a34a">{{ __('visitors.completed') }}</span></td>
                 <td class="px-4 py-3">
-                    <div class="flex gap-2">
-                        <a href="{{ route('visitors.reports.show', $visit) }}" class="btn-secondary !px-3 !py-1.5 text-xs">{{ __('visitors.view_report') }}</a>
-                        <a href="{{ route('visitors.reports.pdf', $visit) }}" class="btn-primary !px-3 !py-1.5 text-xs">{{ __('visitors.print_pdf') }}</a>
+                    <div class="flex gap-2 flex-wrap">
+                        <a href="{{ route('visitors.reports.show', $visit) }}" class="btn-secondary !px-3 !py-1.5 text-xs min-h-[36px] inline-flex items-center">{{ __('visitors.view_report') }}</a>
+                        <a href="{{ route('visitors.reports.pdf', $visit) }}" class="btn-primary !px-3 !py-1.5 text-xs min-h-[36px] inline-flex items-center">{{ __('visitors.print_pdf') }}</a>
                     </div>
                 </td>
             </tr>
             @endforeach
         </tbody>
     </table>
+    </div>
 </div>
 <div class="mt-4">{{ $visits->links() }}</div>
 @else
