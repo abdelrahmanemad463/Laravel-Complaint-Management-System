@@ -24,10 +24,10 @@
 <body class="bg-slate-50 text-slate-900">
 <div class="flex min-h-screen flex-col">
     <header class="border-b border-slate-200 bg-white">
-        <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-            <a href="{{ route('dashboard') }}" class="text-xl font-bold tracking-tight text-indigo-700">Complaint Desk</a>
+        <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4">
+            <a href="{{ route('dashboard') }}" class="shrink-0 whitespace-nowrap text-xl font-bold tracking-tight text-indigo-700">Complaint Desk</a>
             @auth
-            <nav class="hidden items-center gap-4 text-sm font-medium lg:flex">
+            <nav class="hidden shrink-0 items-center gap-1.5 text-sm font-medium lg:flex xl:gap-2">
                 <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'nav-link-active' : '' }}">{{ __('common.dashboard') }}</a>
                 <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'nav-link-active' : '' }}">{{ __('common.customers') }}</a>
                 <details class="group relative" data-nav-dropdown>
@@ -43,14 +43,14 @@
                 @can('role.view')<a href="{{ route('roles.index') }}" class="nav-link {{ request()->routeIs('roles.*') ? 'nav-link-active' : '' }}">{{ __('common.roles') }}</a>@endcan
                 @can('audit.view')<a href="{{ route('audit-logs.index') }}" class="nav-link {{ request()->routeIs('audit-logs.*') ? 'nav-link-active' : '' }}">{{ __('common.audit_logs') }}</a>@endcan
             </nav>
-            <div class="flex items-center gap-3 text-sm">
-                <a href="{{ route('locale', app()->getLocale() === 'ar' ? 'en' : 'ar') }}" class="rounded-md border px-2 py-1">{{ app()->getLocale() === 'ar' ? 'English' : 'العربية' }}</a>
-                <button type="button" class="theme-toggle" data-theme-toggle data-light-label="{{ __('common.light_mode') }}" data-dark-label="{{ __('common.dark_mode') }}" data-theme-switcher="{{ __('common.theme_switcher') }}" aria-pressed="false" aria-label="{{ __('common.theme_switcher') }}">
+            <div class="flex shrink-0 items-center gap-2 text-sm xl:gap-3">
+                <a href="{{ route('locale', app()->getLocale() === 'ar' ? 'en' : 'ar') }}" class="shrink-0 whitespace-nowrap rounded-md border px-2 py-1">{{ app()->getLocale() === 'ar' ? 'English' : 'العربية' }}</a>
+                <button type="button" class="theme-toggle shrink-0 whitespace-nowrap" data-theme-toggle data-light-label="{{ __('common.light_mode') }}" data-dark-label="{{ __('common.dark_mode') }}" data-theme-switcher="{{ __('common.theme_switcher') }}" aria-pressed="false" aria-label="{{ __('common.theme_switcher') }}">
                     <span data-theme-icon aria-hidden="true">☾</span>
                     <span data-theme-label>{{ __('common.dark_mode') }}</span>
                 </button>
-                <span class="hidden text-slate-600 sm:inline">{{ auth()->user()->name }}</span>
-                <form method="POST" action="{{ route('logout') }}">@csrf<button class="text-rose-600 hover:underline">{{ __('common.logout') }}</button></form>
+                <span class="hidden shrink-0 whitespace-nowrap text-slate-600 sm:inline">{{ auth()->user()->name }}</span>
+                <form method="POST" action="{{ route('logout') }}" class="shrink-0">@csrf<button class="whitespace-nowrap text-rose-600 hover:underline">{{ __('common.logout') }}</button></form>
             </div>
             @endauth
         </div>

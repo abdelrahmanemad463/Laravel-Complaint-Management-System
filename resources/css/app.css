@@ -5,7 +5,7 @@
 @source '../**/*.js';
 @theme { --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif; }
 @layer components {
-    .nav-link { @apply rounded-md px-2.5 py-1.5 text-slate-600 transition duration-150 hover:bg-indigo-50 hover:text-indigo-700; }
+    .nav-link { @apply whitespace-nowrap rounded-md px-2 py-1.5 text-slate-600 transition duration-150 hover:bg-indigo-50 hover:text-indigo-700; }
     .nav-link-active { @apply bg-indigo-100 text-indigo-700; }
     .page-title { @apply text-3xl font-bold tracking-tight text-slate-900; }
     .page-subtitle { @apply mt-2 text-slate-500; }
