@@ -11,7 +11,7 @@ class VisitorChecklistItem extends Model
     protected $fillable = [
         'visit_type_id', 'section_id', 'code', 'title', 'severity', 'deduction_score',
         'photo_required', 'immediate_action', 'corrective_action', 'preventive_action',
-        'responsible', 'deadline', 'sort_order', 'is_active',
+        'responsible', 'deadline', 'sort_order', 'is_active', 'root_cause_id',
     ];
 
     protected function casts(): array
@@ -32,5 +32,10 @@ class VisitorChecklistItem extends Model
     public function section()
     {
         return $this->belongsTo(VisitorSection::class, 'section_id');
+    }
+
+    public function rootCause()
+    {
+        return $this->belongsTo(VisitorRootCause::class, 'root_cause_id');
     }
 }

@@ -23,6 +23,14 @@ Route::middleware('auth')->group(function () {
         Route::get('reports/dashboard', [\App\Http\Controllers\Visitors\VisitorReportController::class,'dashboard'])->name('reports.dashboard');
         Route::get('reports/{visit}/pdf', [\App\Http\Controllers\Visitors\VisitorReportController::class,'pdf'])->name('reports.pdf');
         Route::get('reports/{visit}', [\App\Http\Controllers\Visitors\VisitorReportController::class,'show'])->name('reports.show');
+        Route::get('master-data', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'index'])->name('master-data');
+        Route::get('master-data/template', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'template'])->name('master-data.template');
+        Route::get('master-data/template-example', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'templateExample'])->name('master-data.template-example');
+        Route::get('master-data/download', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'download'])->name('master-data.download');
+        Route::post('master-data/import', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'import'])->name('master-data.import');
+        Route::get('master-data/import/{import}/preview', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'preview'])->name('master-data.import.preview');
+        Route::post('master-data/import/{import}/confirm', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'confirm'])->name('master-data.import.confirm');
+        Route::post('master-data/import/{import}/cancel', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'cancel'])->name('master-data.import.cancel');
         Route::post('{visit}/submit', [\App\Http\Controllers\Visitors\VisitController::class,'submit'])->name('submit');
         Route::get('{visit}', [\App\Http\Controllers\Visitors\VisitController::class,'show'])->name('show');
         Route::put('items/{visitItem}', [\App\Http\Controllers\Visitors\VisitItemController::class,'update'])->name('items.update');

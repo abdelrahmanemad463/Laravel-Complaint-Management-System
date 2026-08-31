@@ -34,6 +34,9 @@ All timestamps use Laravel’s normal timestamp handling. Business dates are sto
 | visitors_visit_photos | Private evidence photos for visit items | No |
 | visitors_capa_actions | Corrective/preventive actions from non-compliances | No |
 | visitors_capa_updates | CAPA history timeline entries | No |
+| visitors_severities | Quality severity master (Critical/Major/Minor) | No |
+| visitors_imports | Auditable Excel import headers and status | No |
+| visitors_import_rows | Per-import-row raw data and validation errors | No |
 | Spatie permission tables | Roles, permissions, and model assignments | No |
 | cache/jobs tables | Existing Laravel infrastructure | Existing skeleton behavior |
 
@@ -291,7 +294,8 @@ A separate `visitors_`-prefixed set of tables models quality inspections. They a
 | `visitors_visit_types` | id, name, code, is_active | Inspection type (daily, monthly, occupational_safety) |
 | `visitors_sections` | id, name, code, sort_order, is_active | Checklist grouping |
 | `visitors_root_causes` | id, name, code, is_active | Non-compliance root causes |
-| `visitors_checklist_items` | id, visit_type_id (FK), section_id (FK), code, title, severity, deduction_score, photo_required, immediate_action, corrective_action, preventive_action, responsible, deadline, sort_order, is_active | Questionnaire; `photo_required` set when severity = critical |
+| `visitors_checklist_items` | id, visit_type_id (FK), section_id (FK), code, title, severity, deduction_score, photo_required, immediate_action, corrective_action, preventive_action, responsible, deadline, sort_order, is_active, root_cause_id (FK nullable) | Questionnaire; `photo_required` set when severity = critical; `root_cause_id` is the suggested/default root cause added by the Excel master-import migration (inspector still chooses freely at NC time) |
+| `visitors_severities` | id, name, code, sort_order, is_active | Severity master seeded Critical/Major/Minor; deduction is configured per item and never derived from the severity name |
 
 ### Transactions
 | Table | Columns | Notes |
@@ -302,4 +306,10 @@ A separate `visitors_`-prefixed set of tables models quality inspections. They a
 | `visitors_capa_actions` | id, visit_id (FK cascade), visit_item_id (FK noAction), title, immediate/corrective/preventive_action, responsible_user_id (FK noAction), due_date, status, completed_at, reviewed_at, reviewed_by (FK noAction) | status = open/in_progress/overdue/closed/rejected |
 | `visitors_capa_updates` | id, capa_action_id (FK cascade), user_id, status, comment, photo, created_at | Append-only CAPA timeline |
 
-Key decisions: progress is derived from `visited_at` being non-null (items are created with `visited_at` set so a new visit defaults to fully reviewed/`ok`); the checklist configuration is copied onto each `visitors_visit_items` row at visit creation so historical inspections remain stable even if the checklist changes later; score is computed only on the backend from the snapshot `deduction_score` values.
+### Master data imports (Excel)
+| Table | Columns | Notes |
+|---|---|---|
+| `visitors_imports` | id, user_id (FK noAction), file_name, file_size, extension, status, total_rows, valid_rows, invalid_rows, created_records, updated_records, failed_records, error_message, completed_at, timestamps | Auditable Excel import header; status = pending/validating/ready/imported/failed/cancelled; imported master data is never physically deleted (create/update only) |
+| `visitors_import_rows` | id, import_id (FK cascade), row_number, code, inspection_type, valid, errors, data, created, updated, timestamps | Per-row raw normalized data + validation errors; the import up-sert is keyed on (inspection_type code, item code) |
+
+Key decisions: progress is derived from `visited_at` being non-null (items are created with `visited_at` set so a new visit defaults to fully reviewed/`ok`); the checklist configuration is copied onto each `visitors_visit_items` row at visit creation so historical inspections remain stable even if the checklist changes later; score is computed only on the backend from the snapshot `deduction_score` values; master-data imports never overwrite those `visitors_visit_items` snapshots and never delete rows (create/update up-sert only), with the whole file rejected when any row fails validation.

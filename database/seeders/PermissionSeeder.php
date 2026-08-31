@@ -14,6 +14,7 @@ class PermissionSeeder extends Seeder
         foreach ($modules as $module) foreach ($actions as $action) $permissions[] = "$module.$action";
         $permissions[] = 'complaint.view_logs'; $permissions[] = 'complaint.export'; $permissions[] = 'report.export'; $permissions[] = 'audit.view';
         $permissions[] = 'visit.submit'; $permissions[] = 'visit.manage';
+        $permissions[] = 'visit.master.view'; $permissions[] = 'visit.master.import'; $permissions[] = 'visit.master.export';
         foreach (array_unique($permissions) as $permission) Permission::firstOrCreate(['name' => $permission, 'guard_name' => 'web']);
         $all = Permission::all();
         $super = Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']); $super->syncPermissions($all);

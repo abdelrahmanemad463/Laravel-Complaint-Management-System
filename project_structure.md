@@ -106,7 +106,8 @@ There is no React, Vue, Inertia, Livewire, Filament, repository layer, custom AP
 complaint/
 ├── app/
 │   ├── Exports/
-│   │   └── ComplaintsExport.php
+│   │   ├── ComplaintsExport.php
+│   │   └── Visitors/ (HasMasterDataColumns, MasterDataTemplateSheet, VisitorMasterTemplateExport, VisitorCurrentMasterDataExport, MasterDataChunkReadFilter)
 │   ├── Http/
 │   │   ├── Controllers/
 │   │   │   ├── AuthController.php
@@ -119,7 +120,7 @@ complaint/
 │   │   │   ├── ReportController.php
 │   │   │   ├── RoleController.php
 │   │   │   ├── UserController.php
-│   │   │   └── Visitors/ (VisitController, VisitItemController, VisitPhotoController, VisitorReportController)
+│   │   │   └── Visitors/ (VisitController, VisitItemController, VisitPhotoController, VisitorReportController, VisitorMasterDataController)
 │   │   ├── Middleware/
 │   │   │   └── SetLocale.php
 │   │   ├── Policies/
@@ -144,13 +145,13 @@ complaint/
 │   │   ├── Priority.php
 │   │   ├── Service.php
 │   │   ├── User.php
-│   │   └── Visitor*.php (VisitType, Section, RootCause, ChecklistItem, Visit, VisitItem, VisitPhoto, CapaAction, CapaUpdate)
+│   │   └── Visitor*.php (VisitType, Section, RootCause, ChecklistItem, Visit, VisitItem, VisitPhoto, CapaAction, CapaUpdate, Severity, Import, ImportRow)
 │   ├── Providers/
 │   │   └── AppServiceProvider.php
 │   └── Services/
 │       ├── ActivityLogService.php
 │       ├── ComplaintStatusService.php
-│       └── Visitors/ (VisitScoreService, VisitService, CapaService, VisitorPhotoService, ChecklistImportService, VisitorReportService, VisitorReportDashboardService, VisitorPdfService)
+│       └── Visitors/ (VisitScoreService, VisitService, CapaService, VisitorPhotoService, ChecklistImportService, VisitorReportService, VisitorReportDashboardService, VisitorPdfService, VisitorMasterDataService)
 ├── bootstrap/
 │   └── app.php
 ├── config/
@@ -201,7 +202,7 @@ complaint/
 │       ├── reports/
 │       ├── roles/
 │       ├── users/
-│       └── visitors/ (home, create, setup, open, show; reports/ → index, show, dashboard, print)
+│       └── visitors/ (home, create, setup, open, show; reports/ → index, show, dashboard, print; master-data/ → index, preview)
 ├── routes/
 │   ├── console.php
 │   └── web.php
@@ -317,6 +318,11 @@ The Spatie permission tables are standard package tables: `permissions`, `roles`
 | `visitors_visit_photos` | Private evidence photos | `visit_id` cascade, `visit_item_id` noAction FKs, path/names/sizes; stored on private `local` disk |
 | `visitors_capa_actions` | CAPA from non-compliances | `visit_id` cascade, `visit_item_id` noAction FKs, actions, responsible/reviewer FKs (noAction), status/due dates |
 | `visitors_capa_updates` | CAPA history timeline | `capa_action_id` cascade FK, user, status, comment, optional photo, created_at |
+| `visitors_severities` | Quality severity master | `name`, `code`, `sort_order`, `is_active`; seeded Critical/Major/Minor by `VisitorsSeeder` |
+| `visitors_imports` | Auditable Excel import header | User, file name/size/extension, status (pending/validating/ready/imported/failed/cancelled), row/created/updated/failed counts, error message, completed_at |
+| `visitors_import_rows` | Per-import-row raw data + validation | `import_id` cascade FK, row number, code, inspection_type, valid flag, JSON errors, JSON data, created/updated flags |
+
+`visitors_checklist_items` additionally gained a nullable `root_cause_id` FK (via migration `2026_08_31_180000_create_visitors_master_import_tables.php`) as the suggested/default root cause; the inspector still chooses freely at NC time.
 
 The complaint foreign keys use restrictive deletion behavior so referenced master data, customers, and creator users cannot be physically deleted while historical complaints depend on them. `resolved_by` and `activity_logs.user_id` use nullable foreign keys with `nullOnDelete` because the application can preserve the record if the actor reference is removed. Business records prefer deactivation or soft deletion over physical deletion.
 
@@ -340,9 +346,11 @@ Migrations are stored in `database/migrations/` and use Laravel timestamped file
 2026_08_31_170000_create_visitors_master_data_tables
         ↓
 2026_08_31_170100_create_visitors_transaction_tables
+        ↓
+2026_08_31_180000_create_visitors_master_import_tables
 ```
 
-The permission migration creates package roles, permissions, model-role/model-permission pivots, and role-permission pivots. The master-data migration creates customers, branches, services, sources, categories, types, priorities, and statuses. The complaints migration depends on those tables and creates complaint foreign keys plus branch/date and status/date composite indexes. The final complaint migration creates status history and polymorphic activity logs. The visitors master-data migration creates visit types, sections, root causes, and checklist items; the visitors transaction migration creates visits, visit items (snapshot), photos, CAPA actions, and CAPA updates. The visitors transaction migration uses `noActionOnDelete()` on derived foreign keys to satisfy SQL Server's single-cascade-path rule.
+The permission migration creates package roles, permissions, model-role/model-permission pivots, and role-permission pivots. The master-data migration creates customers, branches, services, sources, categories, types, priorities, and statuses. The complaints migration depends on those tables and creates complaint foreign keys plus branch/date and status/date composite indexes. The final complaint migration creates status history and polymorphic activity logs. The visitors master-data migration creates visit types, sections, root causes, and checklist items; the visitors transaction migration creates visits, visit items (snapshot), photos, CAPA actions, and CAPA updates. The visitors transaction migration uses `noActionOnDelete()` on derived foreign keys to satisfy SQL Server's single-cascade-path rule. The visitors master-import migration adds `visitors_severities`, `visitors_imports`, `visitors_import_rows`, and the nullable `root_cause_id` FK on `visitors_checklist_items` for the Excel master-data import feature.
 
 `DatabaseSeeder` runs `PermissionSeeder`, `MasterDataSeeder`, `DemoDataSeeder`, `VisitorsSeeder`, and `VisitorChecklistSeeder` in that order. Future schema changes should add a new migration rather than editing an already-applied migration and should update this document when they affect project structure or data design.
 
@@ -362,7 +370,7 @@ The permission migration creates package roles, permissions, model-role/model-pe
 | Roles and permissions | `RoleController`, `roles/` views | Create custom roles, configure permissions, guarded deletion, protected baseline roles, assigned-user deletion prevention |
 | Audit logs | `AuditLogController`, `audit-logs/index.blade.php` | Permission-restricted, action-filtered, paginated audit list; known actions are localized at display time |
 | Localization | `SetLocale`, `LocaleController`, `lang/en/`, `lang/ar/` | Session locale selection, RTL Arabic layout, localized UI, validation, flash messages, activity labels, exports, and shared footer content |
-| Quality Visits | `Visitors\VisitController`, `VisitItemController`, `VisitPhotoController`, `VisitorReportController`, `VisitorVisitPolicy`, `VisitService`, `VisitScoreService`, `CapaService`, `VisitorPhotoService`, `VisitorReportService`, `VisitorReportDashboardService`, `VisitorPdfService`, `visitors/` views | Inspection type → branch/date setup → checklist with vanilla-JS autosave and live score → private photo upload → submission that creates CAPA and blocks unreviewed/missing-photo items; owner-only in-progress access; backend-only score computation; completed-visit QHSE reports + analytics dashboard + dompdf PDF export (not owner-restricted) |
+| Quality Visits | `Visitors\VisitController`, `VisitItemController`, `VisitPhotoController`, `VisitorReportController`, `VisitorMasterDataController`, `VisitorVisitPolicy`, `VisitService`, `VisitScoreService`, `CapaService`, `VisitorPhotoService`, `VisitorReportService`, `VisitorReportDashboardService`, `VisitorPdfService`, `VisitorMasterDataService`, `visitors/` views | Inspection type → branch/date setup → checklist with vanilla-JS autosave and live score → private photo upload → submission that creates CAPA and blocks unreviewed/missing-photo items; owner-only in-progress access; backend-only score computation; completed-visit QHSE reports + analytics dashboard + dompdf PDF export (not owner-restricted); Excel master-data management (template/example/current-data download, 50 MB `.xlsx`/`.xls` upload → chunk-read → preview → confirm create/update keyed on inspection_type code + item code, no destructive deletes) with `visit.master.*` permissions |
 | PWA | `public/manifest.json`, `public/service-worker.js`, `resources/js/app.js` | Installability, icons, standalone display, static hashed asset caching, no private-page/API caching |
 
 ## 11. Important Business Flows
@@ -482,7 +490,7 @@ All routes are defined in `routes/web.php`. There is no separate `routes/api.php
 | Users | `/users`, create, edit, update | Authenticated and controller permission checks |
 | Roles | `/roles`, `/roles/create`, `/roles/{role}/edit`, POST/PUT/DELETE role actions | Authenticated and controller permission checks |
 | Audit | `/audit-logs` | Authenticated and `audit.view` permission |
-| Quality Visits | `/visitors`, `/visitors/create`, `/visitors/create/{visitType}`, `/visitors/open`, GET/POST `/visitors/{visit}`, POST `/visitors/{visit}/submit`, PUT `/visitors/items/{visitItem}`, POST `/visitors/items/{visitItem}/photo`, GET `/visitors/photos/{photo}`, `visitors/reports`, `visitors/reports/dashboard`, `visitors/reports/{visit}`, `visitors/reports/{visit}/pdf` | Authenticated `visitors.` prefix; permission checks in controllers/requests and `VisitorVisitPolicy` (owner + not-completed; completed-report access via `visit.manage` or `report.view`-and-owner); JSON autosave/photo endpoints and streamed photo serving; report routes registered before the `{visit}` wildcard |
+| Quality Visits | `/visitors`, `/visitors/create`, `/visitors/create/{visitType}`, `/visitors/open`, GET/POST `/visitors/{visit}`, POST `/visitors/{visit}/submit`, PUT `/visitors/items/{visitItem}`, POST `/visitors/items/{visitItem}/photo`, GET `/visitors/photos/{photo}`, `visitors/reports`, `visitors/reports/dashboard`, `visitors/reports/{visit}`, `visitors/reports/{visit}/pdf`, `visitors/master-data`, `visitors/master-data/template`, `visitors/master-data/template-example`, `visitors/master-data/download`, POST `visitors/master-data/import`, `visitors/master-data/import/{import}/preview`, POST `.../confirm`, POST `.../cancel` | Authenticated `visitors.` prefix; permission checks in controllers/requests and `VisitorVisitPolicy` (owner + not-completed; completed-report access via `visit.manage` or `report.view`-and-owner); JSON autosave/photo endpoints and streamed photo serving; report and master-data routes registered before the `{visit}` wildcard; master-data routes require `visit.master.view`/`import`/`export` |
 | Framework | `/up`, `/storage/{path}` | Laravel health/storage routes |
 
 `bootstrap/app.php` registers the web routes, the `permission` and `role` middleware aliases, and appends `SetLocale` to the web middleware group.
@@ -738,3 +746,5 @@ A new `visitors_`-prefixed Quality Visits (inspection) module was added without 
 The visitors transaction migration uses `noActionOnDelete()` on derived foreign keys (`visitors_visit_photos.visit_item_id`, `visitors_capa_actions.visit_item_id`/`responsible_user_id`/`reviewed_by`) because SQL Server rejects multiple cascade paths. Scores are computed only on the backend; the checklist configuration is snapshotted onto `visitors_visit_items` at visit creation. Full verification on 2026-08-31 passed with **60 tests / 296 assertions** (46 existing + 14 new visitors tests), migrations and seeders run against both SQL Server and the SQLite test DB. `memory.md`, `database_design.md`, and `complete_project_specification.md` were synchronized with this module.
 
 A Quality Visits Reports module was added on top of the inspection module without duplicating business logic. `VisitScoreService` remains the single source of score truth (new `fromAggregates()` used by `calculate()`, the report list, and charts). Reports are **not** owner-restricted: `VisitorVisitPolicy::viewReport()` requires a completed visit and `visit.manage` OR (`report.view` AND owner); a new `visitors.reports` Gate covers list/dashboard access; Super Admin bypasses via the existing `Gate::before`. `VisitorReportService` builds a single report (`build()`: score, counts, severity, sections, root causes, only-NC violations from snapshot columns, CAPA with `VisitorCapaAction::effectiveStatus()` overdue splitting) and a DB-aggregated paginated list (`listReports()`) whose score-color filter uses `HAVING` with repeated aggregate expressions (SQL Server cannot reference select aliases in `HAVING`). `VisitorReportDashboardService` computes cards, severity/section/root-cause distributions, per-branch weighted score comparison + best/worst, recurring and critical violations, CAPA status analytics + average time-to-close (computed in PHP for cross-DB compatibility), inspector performance, and a day/week/month score trend — all with SQL joins/groupBy/HAVING rather than loading rows into PHP. `VisitorPdfService` renders a self-contained-CSS dompdf view (`visitors/reports/print`) embedding private photos resolved to absolute paths. Views `visitors/reports/{index,show,dashboard,print}` and a home Reports card link were added; Chart.js renders `#report-*`-prefixed canvases with theme-refresh support in `app.js`. Full verification on 2026-08-31 passed with **76 tests / 433 assertions** (61 existing + 15 new `tests/Feature/VisitorReportsTest.php`), and the list/PDF/dashboard were smoke-tested against live SQL Server. `memory.md` and `complete_project_specification.md` were synchronized with this module.
+
+A **Quality Visits Master Data (Excel) management** module was added on top of the inspection module without breaking complaints or visits. `VisitorMasterDataController` (index/template/templateExample/download/import/preview/confirm/cancel) and `VisitorMasterDataService` (validateUpload → `readRows` chunked via `MasterDataChunkReadFilter` → validateRows by code-or-name lookups → `storeImport` preview (no DB mutation, status `ready`) → `confirm` transactional create/update up-sert keyed on inspection_type code + item code, refusing when `invalid_rows > 0` → `cancel`) manage the checklist through Excel. Uploads are `.xlsx`/`.xls` only, 50 MB max, with real MIME verification; the exact 12-column order is `code, inspection_type, section, item, severity, root_cause, immediate_action, corrective_action, responsible, period, preventive_action, deduction`. New tables: `visitors_severities`, `visitors_imports`, `visitors_import_rows`; `visitors_checklist_items` gained a nullable `root_cause_id`. Exports live under `app/Exports/Visitors/` (`VisitorMasterTemplateExport` — Template + "Example (Sample Data)" sheets — and `VisitorCurrentMasterDataExport`). New permissions `visit.master.view`/`import`/`export` (Admin granted; Customer Support denied); new `master_*` bilingual keys and `visitors/master-data/{index,preview}` views plus a home Master Data card. `VisitorMasterDataService` up-serts only (no destructive deletes) and never overwrites the immutable `visitors_visit_items` snapshots. Full verification on 2026-08-31 passed with **91 tests / 479 assertions** (76 existing + 15 new `tests/Feature/VisitorMasterDataTest.php`); the migration and `VisitorsSeeder` were run against live SQL Server (3 severities seeded) and routes confirmed via `php artisan route:list`. `memory.md`, `complete_project_specification.md`, and `database_design.md` were synchronized with this module.
