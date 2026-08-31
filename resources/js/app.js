@@ -729,3 +729,86 @@ if ('serviceWorker' in navigator) {
         }
     });
 }
+
+(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone === true
+        || window.matchMedia('(display-mode: window-controls-overlay)').matches;
+    if (isStandalone) return;
+
+    const desktopBtn = document.querySelector('[data-install-button]');
+    const mobileBtn = document.querySelector('[data-install-button-mobile]');
+    const modal = document.querySelector('[data-install-modal]');
+    const androidPara = modal && modal.querySelector('[data-install-android]');
+    const iosPara = modal && modal.querySelector('[data-install-ios]');
+    const overlay = modal && modal.querySelector('[data-install-overlay]');
+    const closeBtn = modal && modal.querySelector('[data-install-close]');
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    let deferredPrompt = null;
+
+    const reveal = (btn) => {
+        if (!btn) return;
+        btn.classList.remove('hidden');
+        btn.classList.add('flex');
+    };
+
+    const openModal = (android) => {
+        if (!modal) return;
+        androidPara?.classList.toggle('hidden', !android);
+        iosPara?.classList.toggle('hidden', android);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modal.setAttribute('aria-hidden', 'false');
+        closeBtn?.focus?.();
+    };
+
+    const closeModal = () => {
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.setAttribute('aria-hidden', 'true');
+    };
+
+    if (!isIOS) {
+        window.addEventListener('beforeinstallprompt', (event) => {
+            event.preventDefault();
+            deferredPrompt = event;
+            reveal(desktopBtn);
+            reveal(mobileBtn);
+        });
+        if (mobileBtn) reveal(mobileBtn);
+    } else if (mobileBtn) {
+        reveal(mobileBtn);
+    }
+
+    const triggerInstall = (event) => {
+        event.preventDefault();
+        if (isIOS) {
+            openModal(false);
+            return;
+        }
+        if (!deferredPrompt) {
+            openModal(true);
+            return;
+        }
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'dismissed') openModal(true);
+            deferredPrompt = null;
+            desktopBtn?.classList.add('hidden');
+            mobileBtn?.classList.add('hidden');
+        });
+    };
+
+    desktopBtn?.addEventListener('click', triggerInstall);
+    mobileBtn?.addEventListener('click', triggerInstall);
+    overlay?.addEventListener('click', closeModal);
+    closeBtn?.addEventListener('click', closeModal);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+    window.addEventListener('appinstalled', () => {
+        deferredPrompt = null;
+        desktopBtn?.classList.add('hidden');
+        mobileBtn?.classList.add('hidden');
+    });
+})();
