@@ -84,29 +84,7 @@
                     <a href="{{ route('dashboard') }}" class="mobile-nav-link {{ request()->routeIs('dashboard') ? 'mobile-nav-link-active' : '' }}">{{ __('common.dashboard') }}</a>
                     <a href="{{ route('customers.index') }}" class="mobile-nav-link {{ request()->routeIs('customers.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.customers') }}</a>
 
-                    <details class="group/mobile" {{ (request()->routeIs('complaints.*') || request()->routeIs('visitors.*')) ? 'open' : '' }}>
-                        <summary class="mobile-nav-summary {{ (request()->routeIs('complaints.*') || request()->routeIs('visitors.*')) ? 'mobile-nav-link-active' : '' }}">{{ __('common.complaints') }} <span class="ms-auto text-xs transition group-open/mobile:rotate-180">▾</span></summary>
-                        <div class="ms-3 mt-1 space-y-1 border-s-2 border-slate-200 ps-3">
-                            <a href="{{ route('complaints.index') }}" class="mobile-nav-sublink {{ request()->routeIs('complaints.*') ? 'mobile-nav-sublink-active' : '' }}">{{ __('common.customer_complaints') }}</a>
-                            @can('visit.view')
-                            <a href="{{ route('visitors.home') }}" class="mobile-nav-sublink {{ request()->routeIs('visitors.home') || request()->routeIs('visitors.create') || request()->routeIs('visitors.open') ? 'mobile-nav-sublink-active' : '' }}">{{ __('common.quality_visits') }}</a>
-                            @endcan
-                        </div>
-                    </details>
-
-                    @can('visit.view')
-                    <details class="group/mobile" {{ request()->routeIs('visitors.*') ? 'open' : '' }}>
-                        <summary class="mobile-nav-summary {{ request()->routeIs('visitors.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.quality_visits') }} <span class="ms-auto text-xs transition group-open/mobile:rotate-180">▾</span></summary>
-                        <div class="ms-3 mt-1 space-y-1 border-s-2 border-slate-200 ps-3">
-                            <a href="{{ route('visitors.create') }}" class="mobile-nav-sublink {{ request()->routeIs('visitors.create') || request()->routeIs('visitors.setup') ? 'mobile-nav-sublink-active' : '' }}">{{ __('visitors.new_visit') ?? 'New Visit' }}</a>
-                            <a href="{{ route('visitors.open') }}" class="mobile-nav-sublink {{ request()->routeIs('visitors.open') || request()->routeIs('visitors.show') ? 'mobile-nav-sublink-active' : '' }}">{{ __('visitors.open_visits') ?? 'Open Visits' }}</a>
-                            <a href="{{ route('visitors.reports') }}" class="mobile-nav-sublink {{ request()->routeIs('visitors.reports') || request()->routeIs('visitors.reports.*') ? 'mobile-nav-sublink-active' : '' }}">Reports</a>
-                            @can('visit.master.view')
-                            <a href="{{ route('visitors.master-data') }}" class="mobile-nav-sublink {{ request()->routeIs('visitors.master*') ? 'mobile-nav-sublink-active' : '' }}">Master Data</a>
-                            @endcan
-                        </div>
-                    </details>
-                    @endcan
+                    <a href="{{ route('complaints.index') }}" class="mobile-nav-link {{ request()->routeIs('complaints.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.customer_complaints') }}</a>
 
                     @can('report.view')<a href="{{ route('reports.branches') }}" class="mobile-nav-link {{ request()->routeIs('reports.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.reports') }}</a>@endcan
                     @can('branch.view')<a href="{{ route('master.index','branches') }}" class="mobile-nav-link {{ request()->routeIs('master.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.master_data') }}</a>@endcan
