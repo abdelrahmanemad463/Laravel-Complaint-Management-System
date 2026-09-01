@@ -74,8 +74,8 @@
     @auth
     {{-- Mobile Drawer --}}
     <div id="mobile-menu" data-mobile-menu class="fixed inset-0 z-50 hidden xl:hidden" aria-hidden="true">
-        <div data-mobile-menu-overlay class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"></div>
-        <div data-mobile-menu-panel class="absolute inset-y-0 start-0 flex w-[88%] max-w-[360px] flex-col overflow-hidden bg-white shadow-2xl transition duration-300 ease-out -translate-x-full rtl:translate-x-full data-[open=true]:translate-x-0">
+        <div data-mobile-menu-overlay class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm opacity-0"></div>
+        <div data-mobile-menu-panel class="absolute inset-y-0 start-0 flex w-[88%] max-w-[360px] flex-col overflow-hidden bg-white shadow-2xl -translate-x-full rtl:translate-x-full opacity-0 data-[open=true]:translate-x-0 data-[open=true]:opacity-100">
             <div class="flex items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
                 <a href="{{ route('dashboard') }}" class="truncate text-base font-bold text-indigo-700">{{ __('common.application_name') }}</a>
                 <button type="button" data-mobile-menu-close aria-label="Close menu" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50">✕</button>
@@ -168,15 +168,35 @@
         if (!menu || !toggle || !panel) return;
         const iconOpen = toggle.querySelector('[data-mobile-menu-icon-open]');
         const iconClose = toggle.querySelector('[data-mobile-menu-icon-close]');
+        let closeTimer = null;
         const setOpen = (open) => {
-            menu.classList.toggle('hidden', !open);
-            menu.setAttribute('aria-hidden', open ? 'false' : 'true');
-            toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-            panel.setAttribute('data-open', open ? 'true' : 'false');
-            if (iconOpen) iconOpen.classList.toggle('hidden', open);
-            if (iconClose) iconClose.classList.toggle('hidden', !open);
-            document.body.classList.toggle('overflow-hidden', open);
-            if (open) panel.focus?.();
+            if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+            if (open) {
+                menu.classList.remove('hidden');
+                menu.setAttribute('aria-hidden', 'false');
+                toggle.setAttribute('aria-expanded', 'true');
+                if (iconOpen) iconOpen.classList.add('hidden');
+                if (iconClose) iconClose.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        panel.setAttribute('data-open', 'true');
+                        if (overlay) { overlay.classList.remove('opacity-0'); overlay.classList.add('opacity-100'); }
+                    });
+                });
+                panel.focus?.();
+            } else {
+                panel.setAttribute('data-open', 'false');
+                if (overlay) { overlay.classList.remove('opacity-100'); overlay.classList.add('opacity-0'); }
+                toggle.setAttribute('aria-expanded', 'false');
+                if (iconOpen) iconOpen.classList.remove('hidden');
+                if (iconClose) iconClose.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+                closeTimer = setTimeout(() => {
+                    menu.classList.add('hidden');
+                    menu.setAttribute('aria-hidden', 'true');
+                }, 360);
+            }
         };
         toggle.addEventListener('click', () => {
             const willOpen = menu.classList.contains('hidden');
