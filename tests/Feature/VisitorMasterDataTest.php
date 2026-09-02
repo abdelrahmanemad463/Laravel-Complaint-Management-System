@@ -46,15 +46,14 @@ class VisitorMasterDataTest extends TestCase
             'code' => 'ZZ-001',
             'inspection_type' => $this->typeCode(),
             'section' => 'Test Section',
-            'item' => 'A valid checklist item',
+            'note' => 'A valid checklist note',
             'severity' => 'Major',
-            'root_cause' => 'Training',
             'immediate_action' => 'Immediate action text',
             'corrective_action' => 'Corrective action text',
             'responsible' => 'Branch Manager',
             'period' => '24 hours',
             'preventive_action' => 'Preventive action text',
-            'deduction' => 3,
+            'deduction_score' => 3,
         ], $overrides);
     }
 
@@ -132,7 +131,7 @@ class VisitorMasterDataTest extends TestCase
             $this->validRow(),
             $this->validRow(), // duplicate (type, code)
             $this->validRow(['inspection_type' => 'not_a_real_type']),
-            $this->validRow(['deduction' => -5]),
+            $this->validRow(['deduction_score' => -5]),
         ]);
 
         $this->assertCount(1, $validation['valid']);
@@ -141,7 +140,7 @@ class VisitorMasterDataTest extends TestCase
         $invalidMessages = array_merge(...array_column($validation['invalid'], 'errors'));
         $this->assertContains('Duplicate code for this inspection_type within the file.', $invalidMessages);
         $this->assertContains('Invalid inspection_type.', $invalidMessages);
-        $this->assertContains('Deduction must be a number.', $invalidMessages);
+        $this->assertContains('Deduction score must be a number.', $invalidMessages);
     }
 
     // ---- Import lifecycle ----
@@ -172,7 +171,7 @@ class VisitorMasterDataTest extends TestCase
     {
         $rows = [
             $this->validRow(['code' => 'AA-001']),
-            $this->validRow(['code' => 'AA-002', 'severity' => 'Critical', 'deduction' => 5]),
+            $this->validRow(['code' => 'AA-002', 'severity' => 'Critical', 'deduction_score' => 5]),
         ];
         $validation = $this->service->validateRows($rows);
         $import = $this->service->storeImport(UploadedFile::fake()->create('data.xlsx', 10), $this->admin->id, $rows, $validation);
@@ -211,7 +210,7 @@ class VisitorMasterDataTest extends TestCase
             'sort_order' => 0,
         ]);
 
-        $rows = [$this->validRow(['code' => 'UP-900', 'item' => 'New title', 'severity' => 'Critical', 'deduction' => 7])];
+        $rows = [$this->validRow(['code' => 'UP-900', 'note' => 'New title', 'severity' => 'Critical', 'deduction_score' => 7])];
         $validation = $this->service->validateRows($rows);
         $import = $this->service->storeImport(UploadedFile::fake()->create('data.xlsx', 10), $this->admin->id, $rows, $validation);
 

@@ -16,15 +16,14 @@ trait HasMasterDataColumns
             'code',
             'inspection_type',
             'section',
-            'item',
+            'note',
             'severity',
-            'root_cause',
             'immediate_action',
             'corrective_action',
             'responsible',
             'period',
             'preventive_action',
-            'deduction',
+            'deduction_score',
         ];
     }
 }

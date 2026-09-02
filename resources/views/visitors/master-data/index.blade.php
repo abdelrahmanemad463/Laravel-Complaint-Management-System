@@ -121,9 +121,9 @@ $statusLabel = [
                 <th class="px-4 py-3">{{ __('visitors.master_code') }}</th>
                 <th class="px-4 py-3">{{ __('visitors.master_inspection_type') }}</th>
                 <th class="px-4 py-3">{{ __('visitors.section') }}</th>
-                <th class="px-4 py-3">{{ __('visitors.master_item') }}</th>
+                <th class="px-4 py-3">{{ __('visitors.master_note') }}</th>
                 <th class="px-4 py-3">{{ __('visitors.master_severity') }}</th>
-                <th class="px-4 py-3">{{ __('visitors.master_deduction') }}</th>
+                <th class="px-4 py-3">{{ __('visitors.master_deduction_score') }}</th>
                 <th class="px-4 py-3">{{ __('visitors.master_is_active') }}</th>
                 <th class="px-4 py-3">{{ __('visitors.master_last_updated') }}</th>
             </tr>

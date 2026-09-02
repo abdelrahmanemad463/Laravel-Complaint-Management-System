@@ -66,9 +66,9 @@
                     <th class="px-4 py-3">{{ __('visitors.master_code') }}</th>
                     <th class="px-4 py-3">{{ __('visitors.master_inspection_type') }}</th>
                     <th class="px-4 py-3">{{ __('visitors.section') }}</th>
-                    <th class="px-4 py-3">{{ __('visitors.master_item') }}</th>
+                    <th class="px-4 py-3">{{ __('visitors.master_note') }}</th>
                     <th class="px-4 py-3">{{ __('visitors.master_severity') }}</th>
-                    <th class="px-4 py-3">{{ __('visitors.master_deduction') }}</th>
+                    <th class="px-4 py-3">{{ __('visitors.master_deduction_score') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -78,9 +78,9 @@
                     <td class="px-4 py-3 font-semibold text-slate-900">{{ $data['code'] }}</td>
                     <td class="px-4 py-3">{{ $data['inspection_type'] }}</td>
                     <td class="px-4 py-3">{{ $data['section'] }}</td>
-                    <td class="px-4 py-3">{{ $data['item'] }}</td>
+                    <td class="px-4 py-3">{{ $data['note'] }}</td>
                     <td class="px-4 py-3 font-semibold capitalize">{{ $data['severity'] }}</td>
-                    <td class="px-4 py-3 font-semibold">{{ $data['deduction'] }}</td>
+                    <td class="px-4 py-3 font-semibold">{{ $data['deduction_score'] }}</td>
                 </tr>
                 @endforeach
             </tbody>

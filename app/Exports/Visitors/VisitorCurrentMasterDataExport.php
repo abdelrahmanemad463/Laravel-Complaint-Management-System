@@ -22,7 +22,7 @@ class VisitorCurrentMasterDataExport implements FromQuery, WithHeadings, WithMap
     public function query()
     {
         $q = VisitorChecklistItem::query()
-            ->with(['section', 'visitType', 'rootCause'])
+            ->with(['section', 'visitType'])
             ->orderBy('visit_type_id')
             ->orderBy('sort_order')
             ->orderBy('id');
@@ -43,9 +43,8 @@ class VisitorCurrentMasterDataExport implements FromQuery, WithHeadings, WithMap
             $item->code,
             $item->visitType?->code,
             $item->section?->name,
-            $item->title,
+            $item->title, // note
             $item->severity,
-            $item->rootCause?->name,
             $item->immediate_action,
             $item->corrective_action,
             $item->responsible,

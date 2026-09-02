@@ -6,19 +6,18 @@ use App\Exports\Visitors\MasterDataChunkReadFilter;
 use App\Models\VisitorChecklistItem;
 use App\Models\VisitorImport;
 use App\Models\VisitorImportRow;
-use App\Models\VisitorRootCause;
 use App\Models\VisitorSection;
 use App\Models\VisitorSeverity;
 use App\Models\VisitorVisitType;
 use Illuminate\Support\Facades\DB;
-use PhpOffice\PhpSpreadsheet\Reader\IOFactory;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 /**
  * Excel master-data management for the Quality Visits inspection checklist.
  *
  * The uploaded file is validated, chunk-read, per-row validated and previewed
  * BEFORE any database mutation. Only an explicit confirmation imports the data
- * using a safe create/update upsert keyed on (inspection_type code + item code).
+ * using a safe create/update upsert keyed on (inspection_type code + code).
  * Historical visit data is never modified (visitors_visit_items snapshots).
  */
 class VisitorMasterDataService
@@ -26,9 +25,9 @@ class VisitorMasterDataService
     public const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
 
     private const HEADERS = [
-        'code', 'inspection_type', 'section', 'item', 'severity', 'root_cause',
+        'code', 'inspection_type', 'section', 'note', 'severity',
         'immediate_action', 'corrective_action', 'responsible', 'period',
-        'preventive_action', 'deduction',
+        'preventive_action', 'deduction_score',
     ];
 
     private const CHUNK_SIZE = 200;
@@ -107,7 +106,6 @@ class VisitorMasterDataService
                 }
                 $rows[] = $assoc;
             }
-            $sheet->disconnectWorksheets();
         }
 
         return $rows;
@@ -123,7 +121,6 @@ class VisitorMasterDataService
     {
         $types = $this->lookupTypeMap();
         $severities = $this->lookupSeverityMap();
-        $rootCauses = $this->lookupRootCauseMap();
 
         $seen = [];
         $valid = [];
@@ -144,20 +141,16 @@ class VisitorMasterDataService
             if ($normalized['section'] === '') {
                 $errors[] = 'Section is required.';
             }
-            if ($normalized['item'] === '') {
-                $errors[] = 'Item is required.';
+            if ($normalized['note'] === '') {
+                $errors[] = 'Note is required.';
             }
             if ($normalized['severity'] === '') {
                 $errors[] = 'severity is required.';
             } elseif (!isset($severities[strtolower($normalized['severity'])])) {
                 $errors[] = 'Invalid severity.';
             }
-            if ($normalized['root_cause'] !== ''
-                && !isset($rootCauses[strtolower($normalized['root_cause'])])) {
-                $errors[] = 'Invalid root_cause.';
-            }
-            if (!is_numeric($normalized['deduction']) || $normalized['deduction'] < 0) {
-                $errors[] = 'Deduction must be a number.';
+            if (!is_numeric($normalized['deduction_score']) || $normalized['deduction_score'] < 0) {
+                $errors[] = 'Deduction score must be a number.';
             }
 
             if ($errors === [] && $normalized['inspection_type'] !== '' && $normalized['code'] !== '') {
@@ -254,12 +247,11 @@ class VisitorMasterDataService
         DB::transaction(function () use ($import, &$created, &$updated) {
             $types = $this->lookupTypeMap();
             $severities = $this->lookupSeverityMap();
-            $rootCauses = $this->lookupRootCauseMap();
             $sectionCache = [];
 
             $order = 0;
             $import->rows()->where('valid', true)->get()->each(function (VisitorImportRow $row) use (
-                &$created, &$updated, &$order, $types, $severities, $rootCauses, &$sectionCache, $import
+                &$created, &$updated, &$order, $types, $severities, &$sectionCache, $import
             ) {
                 $data = $row->dataArray();
                 $type = $types[strtolower($data['inspection_type'] ?? '')] ?? null;
@@ -274,25 +266,19 @@ class VisitorMasterDataService
                     ['name' => $sectionName],
                     ['is_active' => true, 'sort_order' => 0]
                 );
-                $rootCauseId = null;
-                if (($data['root_cause'] ?? '') !== '') {
-                    $rootCause = $rootCauses[strtolower($data['root_cause'])] ?? null;
-                    $rootCauseId = $rootCause ? $rootCause->id : null;
-                }
 
                 $payload = [
                     'visit_type_id' => $type->id,
                     'section_id' => $section->id,
-                    'title' => trim((string) ($data['item'] ?? '')),
+                    'title' => trim((string) ($data['note'] ?? '')),
                     'severity' => $severityCode ? $severityCode->code : 'major',
-                    'deduction_score' => max(0, round((float) ($data['deduction'] ?? 0))),
+                    'deduction_score' => max(0, round((float) ($data['deduction_score'] ?? 0))),
                     'photo_required' => ($severityCode ? $severityCode->code : '') === 'critical',
                     'immediate_action' => $this->blank($data['immediate_action'] ?? ''),
                     'corrective_action' => $this->blank($data['corrective_action'] ?? ''),
                     'preventive_action' => $this->blank($data['preventive_action'] ?? ''),
                     'responsible' => $this->blank($data['responsible'] ?? ''),
                     'deadline' => $this->blank($data['period'] ?? ''),
-                    'root_cause_id' => $rootCauseId,
                     'is_active' => true,
                     'sort_order' => $order++,
                 ];
@@ -339,21 +325,20 @@ class VisitorMasterDataService
             'code' => trim((string) ($row['code'] ?? '')),
             'inspection_type' => trim((string) ($row['inspection_type'] ?? '')),
             'section' => trim((string) ($row['section'] ?? '')),
-            'item' => trim((string) ($row['item'] ?? '')),
+            'note' => trim((string) ($row['note'] ?? '')),
             'severity' => trim((string) ($row['severity'] ?? '')),
-            'root_cause' => trim((string) ($row['root_cause'] ?? '')),
             'immediate_action' => trim((string) ($row['immediate_action'] ?? '')),
             'corrective_action' => trim((string) ($row['corrective_action'] ?? '')),
             'responsible' => trim((string) ($row['responsible'] ?? '')),
             'period' => trim((string) ($row['period'] ?? '')),
             'preventive_action' => trim((string) ($row['preventive_action'] ?? '')),
-            'deduction' => trim((string) ($row['deduction'] ?? '')),
+            'deduction_score' => trim((string) ($row['deduction_score'] ?? '')),
         ];
 
-        if ($normalized['deduction'] !== '') {
-            $normalized['deduction'] = is_numeric($normalized['deduction'])
-                ? (float) $normalized['deduction']
-                : $normalized['deduction'];
+        if ($normalized['deduction_score'] !== '') {
+            $normalized['deduction_score'] = is_numeric($normalized['deduction_score'])
+                ? (float) $normalized['deduction_score']
+                : $normalized['deduction_score'];
         }
 
         return $normalized;
@@ -392,11 +377,11 @@ class VisitorMasterDataService
         $reader->setReadDataOnly(true);
         $reader->setReadEmptyCells(false);
         $sheet = $reader->load($path)->getActiveSheet();
-        $first = $sheet->rangeToArray('A1:L1', '', true, false)[0] ?? [];
+        $first = $sheet->rangeToArray('A1:K1', '', true, false)[0] ?? [];
         $first = array_map(fn ($v) => strtolower(trim((string) $v)), $first);
         // Keep only known headers, in file order, drop unknown/empty.
         $known = array_values(array_filter($first, fn ($v) => in_array($v, self::HEADERS, true) && $v !== ''));
-        // If none of the first 12 matched, fall back to the canonical order.
+        // If none of the first 11 matched, fall back to the canonical order.
         return $known ?: self::HEADERS;
     }
 
@@ -429,17 +414,6 @@ class VisitorMasterDataService
         foreach (VisitorSeverity::where('is_active', true)->get() as $se) {
             $map[strtolower($se->code)] = $se;
             $map[strtolower($se->name)] = $se;
-        }
-
-        return $map;
-    }
-
-    private function lookupRootCauseMap(): array
-    {
-        $map = [];
-        foreach (VisitorRootCause::where('is_active', true)->get() as $rc) {
-            $map[strtolower($rc->code)] = $rc;
-            $map[strtolower($rc->name)] = $rc;
         }
 
         return $map;

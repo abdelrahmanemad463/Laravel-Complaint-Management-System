@@ -39,7 +39,7 @@ class ChecklistImportService
                 );
 
                 $code = trim((string) ($row['code'] ?? ''));
-                $title = trim((string) ($row['item'] ?? $row['observation'] ?? ''));
+                $title = trim((string) ($row['note'] ?? $row['item'] ?? $row['observation'] ?? ''));
                 $severity = strtolower(trim((string) ($row['severity'] ?? 'major')));
                 if (!in_array($severity, ['critical', 'major', 'minor'], true)) {
                     $severity = 'major';
