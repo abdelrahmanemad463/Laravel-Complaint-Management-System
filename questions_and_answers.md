@@ -63,6 +63,43 @@ So one tap on "Compliant" = one fetch → one DB write → one authoritative sco
 
 ---
 
+## 3. How does the Reports page color filter decide a visit's color? What do Blue / Green / Yellow / Red mean, and is it a percentage of the total items?
+
+The color is **not** a count-based "compliant items ÷ total items" ratio. It is a **weighted score percentage** — how much of the available (achievable) score the visit kept, giving each item a weight equal to its `deduction_score`.
+
+### The formula
+
+```
+available = Σ deduction_score over items where status ≠ 'na'   ← the achievable total
+deduction = Σ deduction_score over items where status = 'nc'   ← points lost to violations
+percentage = (available − deduction) / available × 100
+```
+
+Two consequences worth spelling out:
+
+- **Not Applicable (`na`) items are removed from the denominator**, so a visit that was not subject to an item is not penalized for it — the color measures performance only over the items that actually applied to the visit.
+- **Heavier items matter more.** A single Critical item worth a large `deduction_score` drags the percentage far more than several `minor` items with small weights. Two visits with the same count of NC items can get different colors purely because of the deduction weights.
+
+### The thresholds (`VisitScoreService::colorFor()`)
+
+| Color | Meaning (English localization) | Score percentage |
+|---|---|---|
+| `blue` | Blue (Excellent) | ≥ 85 |
+| `green` | Green (Good) | 75 – 84.9 |
+| `yellow` | Yellow (Fair) | 68 – 74.9 |
+| `red` | Red (Needs action) | < 68 |
+| `slate` | N/A | percentage is `null` (no available score, e.g. all items Not Applicable) |
+
+### How the filter works under the hood
+
+1. The reports page renders one checkbox per color from the same `score_class_*` keys used everywhere, submitted as `colors[]` (`resources/views/visitors/reports/index.blade.php`).
+2. `VisitorReportService::listReports()` keeps the exact same percentage expression in SQL and, for each selected color, adds an `orWhereIn('id', colorSubquery($color))`. Each subquery aggregates `visitors_visit_items` per visit group and uses `HAVING` on the band range (e.g. `pct >= 75 AND pct < 85` for green). The SQL repeats the whole percentage expression instead of using a select alias because SQL Server cannot reference select aliases inside `HAVING`.
+3. The percentage formula lives in exactly two mirrored places by design — `VisitScoreService::fromAggregates()`/`colorFor()` (single source of truth for a single report) and `VisitorReportService::colorSubquery()` (batch SQL) — so the web report, the print view, and the filter can never disagree.
+
+So when you pick "Green (Good)" in the filters, you are asking for: visits whose weighted compliance percentage is between 75% and 85%.
+
+---
+
 ## How to add more entries
 
 Keep each entry self-contained: rephrase the question the way a future developer would google it, then answer with the exact file/line patterns and the business rule behind them. If an answer changes because the code changes, update it here in the same edit and note the change in `memory.md`.

@@ -107,6 +107,7 @@
 'no_violations'=>'No violations recorded.',
 'corrective_action_plan'=>'Corrective Action Plan',
 'no_capa'=>'No corrective actions created.',
+'due_date'=>'Due Date',
 'status'=>'Status',
 'report_generated_at'=>'Report generated at',
 'total_visits'=>'Total Visits',

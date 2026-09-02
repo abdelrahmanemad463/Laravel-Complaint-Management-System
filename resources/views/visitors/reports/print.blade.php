@@ -13,8 +13,8 @@
     .header td { vertical-align: middle; }
     .company { color: #4f46e5; font-weight: bold; }
     table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-    th { background: #eef2ff; text-align: left; padding: 5px 6px; font-size: 10px; text-transform: uppercase; }
-    td { border: 1px solid #e2e8f0; padding: 5px 6px; vertical-align: top; }
+    th { background: #eef2ff; text-align: center; padding: 5px 6px; font-size: 10px; text-transform: uppercase; }
+    td { border: 1px solid #e2e8f0; padding: 5px 6px; vertical-align: top; text-align: center; word-wrap: break-word; overflow-wrap: break-word; }
     .info td { border: none; }
     .score { text-align: center; border: 1px solid #e2e8f0; padding: 8px; }
     .score .value { font-size: 22px; font-weight: 800; }
