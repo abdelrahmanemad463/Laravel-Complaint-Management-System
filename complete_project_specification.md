@@ -2568,6 +2568,7 @@ After the code change, the same task must update all three files so they remain 
 | `complete_project_specification.md` | Requirements baseline plus verified implementation status |
 | `memory.md` | Persistent continuation context, decisions, pending work, issues, and verification results |
 | `project_structure.md` | Current architecture, project map, technologies, modules, routes, and developer guidance |
+| `questions_and_answers.md` | Rephrased implementation-focused Q&A for recurring "how does it work" questions |
 
 No behavior should be described as implemented until it has been verified in the codebase. Schema changes also require `database_design.md` to be updated. Relevant tests, build checks, and other verification commands must be run before completion, and their results must be recorded in `memory.md`.
 

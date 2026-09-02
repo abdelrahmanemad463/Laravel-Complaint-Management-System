@@ -208,6 +208,7 @@ The `.env.example` specifies `SESSION_DRIVER=database`, and the default Laravel 
 | `tests/Feature/` | Workflow, authorization, filter, export, localization, and PWA regression tests |
 | `project_structure.md` | Full developer-oriented architecture and current-state map |
 | `database_design.md` | Detailed database design narrative and relationship diagram |
+| `questions_and_answers.md` | Rephrased, implementation-focused Q&A for recurring "how does it work" questions |
 
 ## Routes and Entry Points
 
@@ -349,6 +350,10 @@ Arabic visit-item status labels were aligned to the requested wording in `lang/a
 
 Requested on the inspection page (`/visitors/{visit}`): a brand-new visit must have **nothing chosen** until the inspector picks a status. `VisitService::start()` therefore creates `visitors_visit_items` with `status = 'pending'` and `visited_at = null` (previously `'ok'` + `now()`, which silently treated every item as Compliant/reviewed). Downstream behavior is unchanged and consistent: `isReviewed()` still keys off `visited_at`, progress starts at `0/N`, no status button is highlighted on load (all three inactive), the NC panel stays hidden, and `submit()` already rejects any unreviewed item. Score/reports only ever run on completed visits where every item has an explicit chosen status. Migration default comment updated to `// pending | ok | nc | na`. Tests updated to the new reality (`test_create_stores_authenticated_inspector_and_items_start_unreviewed`, `test_progress_based_on_visited_at` now expects `1 / N` after one review, `test_fresh_visit_submits_after_all_items_reviewed`; `VisitorReportsTest` helpers mark the non-NC items `ok` + `visited_at` to model real completed visits). Full suite: **92 tests / 489 assertions**.
 
+### Questions & Answers doc created — 2026-09-02
+
+Created `questions_and_answers.md` collecting rephrased, implementation-focused Q&A for future readers ("ask as you'd google it, answer from the code"). Initial entries: (1) why Critical non-compliant items require an evidence photo while Major/Minor do not — how that is decided (`VisitorVisitItem::isCritical()`/`requiresPhoto()`) and enforced (UI `Evidence *` indicator, client + server submit block); (2) how clicking a status button saves to the database instantly and updates the live score — the click → `saveItem()` fetch → `VisitItemController@update` → `VisitService::saveItem()` (stamps `visited_at` on first review) → `VisitScoreService::calculate()` → `refreshCounts()` + `applyScore()` chain. No code changed; the file is registered in the doc table above.
+
 
 
 ## Customer show SQL Server fix — 2026-08-29
@@ -369,7 +374,7 @@ The following are intentionally not implemented and may be considered later: ful
 
 ## Maintenance Rule
 
-After every meaningful code change — and the user expects this on **every** edit — verify the final implementation and update this file, then keep the other project docs in sync (`project_structure.md`, `database_design.md`, `complete_project_specification.md`) whenever the change touches features, localization, schema, routes, permissions, architecture, configuration, UI/flows, tests, deployment, or known limitations. Code is authoritative if this file ever conflicts with the implementation; reconcile the discrepancy instead of preserving stale memory.
+After every meaningful code change — and the user expects this on **every** edit — verify the final implementation and update this file, then keep the other project docs in sync (`project_structure.md`, `database_design.md`, `complete_project_specification.md`, and `questions_and_answers.md` where behaviour is described in Q&A form) whenever the change touches features, localization, schema, routes, permissions, architecture, configuration, UI/flows, tests, deployment, or known limitations. Code is authoritative if this file ever conflicts with the implementation; reconcile the discrepancy instead of preserving stale memory.
 
 
 ## Specification synchronization
