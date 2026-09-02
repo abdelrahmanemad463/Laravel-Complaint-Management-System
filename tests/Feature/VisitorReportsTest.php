@@ -72,6 +72,7 @@ class VisitorReportsTest extends TestCase
         $item = $item ?: $visit->items()->where('severity', '!=', 'critical')->firstOrFail();
         $item->update([
             'status' => 'nc',
+            'visited_at' => now(),
             'root_cause_id' => VisitorRootCause::firstOrFail()->id,
             'note' => 'Test violation',
         ]);
@@ -82,6 +83,8 @@ class VisitorReportsTest extends TestCase
     {
         $visit = $this->startVisit($branch);
         $this->markNc($visit);
+        // All other items are reviewed as Compliant, matching real completed visits.
+        $visit->items()->where('status', 'pending')->update(['status' => 'ok', 'visited_at' => now()]);
         $this->submit($visit);
         return $visit->fresh();
     }
@@ -136,7 +139,8 @@ class VisitorReportsTest extends TestCase
     {
         $visit = $this->startVisit();
         $na = $visit->items()->firstOrFail();
-        $na->update(['status' => 'na']);
+        $na->update(['status' => 'na', 'visited_at' => now()]);
+        $visit->items()->where('status', 'pending')->update(['status' => 'ok', 'visited_at' => now()]);
         $this->submit($visit);
 
         $data = $this->reports->build($visit->fresh());
@@ -233,8 +237,10 @@ class VisitorReportsTest extends TestCase
 
         $itemSnapshot->update([
             'status' => 'nc',
+            'visited_at' => now(),
             'root_cause_id' => VisitorRootCause::firstOrFail()->id,
         ]);
+        $visit->items()->whereKeyNot($itemSnapshot->id)->update(['status' => 'ok', 'visited_at' => now()]);
         $this->submit($visit);
 
         $data = $this->reports->build($visit->fresh());

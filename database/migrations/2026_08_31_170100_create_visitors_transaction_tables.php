@@ -21,7 +21,7 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('visit_id')->constrained('visitors_visits')->cascadeOnDelete();
             $table->foreignId('checklist_item_id')->constrained('visitors_checklist_items')->noActionOnDelete();
-            $table->string('status')->default('ok'); // ok | nc | na
+            $table->string('status')->default('pending'); // pending | ok | nc | na
             $table->timestamp('visited_at')->nullable();
             $table->foreignId('root_cause_id')->nullable()->constrained('visitors_root_causes')->noActionOnDelete();
             $table->text('note')->nullable();

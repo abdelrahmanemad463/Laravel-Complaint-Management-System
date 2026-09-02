@@ -18,7 +18,9 @@ class VisitService
 
     /**
      * Start a new visit: create the record and pre-create every checklist item
-     * (defaulting to ok) with an immutable snapshot of the checklist config.
+     * with an immutable snapshot of the checklist config. Items start
+     * unreviewed (pending, no visited_at) so nothing is implicitly "Compliant"
+     * until the inspector actively chooses a status.
      */
     public function start(int $visitTypeId, int $branchId, string $visitDate): VisitorVisit
     {
@@ -43,8 +45,8 @@ class VisitService
                 VisitorVisitItem::create([
                     'visit_id' => $visit->id,
                     'checklist_item_id' => $item->id,
-                    'status' => 'ok',
-                    'visited_at' => now(),
+                    'status' => 'pending',
+                    'visited_at' => null,
                     'item_code' => $item->code,
                     'item_title' => $item->title,
                     'section_name' => $item->section?->name ?? 'General',

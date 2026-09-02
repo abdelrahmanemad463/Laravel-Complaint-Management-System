@@ -58,14 +58,14 @@ class VisitorsTest extends TestCase
             ->assertSee('name="visit_date"', false);
     }
 
-    public function test_create_stores_authenticated_inspector_and_in_progress_items_default_ok(): void
+    public function test_create_stores_authenticated_inspector_and_items_start_unreviewed(): void
     {
         $visit = $this->startVisit();
         $this->assertSame('in_progress', $visit->status);
         $this->assertSame($this->user->id, $visit->inspector_id);
         $this->assertSame($this->itemCount, $visit->items()->count());
-        $this->assertSame($this->itemCount, $visit->items()->where('status', 'ok')->count());
-        $this->assertSame($this->itemCount, $visit->items()->whereNotNull('visited_at')->count());
+        $this->assertSame($this->itemCount, $visit->items()->where('status', 'pending')->count());
+        $this->assertSame(0, $visit->items()->whereNotNull('visited_at')->count());
     }
 
     public function test_open_visits_only_shows_own_in_progress_visits(): void
@@ -135,7 +135,7 @@ class VisitorsTest extends TestCase
         $this->assertNotNull($item->visited_at);
 
         $response = $this->actingAs($this->user)->get(route('visitors.show', $visit));
-        $response->assertOk()->assertSee($this->itemCount.' / '.$this->itemCount);
+        $response->assertOk()->assertSee('1 / '.$this->itemCount);
     }
 
     public function test_na_items_excluded_from_score(): void
@@ -169,9 +169,10 @@ class VisitorsTest extends TestCase
         $this->assertSame(round($expectedFinal / $expectedAvailable * 100, 1), $score['percentage']);
     }
 
-    public function test_fresh_visit_submits_with_default_ok_reviewed_items(): void
+    public function test_fresh_visit_submits_after_all_items_reviewed(): void
     {
         $visit = $this->startVisit();
+        $visit->items()->update(['visited_at' => now()]);
         $this->actingAs($this->user)->post(route('visitors.submit', $visit))
             ->assertSessionHas('success');
         $this->assertSame('completed', $visit->fresh()->status);
@@ -183,8 +184,10 @@ class VisitorsTest extends TestCase
         // Simulate an uncertain critical item that was marked NC without a photo.
         $critical = $visit->items()->where('severity', 'critical')->first()
             ?? $visit->items()->orderBy('deduction_score', 'desc')->first();
-        $critical->update(['status' => 'nc', 'root_cause_id' => VisitorRootCause::firstOrFail()->id]);
-        // All other items stay default ok + reviewed.
+        $critical->update(['status' => 'nc', 'visited_at' => now(), 'root_cause_id' => VisitorRootCause::firstOrFail()->id]);
+        // All other items are reviewed (pending/unchosen is allowed after review); the
+        // critical NC with no photo must block submission despite everything being reviewed.
+        $visit->items()->whereKeyNot($critical->id)->update(['status' => 'ok', 'visited_at' => now()]);
         $this->actingAs($this->user)->post(route('visitors.submit', $visit))
             ->assertSessionHas('error', __('visitors.evidence_photo_required'));
         $this->assertSame('in_progress', $visit->fresh()->status);
