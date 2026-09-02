@@ -43,6 +43,21 @@ class VisitorsTest extends TestCase
         return VisitorVisit::where('inspector_id', $this->user->id)->firstOrFail();
     }
 
+    public function test_create_page_shows_single_form_with_type_branch_and_date(): void
+    {
+        $branchName = Branch::where('is_active', true)->firstOrFail()->name;
+        $response = $this->actingAs($this->user)->get(route('visitors.create'));
+        $response->assertOk()
+            ->assertSee(__('visitors.visit_type'))
+            ->assertSee($this->visitType->name)
+            ->assertSee(__('common.branch'))
+            ->assertSee($branchName)
+            ->assertSee(__('visitors.visit_date'))
+            ->assertSee('name="visit_type_id"', false)
+            ->assertSee('name="branch_id"', false)
+            ->assertSee('name="visit_date"', false);
+    }
+
     public function test_create_stores_authenticated_inspector_and_in_progress_items_default_ok(): void
     {
         $visit = $this->startVisit();

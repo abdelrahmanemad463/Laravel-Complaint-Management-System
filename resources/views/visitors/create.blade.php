@@ -3,18 +3,50 @@
 <div class="mb-8">
     <a href="{{ route('visitors.home') }}" class="back-link">← {{ __('visitors.quality_visits') }}</a>
     <h1 class="page-title mt-4">{{ __('visitors.new_visit') }}</h1>
-    <p class="page-subtitle">{{ __('visitors.choose_visit_type') }}</p>
+    <p class="page-subtitle">{{ __('visitors.new_visit_help') }}</p>
 </div>
 
-<div class="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-    @forelse($visitTypes as $visitType)
-    <a href="{{ route('visitors.setup', $visitType) }}" class="card group flex flex-col justify-between gap-6 transition duration-150 hover:-translate-y-1 hover:border-indigo-300 hover:shadow-md">
-        <div><div class="text-lg font-bold text-slate-900">{{ $visitType->name }}</div>
-        <p class="mt-2 text-sm text-slate-500">{{ $visitType->code }}</p></div>
-        <span class="inline-flex w-fit items-center gap-1 rounded-lg bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700">{{ __('visitors.select') }} →</span>
-    </a>
-    @empty
-    <div class="card col-span-full text-center text-slate-500">{{ __('visitors.no_visit_types') }}</div>
-    @endforelse
+<div class="card max-w-xl mx-auto p-4 sm:p-6">
+    <form method="POST" action="{{ route('visitors.store') }}" class="space-y-5">
+        @csrf
+
+        <div>
+            <label class="form-label" for="visit_type_id">{{ __('visitors.visit_type') }} *</label>
+            <select name="visit_type_id" id="visit_type_id" class="form-input" required>
+                <option value="">{{ __('common.select') }}</option>
+                @forelse($visitTypes as $visitType)
+                    <option value="{{ $visitType->id }}" @selected(old('visit_type_id') == $visitType->id)>{{ $visitType->name }} ({{ $visitType->code }})</option>
+                @empty
+                    <option value="" disabled>{{ __('visitors.no_visit_types') }}</option>
+                @endforelse
+            </select>
+            @error('visit_type_id')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+        </div>
+
+        <div>
+            <label class="form-label" for="branch_id">{{ __('common.branch') }} *</label>
+            <select name="branch_id" id="branch_id" class="form-input" required>
+                <option value="">{{ __('common.select') }}</option>
+                @foreach($branches as $branch)
+                    <option value="{{ $branch->id }}" @selected(old('branch_id') == $branch->id)>{{ $branch->name }}</option>
+                @endforeach
+            </select>
+            @error('branch_id')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+        </div>
+
+        <div>
+            <label class="form-label">{{ __('visitors.inspector') }}</label>
+            <input type="text" class="form-input bg-slate-100" value="{{ auth()->user()->name }}" readonly disabled>
+            <p class="mt-1 text-xs text-slate-500">{{ __('visitors.inspector_readonly_help') }}</p>
+        </div>
+
+        <div>
+            <label class="form-label" for="visit_date">{{ __('visitors.visit_date') }} *</label>
+            <input type="date" name="visit_date" id="visit_date" class="form-input" value="{{ old('visit_date', now()->format('Y-m-d')) }}" required>
+            @error('visit_date')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
+        </div>
+
+        <button type="submit" class="btn-primary w-full min-h-[44px]">{{ __('visitors.start_visit') }}</button>
+    </form>
 </div>
 @endsection

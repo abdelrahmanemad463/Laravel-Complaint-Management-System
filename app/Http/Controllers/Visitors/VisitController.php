@@ -27,21 +27,14 @@ class VisitController extends Controller
         return view('visitors.home');
     }
 
-    // New Visit: pick a visit type
+    // New Visit: single-page form — pick a visit type, branch, and visit date
     public function create()
     {
         abort_unless(auth()->user()?->can('visit.create'), 403);
         $visitTypes = VisitorVisitType::where('is_active', true)
             ->orderBy('id')->get();
-        return view('visitors.create', compact('visitTypes'));
-    }
-
-    // New Visit step 2: choose branch + date (inspector is the auth user)
-    public function setup(VisitorVisitType $visitType)
-    {
-        abort_unless(auth()->user()?->can('visit.create'), 403);
         $branches = Branch::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
-        return view('visitors.setup', compact('visitType', 'branches'));
+        return view('visitors.create', compact('visitTypes', 'branches'));
     }
 
     public function store(StartVisitRequest $request)

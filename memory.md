@@ -221,7 +221,7 @@ There is no separate business API route file. JSON search endpoints are protecte
 | Customers | `/customers`, `/customers/create`, `/customers/search`, `/customers/{customer}`, edit/update |
 | Complaints | `/complaints`, create/show/edit/update, `/complaints/branches/search`, `/complaints/export` |
 | Reports | `/reports/branches` |
-| Quality Visits | `/visitors`, `/visitors/create`, `/visitors/create/{visitType}`, `/visitors/open`, `/visitors/{visit}`, POST `/visitors`, POST `/visitors/{visit}/submit`, PUT `/visitors/items/{visitItem}`, POST `/visitors/items/{visitItem}/photo`, GET `/visitors/photos/{photo}`; reports: `/visitors/reports`, `/visitors/reports/dashboard`, `/visitors/reports/{visit}`, `/visitors/reports/{visit}/pdf` |
+| Quality Visits | `/visitors`, `/visitors/create`, `/visitors/open`, `/visitors/{visit}`, POST `/visitors`, POST `/visitors/{visit}/submit`, PUT `/visitors/items/{visitItem}`, POST `/visitors/items/{visitItem}/photo`, GET `/visitors/photos/{photo}`; reports: `/visitors/reports`, `/visitors/reports/dashboard`, `/visitors/reports/{visit}`, `/visitors/reports/{visit}/pdf` |
 | Master data | `/master-data/{type}` and type-specific create/edit/store/update/destroy routes |
 | Users | `/users`, create, edit, store, update |
 | Roles | `/roles`, `/roles/create`, role edit/update/store/destroy |
@@ -269,7 +269,7 @@ There are no unverified feature changes currently pending from the previous impl
 
 ## Quality Visits (Inspection) module — 2026-08-31
 
-A new **Quality Visits** inspection module was added alongside the existing complaint management without breaking it. It uses `visitors_`-prefixed tables, `Visitor*` models, dedicated services, a policy, seeders, routes under a `visitors.` prefix, and Blade views (`visitors/home`, `create`, `setup`, `open`, `show`) with vanilla-JS autosave.
+A new **Quality Visits** inspection module was added alongside the existing complaint management without breaking it. It uses `visitors_`-prefixed tables, `Visitor*` models, dedicated services, a policy, seeders, routes under a `visitors.` prefix, and Blade views (`visitors/home`, `create`, `open`, `show`) with vanilla-JS autosave.
 
 - **Schema (all SQL Server-compatible):** `visitors_visit_types`, `visitors_sections`, `visitors_root_causes`, `visitors_checklist_items`, `visitors_visits`, `visitors_visit_items` (with immutable snapshot columns), `visitors_visit_photos`, `visitors_capa_actions`, `visitors_capa_updates`. The visitors transaction migration initially failed on SQL Server due to its "multiple cascade paths" rule; the `visit_item_id` FKs on `visitors_visit_photos` and `visitors_capa_actions` and the two `users` FKs on `visitors_capa_actions` now use `noActionOnDelete()` instead of `cascadeOnDelete()`/`nullOnDelete()`. The `visitors_`-prefixed table names deviate from Eloquent's snake-case convention, so every `Visitor*` model declares `protected $table` and every `belongsTo`/`hasMany` relation declares its foreign key explicitly.
 - **Models:** `VisitorVisitType`, `VisitorSection`, `VisitorRootCause`, `VisitorChecklistItem`, `VisitorVisit`, `VisitorVisitItem`, `VisitorVisitPhoto`, `VisitorCapaAction`, `VisitorCapaUpdate`.
@@ -332,6 +332,14 @@ The master-data Excel format was slimmed to **11 columns** across the shared hea
 - **New columns:** `code, inspection_type, section, note, severity, immediate_action, corrective_action, responsible, period, preventive_action, deduction_score`. `root_cause` was **removed** from the file (the visitor picks the root cause at NC time; `root_cause_id` on `visitors_checklist_items` is unchanged as the suggested value), `item` was renamed `note` (Arabic ملاحظة) and `deduction` renamed `deduction_score`. Confirmation still writes `title`, `deduction_score`, `photo_required`; it no longer sets `root_cause_id`. UI labels changed to Note / ملاحظة and Deduction Score / درجة الخصم in both locales; legacy files using the old headers are rejected (they no longer match the known header list).
 - **Root cause of the earlier "Unable to read the Excel file..." error:** the installed PhpSpreadsheet vendor files are **4.x** while `composer.lock` pins `phpoffice/phpspreadsheet: 1.30.6`; in 4.x `PhpOffice\PhpSpreadsheet\Reader\IOFactory` moved to `PhpOffice\PhpSpreadsheet\IOFactory` and `Worksheet::disconnectWorksheets()` was removed. `VisitorMasterDataService.php` still used the old import and the removed call, so **every** upload (not just a downloaded file) threw inside the controller's catch-all at `VisitorMasterDataController.php:100`. Both lines were fixed; `lookupRootCauseMap()` and the now-unused root-cause import were removed.
 - **Verification:** round-trip probe regenerated the template + current export and re-read them with the service — template parses (0 rows), current file reads all rows and validates **17 valid / 0 invalid**; the shared headings now match in template, example, and current-data sheets. Full suite: **91 tests passed / 479 assertions**.
+
+### Quality Visits single-page New Visit form — 2026-09-02
+
+The two-step "pick a visit type, then pick branch/date" flow was merged into **one page** at `/visitors/create`.
+
+- **Before:** GET `/visitors/create` showed type cards → GET `/visitors/create/{visitType}` (setup) collected branch + date → POST `/visitors`.
+- **After:** GET `/visitors/create` renders a single card form with **visit type** (dropdown, shows name + code), **branch** (dropdown), **inspector** (readonly = authenticated user, unchanged), and **visit date** (defaults to today), submitting directly to POST `/visitors` (`StartVisitRequest` unchanged). The `setup()` controller method, the `visitors/create/{visitType}` route, and the `visitors/setup.blade.php` view were removed.
+- **Verification:** added `test_create_page_shows_single_form_with_type_branch_and_date` asserting the unified form on `GET visitors.create`. Full suite: **92 tests passed / 489 assertions**.
 
 
 

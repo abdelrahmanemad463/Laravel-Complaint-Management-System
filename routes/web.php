@@ -17,7 +17,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [\App\Http\Controllers\Visitors\VisitController::class,'home'])->name('home');
         Route::get('open', [\App\Http\Controllers\Visitors\VisitController::class,'open'])->name('open');
         Route::get('create', [\App\Http\Controllers\Visitors\VisitController::class,'create'])->name('create');
-        Route::get('create/{visitType}', [\App\Http\Controllers\Visitors\VisitController::class,'setup'])->name('setup');
         Route::post('/', [\App\Http\Controllers\Visitors\VisitController::class,'store'])->name('store');
         Route::get('reports', [\App\Http\Controllers\Visitors\VisitorReportController::class,'index'])->name('reports');
         Route::get('reports/dashboard', [\App\Http\Controllers\Visitors\VisitorReportController::class,'dashboard'])->name('reports.dashboard');
