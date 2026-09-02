@@ -21,12 +21,12 @@ $visit = $report['visit'];
 <div class="mb-8 flex flex-wrap items-end justify-between gap-4 print:hidden">
     <div>
         <a href="{{ route('visitors.reports') }}" class="back-link">← {{ __('visitors.reports') }}</a>
-        <h1 class="page-title mt-4">{{ __('visitors.inspection_report') }}</h1>
     </div>
     <div class="flex flex-wrap items-center gap-3">
         <a href="{{ route('visitors.reports.pdf', $visit) }}" class="btn-primary">{{ __('visitors.print_pdf') }}</a>
     </div>
 </div>
+
 
 <div class="mb-10 border-b-2 border-indigo-600 pb-4">
     <div class="flex flex-wrap items-center justify-between gap-4">
@@ -219,7 +219,15 @@ $visit = $report['visit'];
                 <td class="py-2 px-2 text-center align-top break-words whitespace-normal">{{ $action->preventive_action ?: '—' }}</td>
                 <td class="py-2 px-2 text-center align-top break-words">{{ $action->responsible?->name ?: ($vi?->responsible ?: '—') }}</td>
                 <td class="py-2 px-2 text-center align-top whitespace-nowrap">{{ $action->due_date?->format('d/m/Y') ?: '—' }}</td>
-                <td class="py-2 px-2 text-center align-top"><span class="badge" style="--badge-color:{{ $capaStatusColor[$entry->status] ?? '#475569' }}">{{ ucfirst($entry->status) }}</span></td>
+                <td class="py-2 px-2 text-center align-top">
+                    <span class="badge" style="--badge-color:{{ $capaStatusColor[$entry->status] ?? '#475569' }}">{{ ucfirst($entry->status) }}</span>
+                    @if(in_array($entry->status, ['open', 'in_progress', 'overdue'], true))
+                    <form method="POST" action="{{ route('visitors.capa.close', $action) }}" class="mt-1.5 print:hidden" onsubmit="return confirm('{{ __('visitors.capa_close_confirm') }}')">
+                        @csrf
+                        <button type="submit" class="rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white hover:bg-emerald-700">{{ __('visitors.close') }}</button>
+                    </form>
+                    @endif
+                </td>
             </tr>
             @endforeach
         </tbody>

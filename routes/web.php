@@ -22,6 +22,8 @@ Route::middleware('auth')->group(function () {
         Route::get('reports/dashboard', [\App\Http\Controllers\Visitors\VisitorReportController::class,'dashboard'])->name('reports.dashboard');
         Route::get('reports/{visit}/pdf', [\App\Http\Controllers\Visitors\VisitorReportController::class,'pdf'])->name('reports.pdf');
         Route::get('reports/{visit}', [\App\Http\Controllers\Visitors\VisitorReportController::class,'show'])->name('reports.show');
+        Route::post('capa/{capaAction}/close', [\App\Http\Controllers\Visitors\VisitorCapaController::class,'close'])->name('capa.close');
+        Route::patch('capa/{capaAction}', [\App\Http\Controllers\Visitors\VisitorCapaController::class,'update'])->name('capa.update');
         Route::get('master-data', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'index'])->name('master-data');
         Route::get('master-data/template', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'template'])->name('master-data.template');
         Route::get('master-data/template-example', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'templateExample'])->name('master-data.template-example');

@@ -100,6 +100,28 @@ So when you pick "Green (Good)" in the filters, you are asking for: visits whose
 
 ---
 
+## 4. When does a Corrective Action Plan item change from Open to Closed, and why does my report still show Open?
+
+A CAPA row is created at submission, not at inspection, and it stays **Open** by design until the follow-up workflow is handled. There is no "auto-close" after a second visit.
+
+### Lifecycle
+
+1. **Created as Open on submit.** `CapaService::createForVisit()` (`app/Services/Visitors/CapaService.php:32`) loops every `nc` item, creates one `visitors_capa_actions` row with `status = 'open'` (copied from the snapshot columns `item_code`/`item_title`/`immediate_action`/`corrective_action`/`preventive_action`/`responsible`) and writes an initial `visitors_capa_updates` entry `status = 'open', comment = 'Violation recorded during inspection.'`. If `due_date` and `responsible_user_id` were never filled from the checklist import, they remain `NULL` — which is why your report shows Due Date = — and Responsible = branch text.
+2. **Stored vs. effective status.** The column `visitors_capa_actions.status` holds only the real workflow values `open | in_progress | closed | rejected`. `VisitorCapaAction::effectiveStatus()` (`app/Models/VisitorCapaAction.php:51`) is the single place the report, PDF and dashboard ask for the status — it returns **`overdue`** (virtual) when the stored status is `open`/`in_progress` and `due_date < today()`. Nothing is written to the DB for `overdue`; reports simply display it.
+3. **How Closed happens.** Through the same service that created the record: `CapaService::recordUpdate($action, 'closed', $comment, $photo)` inserts a `visitors_capa_updates` history row (append-only) and the caller sets `$action->status = 'closed'` (+ `completed_at = now()`, optionally `reviewed_at`/`reviewed_by`). Analogous transitions are `in_progress`, `rejected` with a comment.
+4. **Why your report (#22) is still all Open.** CAPA follow-up screens are intentionally deferred (see `memory.md: Pending Features` — "CAPA management screens/VCAP workflow"). No route currently exposes `recordUpdate`, so the 7 actions from that submission have never had a status transition. The dashboard (`visitors.capa_analytics`) therefore counts them under `open` and the detail table shows the badge `Open`.
+5. **What to do today (UI now exists).** Since 2026-09-02 the report page itself completes the workflow: `resources/views/visitors/reports/show.blade.php` shows a per-row **Close** button under the status badge for every `open`/`in_progress`/`overdue` action (`POST visitors/capa/{capaAction}/close` → `VisitorCapaController@close`, authorized via `viewReport` on the visit). It sets `status = 'closed'`, `completed_at = now()` and appends a `visitors_capa_updates` row (`CapaService::recordUpdate`), so there is no "Close all" — each violation is closed individually from the same report page. For manual verification without UI you still can:
+   ```php
+   $a = \App\Models\VisitorCapaAction::find($id);
+   $a->update(['status' => 'closed', 'completed_at' => now()]);
+   app(\App\Services\Visitors\CapaService::class)->recordUpdate($a, 'closed', 'Corrective action verified on site.');
+   ```
+   To also make `overdue` meaningful, set a `due_date` at creation or afterwards (`UPDATE visitors_capa_actions SET due_date = '2026-09-10' WHERE id = ?`). Once `due_date` is in the past and status is still `open`/`in_progress`, the report will automatically show `Overdue` instead of `Open`.
+
+So: the report faithfully renders the current CAPA workflow state. Since the per-item Close UI, you no longer need Tinker — open the report, hit **Close** on that row.
+
+---
+
 ## How to add more entries
 
 Keep each entry self-contained: rephrase the question the way a future developer would google it, then answer with the exact file/line patterns and the business rule behind them. If an answer changes because the code changes, update it here in the same edit and note the change in `memory.md`.
