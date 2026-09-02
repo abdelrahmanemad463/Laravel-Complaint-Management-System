@@ -53,7 +53,7 @@ class RoleController extends Controller
     public function update(Request $request, Role $role)
     {
         abort_unless(auth()->user()?->can('role.update'), 403);
-        if ($role->name === 'Super Admin' || $role->name === 'Customer Support' || $role->name === 'Viewer') abort_unless(auth()->user()->hasRole('Super Admin'), 403);
+        if ($role->name === 'Super Admin') abort_unless(auth()->user()->hasRole('Super Admin'), 403);
         $values = $request->validate(['permissions' => ['nullable','array'], 'permissions.*' => ['exists:permissions,name']]);
         $role->syncPermissions($values['permissions'] ?? []);
         return redirect()->route('roles.index')->with('success', __('common.saved'));
