@@ -199,7 +199,7 @@ The `.env.example` specifies `SESSION_DRIVER=database`, and the default Laravel 
 | `resources/views/layouts/app.blade.php` | Main shell, navigation, flash alerts, validation errors, PWA metadata |
 | `resources/js/app.js` | Customer/branch pickers, Chart.js report dashboard charts, and service-worker registration |
 | `resources/css/app.css` | Tailwind source and shared UI classes |
-| `lang/en/` and `lang/ar/` | English/Arabic common, auth, complaint, customer, activity, validation, and visitors dictionaries |
+| `lang/en/` and `lang/ar/` | English/Arabic common, auth, complaint, customer, activity, validation, visitors, and permissions dictionaries |
 | `public/manifest.json` | PWA install metadata |
 | `public/service-worker.js` | Static-asset-only cache policy |
 | `database/seeders/PermissionSeeder.php` | Permissions, baseline roles, and initial Super Admin |
@@ -361,6 +361,10 @@ Fixed `/visitors/reports/{visit}` (`reports/show.blade.php` and `reports/print.b
 ### Per-item CAPA Close workflow on the report page — 2026-09-02
 
 Completed the open→closed workflow directly on the report page per request — **single-state, per-row Close, not "close all"**. New `VisitorCapaController@close` (`POST visitors/capa/{capaAction}/close`) and `update` (`PATCH visitors/capa/{capaAction}`) authorized via `VisitorVisitPolicy::viewReport` on the visit (`viewReport` = completed + `visit.manage` or `report.view`+owner). The controller sets `status='closed'`, `completed_at=now()` and appends a `visitors_capa_updates` row via `CapaService::recordUpdate` (`visitors.capa_analytics`/`effectiveStatus()` already handles `overdue` as virtual). `reports/show.blade.php` shows a per-row **Close** button under the status badge only when `effectiveStatus` is `open`/`in_progress`/`overdue` (`onSubmit` confirms with `capa_close_confirm`), with flash `capa_closed_success` / `capa_already_closed` handling and `print:hidden`. Routes: `visitors.capa.close` / `visitors.capa.update` (prefix `visitors`). Lang added `close`, `capa_close_confirm`, `capa_closed_success`, `capa_already_closed`, `capa_updated_success` in `lang/en|ar/visitors.php`. `questions_and_answers.md` Q4 updated to document the now-shipped per-item UI. **Follow-up fix:** removed duplicate flash (layout `app.blade.php:117` already renders `success` globally, the report page had re-rendered it, producing two green banners) — deleted the report-page success/info flash and moved `info` handling to the layout; removed the duplicate `Inspection Visit Report` heading (page `h1` + report `h2` were identical and stacked with the duplicated flash) — the page now shows only the report header (`border-b-2` block) while the top bar keeps the `← Reports` nav + `Print / PDF` action. Verification: `view:clear` + full suite **92 passed / 489 assertions**.
+
+### Roles edit page localization — 2026-09-02
+
+Localized `http://localhost/complaint/public/roles/{role}/edit` (`resources/views/roles/form.blade.php:1`) which previously showed raw permission names (`customer.view`, `complaint.update` …). Added bilingual `lang/en|ar/permissions.php` covering every `PermissionSeeder` permission (56 module·action + `complaint.view_logs`/`complaint.export`/`report.export`/`visit.submit`/`visit.manage`/`visit.master.*`) and `group_customer`…`group_visit` group headers. The form now groups permissions by module (sorted `customer`→`visit`) in card sections with localized headers (`permissions.group_*`) and localized permission labels (`permissions.complaint.view` = View Complaints / عرض الشكاوى), keeping the raw name as the checkbox `value` so `Role::syncPermissions()` is unchanged, with `Super Admin` remaining read-only. Added cancel button (`common.cancel`). No schema/route change; `view:clear` + full suite still **92 passed / 489 assertions**; the file is registered in `memory.md:185` important-files table via the permissions dictionaries entry.
 
 
 
