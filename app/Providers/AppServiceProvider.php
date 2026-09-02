@@ -31,6 +31,10 @@ class AppServiceProvider extends ServiceProvider
             return $user->can('report.view') || $user->can('visit.manage');
         });
 
+        Gate::define('dashboard.visitors', function ($user) {
+            return $user->can('dashboard.visitors.view');
+        });
+
         Gate::policy(VisitorVisit::class, VisitorVisitPolicy::class);
     }
 }

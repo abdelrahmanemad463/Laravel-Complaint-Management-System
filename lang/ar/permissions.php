@@ -63,6 +63,8 @@
 'visit.master.view'=>'عرض البيانات الأساسية',
 'visit.master.import'=>'استيراد البيانات الأساسية',
 'visit.master.export'=>'تصدير البيانات الأساسية',
+'dashboard.view'=>'عرض لوحة تحكم الشكاوى',
+'dashboard.visitors.view'=>'عرض لوحة تحكم الزيارات',
 'group_customer'=>'العملاء',
 'group_complaint'=>'الشكاوى',
 'group_branch'=>'الفروع',
@@ -77,4 +79,5 @@
 'group_role'=>'الأدوار',
 'group_audit'=>'سجل التدقيق',
 'group_visit'=>'زيارات الجودة',
+'group_dashboard'=>'لوحات التحكم',
 ];

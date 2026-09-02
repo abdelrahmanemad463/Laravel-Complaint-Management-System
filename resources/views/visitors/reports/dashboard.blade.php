@@ -15,7 +15,7 @@ $charts = [
 @endphp
 <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
     <div>
-        <a href="{{ route('visitors.home') }}" class="back-link">â† {{ __('visitors.quality_visits') }}</a>
+        <a href="{{ route('visitors.home') }}" class="back-link">← {{ __('visitors.quality_visits') }}</a>
         <h1 class="page-title mt-4">{{ __('visitors.report_dashboard') }}</h1>
         <p class="page-subtitle">{{ __('visitors.report_dashboard_subtitle') }}</p>
     </div>

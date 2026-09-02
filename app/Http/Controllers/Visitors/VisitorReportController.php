@@ -33,6 +33,13 @@ class VisitorReportController extends Controller
         }
     }
 
+    private function abortUnlessVisitorsDashboardAccess(): void
+    {
+        if (Gate::denies('dashboard.visitors')) {
+            abort(403);
+        }
+    }
+
     /**
      * Report list with filters.
      */
@@ -75,7 +82,7 @@ class VisitorReportController extends Controller
      */
     public function dashboard(Request $request)
     {
-        $this->abortUnlessReportsAccess();
+        $this->abortUnlessVisitorsDashboardAccess();
 
         $data = $this->dashboard->build($request->query());
 

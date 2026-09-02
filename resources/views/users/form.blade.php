@@ -41,6 +41,18 @@
         </select>
     </div>
 
+    <div>
+        <label class="form-label">{{ __('common.default_home') }}</label>
+        <select class="form-input" name="default_home">
+            <option value="">{{ __('common.select') }}</option>
+            <option value="dashboard" @selected(old('default_home', $formUser->default_home ?? '') === 'dashboard')>{{ __('common.complaint_dashboard') }} ({{ url('/')}})</option>
+            <option value="visitors.dashboard" @selected(old('default_home', $formUser->default_home ?? '') === 'visitors.dashboard')>{{ __('common.visitors_dashboard') }} ({{ url('/visitors/reports/dashboard') }})</option>
+            <option value="complaints" @selected(old('default_home', $formUser->default_home ?? '') === 'complaints')>{{ __('common.complaints') }} ({{ url('/complaints') }})</option>
+            <option value="visitors" @selected(old('default_home', $formUser->default_home ?? '') === 'visitors')>{{ __('common.quality_visits') }} ({{ url('/visitors') }})</option>
+        </select>
+        <p class="mt-1 text-xs text-slate-500">{{ __('common.default_home_help') }}</p>
+    </div>
+
     <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <a class="btn-secondary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto" href="{{ route('users.index') }}">{{ __('common.cancel') }}</a>
         <button class="btn-primary min-h-[44px] w-full sm:w-auto">{{ __('common.save') }}</button>

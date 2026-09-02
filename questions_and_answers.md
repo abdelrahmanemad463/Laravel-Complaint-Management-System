@@ -122,6 +122,17 @@ So: the report faithfully renders the current CAPA workflow state. Since the per
 
 ---
 
+## 5. Why does a visitors-only user get "Unauthorized" right after login, and how do I set where they land?
+
+The two dashboards are now separately permissioned and the login landing page is per-user.
+
+- **Permissions:** `dashboard.view` (Complaint Dashboard at `/` — `DashboardController` now checks `abort_unless(can('dashboard.view'))`) and `dashboard.visitors.view` (Visitors Dashboard at `/visitors/reports/dashboard` — gated via `dashboard.visitors` = `dashboard.visitors.view || report.view || visit.manage`). `Viewer` and `Admin` have both by seeder; inspectors (`Customer Support`) keep `dashboard.view`; a visitors-only role should be given `dashboard.visitors.view` + the needed `visit.*` permissions via `roles/{role}/edit`.
+- **Per-user default:** `users.default_home` (`dashboard` / `visitors.dashboard` / `complaints` / `visitors`), set on `users/form.blade.php` as Default Home Page (لوحة تحكم الشكاوى `/` / لوحة تحكم الزيارات `/visitors/reports/dashboard` / الشكاوى `/complaints` / زيارات الجودة `/visitors`). `AuthController@login`/`showLogin` first honors `default_home` if the user actually has that permission, otherwise it falls back to the first dashboard they are allowed to see: `dashboard.view` → `/`, `dashboard.visitors.view` → `/visitors/reports/dashboard`, then `complaint.view` → `/complaints`, `visit.view` → `/visitors`; a logged-in user hitting `GET /login` is redirected to that same home instead of seeing the login form. A user with only `visit.*` + `dashboard.visitors.view` will therefore land on the visitors dashboard instead of being bounced to a forbidden complaint dashboard.
+
+So: give the role `dashboard.visitors.view` (or `complaint.view`/`visit.view` for the list pages) and set its users' Default Home to Visitors Dashboard / Quality Visits.
+
+---
+
 ## How to add more entries
 
 Keep each entry self-contained: rephrase the question the way a future developer would google it, then answer with the exact file/line patterns and the business rule behind them. If an answer changes because the code changes, update it here in the same edit and note the change in `memory.md`.

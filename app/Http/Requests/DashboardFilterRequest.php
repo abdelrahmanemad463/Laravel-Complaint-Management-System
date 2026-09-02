@@ -8,7 +8,7 @@ class DashboardFilterRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return auth()->user()?->can('complaint.view') ?? false;
+        return auth()->user()?->can('dashboard.view') ?? false;
     }
 
     protected function prepareForValidation(): void

@@ -63,6 +63,8 @@
 'visit.master.view'=>'View Master Data',
 'visit.master.import'=>'Import Master Data',
 'visit.master.export'=>'Export Master Data',
+'dashboard.view'=>'View Complaint Dashboard',
+'dashboard.visitors.view'=>'View Visitors Dashboard',
 'group_customer'=>'Customers',
 'group_complaint'=>'Complaints',
 'group_branch'=>'Branches',
@@ -77,4 +79,5 @@
 'group_role'=>'Roles',
 'group_audit'=>'Audit Logs',
 'group_visit'=>'Quality Visits',
+'group_dashboard'=>'Dashboards',
 ];

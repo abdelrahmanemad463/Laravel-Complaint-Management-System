@@ -33,9 +33,9 @@ class UserController extends Controller
     public function store(Request $request)
     {
         abort_unless(auth()->user()?->can('user.create'), 403);
-        $values = $request->validate(['name' => ['required','string','max:255'], 'email' => ['required','email','max:255','unique:users,email'], 'password' => ['required','string','min:8'], 'role' => ['required','exists:roles,name']]);
+        $values = $request->validate(['name' => ['required','string','max:255'], 'email' => ['required','email','max:255','unique:users,email'], 'password' => ['required','string','min:8'], 'role' => ['required','exists:roles,name'], 'default_home' => ['nullable','in:dashboard,visitors.dashboard,complaints,visitors']]);
         if ($values['role'] === 'Super Admin' && ! auth()->user()->hasRole('Super Admin')) abort(403);
-        $user = User::create($values);
+        $user = User::create(['name' => $values['name'], 'email' => $values['email'], 'password' => $values['password'], 'default_home' => $values['default_home'] ?? null]);
         $user->assignRole($values['role']);
         return redirect()->route('users.index')->with('success', __('common.saved'));
     }
@@ -52,9 +52,11 @@ class UserController extends Controller
     {
         abort_unless(auth()->user()?->can('user.update'), 403);
         if ($user->hasRole('Super Admin') && ! auth()->user()->hasRole('Super Admin')) abort(403);
-        $values = $request->validate(['name' => ['required','string','max:255'], 'email' => ['required','email','max:255','unique:users,email,'.$user->id], 'password' => ['nullable','string','min:8'], 'role' => ['required','exists:roles,name']]);
+        $values = $request->validate(['name' => ['required','string','max:255'], 'email' => ['required','email','max:255','unique:users,email,'.$user->id], 'password' => ['nullable','string','min:8'], 'role' => ['required','exists:roles,name'], 'default_home' => ['nullable','in:dashboard,visitors.dashboard,complaints,visitors']]);
         if ($values['role'] === 'Super Admin' && ! auth()->user()->hasRole('Super Admin')) abort(403);
-        $user->update(array_filter(['name' => $values['name'], 'email' => $values['email'], 'password' => $values['password'] ?? null]));
+        $payload = ['name' => $values['name'], 'email' => $values['email'], 'default_home' => $values['default_home'] ?? null];
+        if (!empty($values['password'])) $payload['password'] = $values['password'];
+        $user->update($payload);
         $user->syncRoles([$values['role']]);
         return redirect()->route('users.index')->with('success', __('common.saved'));
     }

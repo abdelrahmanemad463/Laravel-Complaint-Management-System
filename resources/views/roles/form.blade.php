@@ -3,7 +3,7 @@
 <div class="mb-8"><a class="back-link" href="{{ route('roles.index') }}">← {{ __('common.roles') }}</a><h1 class="page-title mt-4">{{ __('common.configure') }}: {{ $role->name }}</h1>@if($role->name==='Super Admin')<p class="mt-2 text-sm text-amber-700">{{ __('common.super_admin_protected') }}</p>@endif</div>
 @php
 $grouped = $permissions->groupBy(fn($p) => explode('.', $p->name)[0]);
-$order = ['customer','complaint','branch','service','source','category','type','priority','status','report','user','role','audit','visit'];
+$order = ['dashboard','customer','complaint','branch','service','source','category','type','priority','status','report','user','role','audit','visit'];
 $grouped = $grouped->sortBy(fn($_, $g) => array_search($g, $order) !== false ? array_search($g, $order) : 999);
 @endphp
 <form method="POST" action="{{ route('roles.update',$role) }}" class="max-w-5xl mx-auto space-y-6">@csrf @method('PUT')

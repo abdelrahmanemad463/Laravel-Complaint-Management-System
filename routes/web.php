@@ -19,7 +19,7 @@ Route::middleware('auth')->group(function () {
         Route::get('create', [\App\Http\Controllers\Visitors\VisitController::class,'create'])->name('create');
         Route::post('/', [\App\Http\Controllers\Visitors\VisitController::class,'store'])->name('store');
         Route::get('reports', [\App\Http\Controllers\Visitors\VisitorReportController::class,'index'])->name('reports');
-        Route::get('reports/dashboard', [\App\Http\Controllers\Visitors\VisitorReportController::class,'dashboard'])->name('reports.dashboard');
+        Route::get('reports/dashboard', [\App\Http\Controllers\Visitors\VisitorReportController::class,'dashboard'])->name('reports.dashboard')->middleware('permission:dashboard.visitors.view');
         Route::get('reports/{visit}/pdf', [\App\Http\Controllers\Visitors\VisitorReportController::class,'pdf'])->name('reports.pdf');
         Route::get('reports/{visit}', [\App\Http\Controllers\Visitors\VisitorReportController::class,'show'])->name('reports.show');
         Route::post('capa/{capaAction}/close', [\App\Http\Controllers\Visitors\VisitorCapaController::class,'close'])->name('capa.close');

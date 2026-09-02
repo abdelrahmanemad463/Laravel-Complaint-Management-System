@@ -36,7 +36,7 @@
             </div>
             @auth
             <nav class="hidden min-w-0 flex-1 items-center justify-center gap-1 text-sm font-medium xl:flex xl:gap-1.5 2xl:gap-2">
-                <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'nav-link-active' : '' }}">{{ __('common.dashboard') }}</a>
+                @can('dashboard.view')<a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'nav-link-active' : '' }}">{{ __('common.dashboard') }}</a>@endcan
                 <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'nav-link-active' : '' }}">{{ __('common.customers') }}</a>
                 <details class="group relative" data-nav-dropdown>
                     <summary class="nav-link cursor-pointer list-none {{ (request()->routeIs('complaints.*') || request()->routeIs('visitors.*')) ? 'nav-link-active' : '' }}">{{ __('common.complaints') }}</summary>
@@ -82,7 +82,7 @@
             </div>
             <div class="flex-1 overflow-y-auto px-2 py-3">
                 <nav class="space-y-1">
-                    <a href="{{ route('dashboard') }}" class="mobile-nav-link {{ request()->routeIs('dashboard') ? 'mobile-nav-link-active' : '' }}">{{ __('common.dashboard') }}</a>
+                    @can('dashboard.view')<a href="{{ route('dashboard') }}" class="mobile-nav-link {{ request()->routeIs('dashboard') ? 'mobile-nav-link-active' : '' }}">{{ __('common.dashboard') }}</a>@endcan
                     <a href="{{ route('customers.index') }}" class="mobile-nav-link {{ request()->routeIs('customers.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.customers') }}</a>
 
                     <a href="{{ route('complaints.index') }}" class="mobile-nav-link {{ request()->routeIs('complaints.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.customer_complaints') }}</a>

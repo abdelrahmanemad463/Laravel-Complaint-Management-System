@@ -17,7 +17,7 @@ $selectedColors = $filters['colors'] ?? [];
         <p class="page-subtitle">{{ __('visitors.reports_subtitle') }}</p>
     </div>
     <div class="flex flex-wrap items-center gap-3">
-        <a href="{{ route('visitors.reports.dashboard') }}" class="btn-secondary">{{ __('visitors.report_dashboard') }}</a>
+        @can('dashboard.visitors.view')<a href="{{ route('visitors.reports.dashboard') }}" class="btn-secondary">{{ __('visitors.report_dashboard') }}</a>@endcan
         @can('visit.create')<a href="{{ route('visitors.create') }}" class="btn-primary">{{ __('visitors.new_visit') }}</a>@endcan
     </div>
 </div>
