@@ -48,10 +48,10 @@ The status buttons (`status-ok`, `status-nc`, `status-na`) are wired to a vanill
 The flow, step by step:
 
 1. **Click → optimistic UI.** The handler sets `itemEl.dataset.status` to the clicked value, shows/hides the Non-Compliant details panel, and then calls `saveItem(itemEl, { status: value })`. Styling is refreshed after the response so only the selected button is highlighted.
-2. **Autosave request.** `saveItem` builds a `FormData` body with `_method=PUT`, the CSRF token, and the status (plus root cause / note / main kitchen / support department when Non-Compliant), then sends a `fetch('POST /visitors/items/{id}')` with an `Accept: application/json` header.
+2. **Autosave request.** `saveItem` builds a `FormData` body with `_method=PUT`, the CSRF token, and the status (plus root cause / note / support department when Non-Compliant), then sends a `fetch('POST /visitors/items/{id}')` with an `Accept: application/json` header. *(Main Kitchen was removed from the inspection page on 2026-09-02 — the checkbox and its `main_kitchen` payload field are gone, but the DB column remains for legacy data.)*
 3. **Server persistence.** `VisitItemController@update` authorizes the item's visit, runs `VisitService::saveItem()`:
    - stores the status and stamps `visited_at = now()` on the item's **first** review (this is what makes it count as reviewed/reported in progress);
-   - when the status is `nc`, it stores `root_cause_id`, `note`, `main_kitchen`, `support_department`;
+   - when the status is `nc`, it stores `root_cause_id`, `note`, `support_department` (`main_kitchen` still accepted by the backend for legacy compatibility but no longer sent by the page);
    - for any other status it clears those NC fields (deleting a stray NC detail is impossible by design);
    - the status itself is validated to be one of `ok | nc | na` by `UpdateVisitItemRequest`.
 4. **Recalculate + respond.** After saving, the controller reloads the visit's items and computes the score via `VisitScoreService::calculate()` — the single source of truth (available = sum of deduction over non-`na` items, deduction = sum over `nc` items; percentage = `(final / available) * 100` with a blue/green/yellow/red class). It returns JSON: `{ ok, status, visited_at, reviewed, total, score }`.

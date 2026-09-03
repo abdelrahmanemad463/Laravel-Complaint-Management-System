@@ -123,24 +123,15 @@
                         <textarea class="form-input note-input" id="note_{{ $item->id }}" rows="3" @disabled($visit->isCompleted())>{{ $item->note }}</textarea>
                     </div>
 
-                    @if($item->main_kitchen || $item->support_department || true)
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <label class="form-label">{{ __('visitors.main_kitchen') }}</label>
-                            <label class="flex min-h-[44px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 has-[input:checked]:border-indigo-300 has-[input:checked]:bg-indigo-50">
-                                <input type="checkbox" class="mk-input h-5 w-5 rounded border-slate-300 text-indigo-600" value="1" @checked($item->main_kitchen) @disabled($visit->isCompleted())>
-                                {{ __('visitors.main_kitchen') }}
-                            </label>
-                        </div>
-                        <div>
-                            <label class="form-label" for="dept_{{ $item->id }}">{{ __('visitors.support_department') }}</label>
-                            <select class="form-input dept-select" id="dept_{{ $item->id }}" @disabled($visit->isCompleted())>
-                                <option value="">{{ __('common.select') }}</option>
-                                @foreach($supportDepartments as $dept)
-                                <option value="{{ $dept }}" @selected($item->support_department === $dept)>{{ __("visitors.support_dept_$dept") }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                    @if($item->support_department || true)
+                    <div>
+                        <label class="form-label" for="dept_{{ $item->id }}">{{ __('visitors.support_department') }}</label>
+                        <select class="form-input dept-select" id="dept_{{ $item->id }}" @disabled($visit->isCompleted())>
+                            <option value="">{{ __('common.select') }}</option>
+                            @foreach($supportDepartments as $dept)
+                            <option value="{{ $dept }}" @selected($item->support_department === $dept)>{{ __("visitors.support_dept_$dept") }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     @endif
 
@@ -327,9 +318,8 @@
     const collectNcPayload = (itemEl) => {
         const rc = itemEl.querySelector('.rc-select')?.value || '';
         const note = itemEl.querySelector('.note-input')?.value || '';
-        const mk = itemEl.querySelector('.mk-input')?.checked ? '1' : '0';
         const dept = itemEl.querySelector('.dept-select')?.value || '';
-        return { root_cause_id: rc, note, main_kitchen: mk, support_department: dept };
+        return { root_cause_id: rc, note, support_department: dept };
     };
 
     document.querySelectorAll('.visit-item').forEach((itemEl) => {
