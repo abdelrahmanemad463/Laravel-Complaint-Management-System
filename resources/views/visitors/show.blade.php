@@ -1,15 +1,6 @@
 @extends('layouts.app')
 @section('content')
 @php
-    $scoreColor = $score['color'];
-    $colorClasses = [
-        'blue'   => ['#2563eb', 'text-blue-700 bg-blue-100'],
-        'green'  => ['#16a34a', 'text-emerald-700 bg-emerald-100'],
-        'yellow' => ['#ca8a04', 'text-amber-700 bg-amber-100'],
-        'red'    => ['#dc2626', 'text-rose-700 bg-rose-100'],
-        'slate'  => ['#475569', 'text-slate-700 bg-slate-100'],
-    ];
-    [$scoreHex, $scoreClasses] = $colorClasses[$scoreColor] ?? $colorClasses['slate'];
     $totalItems = $visit->items->count();
     $reviewedCount = $visit->items->filter->isReviewed()->count();
     $progressPct = $totalItems ? round($reviewedCount / $totalItems * 100) : 0;
@@ -23,13 +14,6 @@
     </div>
     <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <div class="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
-            <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center shadow-sm sm:px-5">
-                <div class="text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:text-xs">{{ __('visitors.live_score') }}</div>
-                <div class="mt-1 flex items-center justify-center gap-2">
-                    <span data-live-score-value class="text-2xl font-black sm:text-3xl" style="color:{{ $scoreHex }}">{{ $score['percentage'] !== null ? $score['percentage'].'%' : '—' }}</span>
-                </div>
-                <div data-live-final class="mt-1 text-xs font-semibold" style="color:{{ $scoreHex }}">{{ $score['final'] }} / {{ $score['available'] }}</div>
-            </div>
             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center shadow-sm sm:px-5">
                 <div class="text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:text-xs">{{ __('visitors.progress') }}</div>
                 <div id="visit-progress-text" class="mt-1 text-xl font-black text-slate-900 sm:text-2xl">{{ $reviewedCount }} / {{ $totalItems }}</div>
@@ -52,11 +36,6 @@
 </div>
 
 <div id="visit-autosave-status" class="mb-4 hidden rounded-lg bg-indigo-50 px-3 py-2 text-sm font-semibold shadow-sm"></div>
-
-@if($visit->isCompleted())
-@php $scoreHex2 = $colorClasses[$scoreColor][0]; @endphp
-<div class="card mb-6"><div class="flex items-center gap-3"><span class="h-4 w-4 shrink-0 rounded-full" style="background:{{ $scoreHex2 }}"></span><span class="font-semibold text-sm sm:text-base" style="color:{{ $scoreHex2 }}">{{ __('visitors.score_class', ['class' => __("visitors.score_class_$scoreColor")]) }}</span></div></div>
-@endif
 
 {{-- Mobile section selector (dropdown) --}}
 <div class="mb-4 sm:hidden">
@@ -278,17 +257,6 @@
         }
     };
 
-    const applyScore = (score) => {
-        if (!score) return;
-        const valueEl = document.querySelector('[data-live-score-value]');
-        const finalEl = document.querySelector('[data-live-final]');
-        if (valueEl) valueEl.textContent = score.percentage !== null ? score.percentage + '%' : '—';
-        if (finalEl) finalEl.textContent = `${score.final} / ${score.available}`;
-        const colors = { blue: '#2563eb', green: '#16a34a', yellow: '#ca8a04', red: '#dc2626', slate: '#475569' };
-        const color = colors[score.color] || '#475569';
-        [valueEl, finalEl].forEach((el) => { if (el) el.style.color = color; });
-    };
-
     const saveItem = async (itemEl, payload) => {
         if (itemEl.querySelector('.status-btn')?.disabled) return;
         const id = itemEl.dataset.itemId;
@@ -308,7 +276,6 @@
             itemEl.dataset.visited = '1';
             itemEl.dataset.status = data.status;
             refreshCounts();
-            applyScore(data.score);
             setStatus('{{ __('visitors.saved') }}', 'saved');
         } catch (e) {
             setStatus(e.message || '{{ __('visitors.save_failed') }}', 'saving');

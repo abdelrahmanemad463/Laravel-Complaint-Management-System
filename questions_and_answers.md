@@ -41,7 +41,7 @@ Net effect: `critical + nc` → photo required; every other combination (major/m
 
 ---
 
-## 2. How does clicking a status button (e.g. "Compliant") save the answer to the database immediately and update the live score?
+## 2. How does clicking a status button (e.g. "Compliant") save the answer to the database immediately?
 
 The status buttons (`status-ok`, `status-nc`, `status-na`) are wired to a vanilla-JS click handler in `resources/views/visitors/show.blade.php`. There is no page reload and no form POST for each answer — each click is autosaved over a JSON endpoint.
 
@@ -55,11 +55,9 @@ The flow, step by step:
    - for any other status it clears those NC fields (deleting a stray NC detail is impossible by design);
    - the status itself is validated to be one of `ok | nc | na` by `UpdateVisitItemRequest`.
 4. **Recalculate + respond.** After saving, the controller reloads the visit's items and computes the score via `VisitScoreService::calculate()` — the single source of truth (available = sum of deduction over non-`na` items, deduction = sum over `nc` items; percentage = `(final / available) * 100` with a blue/green/yellow/red class). It returns JSON: `{ ok, status, visited_at, reviewed, total, score }`.
-5. **Live updates in the browser.** On success the JS sets `data-visited="1"` and `data-status`, then calls:
-   - `refreshCounts()` — updates the header progress (`reviewed / total`), the progress bar, per-section counters and the mobile section dropdown;
-   - `applyScore(score)` — updates the big live score percentage, the `final / available` figure, and the score colour.
+5. **Refresh progress in the browser.** On success the JS sets `data-visited="1"` and `data-status`, then calls `refreshCounts()` — updates the header progress (`reviewed / total`), the progress bar, per-section counters and the mobile section dropdown. *(2026-09-02: the live score was removed from the inspection page — there is no `applyScore` anymore, so the score is not shown while filling out a visit and only appears on the completed-visit reports/PDF/dashboard.)*
 
-So one tap on "Compliant" = one fetch → one DB write → one authoritative score response → progress + score + button highlight all refresh in place.
+So one tap on "Compliant" = one fetch → one DB write → one authoritative score response (used by reports) → progress + button highlight refresh in place, with no score exposed to the visit creator.
 
 ---
 
