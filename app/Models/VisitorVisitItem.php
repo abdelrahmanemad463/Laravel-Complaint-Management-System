@@ -12,7 +12,7 @@ class VisitorVisitItem extends Model
         'visit_id', 'checklist_item_id', 'status', 'visited_at', 'root_cause_id', 'note',
         'main_kitchen', 'support_department',
         'item_code', 'item_title', 'section_name', 'severity', 'deduction_score', 'photo_required',
-        'immediate_action', 'corrective_action', 'preventive_action', 'responsible', 'deadline',
+        'immediate_action', 'corrective_action', 'preventive_action', 'responsible', 'period_hours',
     ];
 
     protected function casts(): array
@@ -22,6 +22,7 @@ class VisitorVisitItem extends Model
             'deduction_score' => 'integer',
             'photo_required' => 'boolean',
             'main_kitchen' => 'boolean',
+            'period_hours' => 'float',
         ];
     }
 

@@ -57,7 +57,7 @@ class VisitService
                     'corrective_action' => $item->corrective_action,
                     'preventive_action' => $item->preventive_action,
                     'responsible' => $item->responsible,
-                    'deadline' => $item->deadline,
+                    'period_hours' => $item->period_hours,
                 ]);
             }
 

@@ -11,7 +11,7 @@ class VisitorChecklistItem extends Model
     protected $fillable = [
         'visit_type_id', 'section_id', 'code', 'title', 'severity', 'deduction_score',
         'photo_required', 'immediate_action', 'corrective_action', 'preventive_action',
-        'responsible', 'deadline', 'sort_order', 'is_active', 'root_cause_id',
+        'responsible', 'period_hours', 'sort_order', 'is_active', 'root_cause_id',
     ];
 
     protected function casts(): array
@@ -19,9 +19,18 @@ class VisitorChecklistItem extends Model
         return [
             'deduction_score' => 'integer',
             'photo_required' => 'boolean',
+            'period_hours' => 'float',
             'sort_order' => 'integer',
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * Human-readable label for the configured corrective-action period.
+     */
+    public function periodLabel(): string
+    {
+        return \App\Services\Visitors\DueDateService::hoursLabel($this->period_hours);
     }
 
     public function visitType()

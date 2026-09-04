@@ -48,7 +48,7 @@ class VisitorCurrentMasterDataExport implements FromQuery, WithHeadings, WithMap
             $item->immediate_action,
             $item->corrective_action,
             $item->responsible,
-            $item->deadline, // period
+            $item->period_hours, // period_hours
             $item->preventive_action,
             $item->deduction_score,
         ];

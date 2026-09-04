@@ -691,6 +691,7 @@ if (visitReportDashboard) {
         addChart('severity', 'doughnut', { cutout: '62%' });
         addChart('section', 'bar', { indexAxis: 'y' });
         addChart('rootCause', 'doughnut', { cutout: '62%' });
+        addChart('dueStatus', 'doughnut', { cutout: '62%' });
 
         const refreshReportChartTheme = () => {
             chartInstances.forEach((chart) => {

@@ -57,7 +57,7 @@ class ChecklistImportService
                     'corrective_action' => trim((string) ($row['corrective_action'] ?? '')) ?: null,
                     'preventive_action' => trim((string) ($row['preventive_action'] ?? '')) ?: null,
                     'responsible' => trim((string) ($row['responsible'] ?? '')) ?: null,
-                    'deadline' => trim((string) ($row['period'] ?? '')) ?: null,
+                    'period_hours' => $this->periodHours($row['period_hours'] ?? $row['period'] ?? ''),
                     'is_active' => true,
                 ];
 
@@ -75,5 +75,15 @@ class ChecklistImportService
         });
 
         return ['created' => $created, 'updated' => $updated];
+    }
+
+    private function periodHours(mixed $value): ?float
+    {
+        $value = trim((string) $value);
+        if ($value === '' || !is_numeric($value)) {
+            return null;
+        }
+
+        return round((float) $value, 2);
     }
 }

@@ -47,6 +47,8 @@ $visit = $report['visit'];
 $colors = ['blue' => '#2563eb', 'green' => '#16a34a', 'yellow' => '#ca8a04', 'red' => '#dc2626', 'slate' => '#475569'];
 $sev = ['critical' => '#dc2626', 'major' => '#ea580c', 'minor' => '#16a34a'];
 $capaCol = ['open' => '#2563eb', 'in_progress' => '#7c3aed', 'overdue' => '#dc2626', 'closed' => '#16a34a', 'rejected' => '#475569'];
+$dueCol = ['immediate' => '#7c3aed', 'upcoming' => '#2563eb', 'due_soon' => '#ca8a04', 'overdue' => '#dc2626', 'completed' => '#16a34a', 'closed_late' => '#ea580c', 'rejected' => '#475569'];
+$dueLbl = ['immediate' => __('visitors.st_immediate'), 'upcoming' => __('visitors.st_upcoming'), 'due_soon' => __('visitors.st_due_soon'), 'overdue' => __('visitors.st_overdue'), 'completed' => __('visitors.st_completed'), 'closed_late' => __('visitors.st_closed_late'), 'rejected' => __('visitors.st_rejected')];
 $hex = $colors[$score['color']] ?? '#475569';
 $sh = fn($s) => pdf_ar($s);
 @endphp
@@ -135,11 +137,13 @@ $sh = fn($s) => pdf_ar($s);
 <h2>{{ $sh(__('visitors.violation_details')) }}</h2>
 @if($report['violations']->count())
 <table>
-    <thead><tr><th>#</th><th>{{ $sh(__('common.code')) }}</th><th>{{ $sh(__('visitors.section')) }}</th><th>{{ $sh(__('visitors.item')) }}</th><th>{{ $sh(__('visitors.severity')) }}</th><th>{{ $sh(__('visitors.root_cause')) }}</th><th>{{ $sh(__('visitors.notes')) }}</th><th>{{ $sh(__('visitors.evidence')) }}</th><th>{{ $sh(__('visitors.capa_status')) }}</th></tr></thead>
+    <thead><tr><th>#</th><th>{{ $sh(__('common.code')) }}</th><th>{{ $sh(__('visitors.section')) }}</th><th>{{ $sh(__('visitors.item')) }}</th><th>{{ $sh(__('visitors.severity')) }}</th><th>{{ $sh(__('visitors.root_cause')) }}</th><th>{{ $sh(__('visitors.notes')) }}</th><th>{{ $sh(__('visitors.evidence')) }}</th><th>{{ $sh(__('visitors.period')) }}</th><th>{{ $sh(__('visitors.due_status')) }}</th><th>{{ $sh(__('visitors.capa_status')) }}</th></tr></thead>
     <tbody>
-    @foreach($report['violations'] as $i => $item)
+    @foreach($report['violations'] as $i => $entry)
     @php
-        $capa = $item->capaAction ? $item->capaAction->effectiveStatus() : null;
+        $item = $entry->item;
+        $capa = $entry->effectiveStatus;
+        $dueStatus = $entry->dueStatus;
         $photoPath = isset($item->photos) && $item->photos->count() ? ($photos[$item->photos->first()->id] ?? null) : null;
     @endphp
     <tr>
@@ -151,6 +155,8 @@ $sh = fn($s) => pdf_ar($s);
         <td>{{ $sh($item->rootCause?->name ?: '—') }}</td>
         <td>{{ $sh($item->note ?: '—') }}</td>
         <td>@if($photoPath)<img class="img" src="{{ $photoPath }}" alt="">@else — @endif</td>
+        <td>{{ $sh($entry->periodLabel ?: '—') }}</td>
+        <td>@if($dueStatus)<span class="badge" style="background:{{ ($dueCol[$dueStatus] ?? '#475569') }}22; color:{{ $dueCol[$dueStatus] ?? '#475569' }}">{{ $sh($dueLbl[$dueStatus] ?? ucfirst($dueStatus)) }}</span>@else — @endif</td>
         <td>@if($capa)<span class="badge" style="background:{{ ($capaCol[$capa] ?? '#475569') }}22; color:{{ $capaCol[$capa] ?? '#475569' }}">{{ $sh(ucfirst($capa)) }}</span>@else — @endif</td>
     </tr>
     @endforeach
@@ -164,7 +170,7 @@ $sh = fn($s) => pdf_ar($s);
 <h2>{{ $sh(__('visitors.corrective_action_plan')) }}</h2>
 @if($report['capa']['actions']->count())
 <table style="font-size:9px">
-    <thead><tr><th>#</th><th>{{ $sh(__('visitors.item')) }}</th><th>{{ $sh(__('visitors.severity')) }}</th><th>{{ $sh(__('visitors.root_cause')) }}</th><th>{{ $sh(__('visitors.immediate_action')) }}</th><th>{{ $sh(__('visitors.corrective_action')) }}</th><th>{{ $sh(__('visitors.preventive_action')) }}</th><th>{{ $sh(__('visitors.responsible')) }}</th><th>{{ $sh(__('visitors.due_date')) }}</th><th>{{ $sh(__('visitors.status')) }}</th></tr></thead>
+    <thead><tr><th>#</th><th>{{ $sh(__('visitors.item')) }}</th><th>{{ $sh(__('visitors.severity')) }}</th><th>{{ $sh(__('visitors.root_cause')) }}</th><th>{{ $sh(__('visitors.immediate_action')) }}</th><th>{{ $sh(__('visitors.corrective_action')) }}</th><th>{{ $sh(__('visitors.preventive_action')) }}</th><th>{{ $sh(__('visitors.responsible')) }}</th><th>{{ $sh(__('visitors.period')) }}</th><th>{{ $sh(__('visitors.due_date')) }}</th><th>{{ $sh(__('visitors.due_status')) }}</th><th>{{ $sh(__('visitors.status')) }}</th></tr></thead>
     <tbody>
     @foreach($report['capa']['actions'] as $i => $entry)
     @php
@@ -180,7 +186,9 @@ $sh = fn($s) => pdf_ar($s);
         <td>{{ $sh($a->corrective_action ?: '—') }}</td>
         <td>{{ $sh($a->preventive_action ?: '—') }}</td>
         <td>{{ $sh($a->responsible?->name ?: ($vi?->responsible ?: '—')) }}</td>
-        <td>{{ $a->due_date?->format('d/m/Y') ?: '—' }}</td>
+        <td>{{ $sh($entry->periodLabel ?: '—') }}</td>
+        <td>{{ $a->due_at?->format('d/m/Y H:i') ?: '—' }}</td>
+        <td><span class="badge" style="background:{{ ($dueCol[$entry->dueStatus] ?? '#475569') }}22; color:{{ $dueCol[$entry->dueStatus] ?? '#475569' }}">{{ $sh($dueLbl[$entry->dueStatus] ?? ucfirst($entry->dueStatus)) }}</span></td>
         <td><span class="badge" style="background:{{ ($capaCol[$entry->status] ?? '#475569') }}22; color:{{ $capaCol[$entry->status] ?? '#475569' }}">{{ $sh(ucfirst($entry->status)) }}</span></td>
     </tr>
     @endforeach

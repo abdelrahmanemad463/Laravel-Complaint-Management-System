@@ -27,7 +27,7 @@ class VisitorPdfService
         // Resolve private photos to absolute paths so DomPDF can embed them.
         $photos = [];
         foreach ($report['violations'] as $item) {
-            foreach ($item->photos as $photo) {
+            foreach ($item->item->photos as $photo) {
                 $path = Storage::disk('local')->path($photo->path);
                 if (is_file($path)) {
                     $photos[$photo->id] = $path;

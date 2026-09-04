@@ -69,6 +69,7 @@
                     <th class="px-4 py-3">{{ __('visitors.master_note') }}</th>
                     <th class="px-4 py-3">{{ __('visitors.master_severity') }}</th>
                     <th class="px-4 py-3">{{ __('visitors.master_deduction_score') }}</th>
+                    <th class="px-4 py-3">{{ __('visitors.period') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -81,6 +82,7 @@
                     <td class="px-4 py-3">{{ $data['note'] }}</td>
                     <td class="px-4 py-3 font-semibold capitalize">{{ $data['severity'] }}</td>
                     <td class="px-4 py-3 font-semibold">{{ $data['deduction_score'] }}</td>
+                    <td class="px-4 py-3">{{ $data['period_hours'] !== null && $data['period_hours'] !== '' ? \App\Services\Visitors\DueDateService::hoursLabel($data['period_hours']) : '—' }}</td>
                 </tr>
                 @endforeach
             </tbody>

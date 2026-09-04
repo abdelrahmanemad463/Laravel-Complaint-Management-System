@@ -51,7 +51,7 @@ class VisitorMasterDataTest extends TestCase
             'immediate_action' => 'Immediate action text',
             'corrective_action' => 'Corrective action text',
             'responsible' => 'Branch Manager',
-            'period' => '24 hours',
+            'period_hours' => 24,
             'preventive_action' => 'Preventive action text',
             'deduction_score' => 3,
         ], $overrides);
@@ -186,6 +186,7 @@ class VisitorMasterDataTest extends TestCase
         $this->assertSame('AA-001', $item->code);
         $this->assertSame('major', $item->severity);
         $this->assertSame(3, $item->deduction_score);
+        $this->assertSame(24.0, $item->period_hours);
 
         $critical = VisitorChecklistItem::where('code', 'AA-002')->firstOrFail();
         $this->assertSame('critical', $critical->severity);

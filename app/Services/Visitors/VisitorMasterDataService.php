@@ -26,7 +26,7 @@ class VisitorMasterDataService
 
     private const HEADERS = [
         'code', 'inspection_type', 'section', 'note', 'severity',
-        'immediate_action', 'corrective_action', 'responsible', 'period',
+        'immediate_action', 'corrective_action', 'responsible', 'period_hours',
         'preventive_action', 'deduction_score',
     ];
 
@@ -151,6 +151,9 @@ class VisitorMasterDataService
             }
             if (!is_numeric($normalized['deduction_score']) || $normalized['deduction_score'] < 0) {
                 $errors[] = 'Deduction score must be a number.';
+            }
+            if ($normalized['period_hours'] !== '' && (!is_numeric($normalized['period_hours']) || $normalized['period_hours'] < 0)) {
+                $errors[] = 'period_hours must be a number (hours, decimals allowed). 0 = Immediate, e.g. 0.5, 24, 48, 168.';
             }
 
             if ($errors === [] && $normalized['inspection_type'] !== '' && $normalized['code'] !== '') {
@@ -278,7 +281,7 @@ class VisitorMasterDataService
                     'corrective_action' => $this->blank($data['corrective_action'] ?? ''),
                     'preventive_action' => $this->blank($data['preventive_action'] ?? ''),
                     'responsible' => $this->blank($data['responsible'] ?? ''),
-                    'deadline' => $this->blank($data['period'] ?? ''),
+                    'period_hours' => $this->periodHours($data['period_hours'] ?? ($data['period'] ?? '')),
                     'is_active' => true,
                     'sort_order' => $order++,
                 ];
@@ -330,7 +333,7 @@ class VisitorMasterDataService
             'immediate_action' => trim((string) ($row['immediate_action'] ?? '')),
             'corrective_action' => trim((string) ($row['corrective_action'] ?? '')),
             'responsible' => trim((string) ($row['responsible'] ?? '')),
-            'period' => trim((string) ($row['period'] ?? '')),
+            'period_hours' => trim((string) ($row['period_hours'] ?? ($row['period'] ?? ''))),
             'preventive_action' => trim((string) ($row['preventive_action'] ?? '')),
             'deduction_score' => trim((string) ($row['deduction_score'] ?? '')),
         ];
@@ -341,6 +344,10 @@ class VisitorMasterDataService
                 : $normalized['deduction_score'];
         }
 
+        if ($normalized['period_hours'] !== '' && is_numeric($normalized['period_hours'])) {
+            $normalized['period_hours'] = (float) $normalized['period_hours'];
+        }
+
         return $normalized;
     }
 
@@ -349,6 +356,19 @@ class VisitorMasterDataService
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    /**
+     * Normalize an imported period to hours or null when empty.
+     */
+    private function periodHours(mixed $value): ?float
+    {
+        $value = trim((string) $value);
+        if ($value === '' || !is_numeric($value)) {
+            return null;
+        }
+
+        return round((float) $value, 2);
     }
 
     private function assocRows(array $headers, array $row): array

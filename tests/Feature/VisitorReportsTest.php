@@ -209,7 +209,7 @@ class VisitorReportsTest extends TestCase
     {
         $visit = $this->makeCompletedVisit();
         $data = $this->reports->build($visit->fresh());
-        $this->assertTrue($data['violations']->every(fn ($i) => $i->status === 'nc'));
+        $this->assertTrue($data['violations']->every(fn ($i) => $i->item->status === 'nc'));
     }
 
     public function test_capa_records_are_displayed(): void
@@ -221,6 +221,51 @@ class VisitorReportsTest extends TestCase
         $first = $data['capa']['actions']->first();
         $this->assertNotNull($first->action);
         $this->assertFalse(empty($first->status));
+    }
+
+    public function test_capa_action_snapshots_period_and_computes_due_at(): void
+    {
+        $visit = $this->makeCompletedVisit();
+        $action = $visit->capaActions()->firstOrFail();
+
+        $this->assertSame(48.0, $action->period_hours);
+        $this->assertNotNull($action->due_at);
+        $this->assertSame(
+            $action->created_at->copy()->addHours($action->period_hours)->toDateTimeString(),
+            $action->due_at->toDateTimeString()
+        );
+        $this->assertSame('upcoming', $action->dueStatus());
+    }
+
+    public function test_reports_list_carries_due_aggregates(): void
+    {
+        $this->makeCompletedVisit();
+
+        $visits = $this->reports->listReports([]);
+        $row = $visits->first();
+        $due = $row->getAttribute('capa_due');
+
+        $this->assertSame(1, $due['open']);
+        $this->assertSame(0, $due['overdue']);
+        $this->assertSame(0, $due['due_soon']);
+        $this->assertSame(0, $due['immediate']);
+        $this->assertSame(0, $due['closed']);
+        $this->assertSame(0, $row->getAttribute('critical_violations'));
+    }
+
+    public function test_reports_list_filters_by_due_status(): void
+    {
+        $this->makeCompletedVisit();
+
+        $onlyOpen = $this->reports->listReports(['due_status' => 'open'])->pluck('id');
+        $onlyOverdue = $this->reports->listReports(['due_status' => 'overdue'])->pluck('id');
+        $onlyImmediate = $this->reports->listReports(['due_status' => 'immediate'])->pluck('id');
+        $onlyClosed = $this->reports->listReports(['due_status' => 'closed'])->pluck('id');
+
+        $this->assertCount(1, $onlyOpen);
+        $this->assertCount(0, $onlyOverdue);
+        $this->assertCount(0, $onlyImmediate);
+        $this->assertCount(0, $onlyClosed);
     }
 
     public function test_historical_snapshot_values_are_used(): void
@@ -246,13 +291,13 @@ class VisitorReportsTest extends TestCase
         $data = $this->reports->build($visit->fresh());
 
         // The report must reflect the snapshot, not the changed master value.
-        $violation = $data['violations']->firstWhere('id', $itemSnapshot->id);
+        $violation = $data['violations']->first(fn ($v) => $v->item->id === $itemSnapshot->id);
         $this->assertNotNull($violation);
-        $this->assertSame($itemSnapshot->item_title, $violation->item_title);
-        $this->assertSame($itemSnapshot->severity, $violation->severity);
-        $this->assertSame($itemSnapshot->deduction_score, $violation->deduction_score);
+        $this->assertSame($itemSnapshot->item_title, $violation->item->item_title);
+        $this->assertSame($itemSnapshot->severity, $violation->item->severity);
+        $this->assertSame($itemSnapshot->deduction_score, $violation->item->deduction_score);
         $this->assertSame('CHANGED MASTER TITLE', VisitorChecklistItem::find($itemSnapshot->checklist_item_id)->title);
-        $this->assertNotSame('CHANGED MASTER TITLE', $violation->item_title);
+        $this->assertNotSame('CHANGED MASTER TITLE', $violation->item->item_title);
     }
 
     public function test_pdf_generation_works(): void

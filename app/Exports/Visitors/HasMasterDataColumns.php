@@ -21,7 +21,7 @@ trait HasMasterDataColumns
             'immediate_action',
             'corrective_action',
             'responsible',
-            'period',
+            'period_hours',
             'preventive_action',
             'deduction_score',
         ];

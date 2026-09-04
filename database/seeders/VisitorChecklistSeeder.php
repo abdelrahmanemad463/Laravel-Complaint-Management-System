@@ -68,7 +68,7 @@ class VisitorChecklistSeeder extends Seeder
                     'corrective_action' => 'Determine the root cause and apply a corrective action to prevent recurrence.',
                     'preventive_action' => 'Review procedures and provide retraining where required.',
                     'responsible' => 'Branch Manager',
-                    'deadline' => '2 days',
+                    'period_hours' => 48,
                     'sort_order' => $i,
                     'is_active' => true,
                 ]

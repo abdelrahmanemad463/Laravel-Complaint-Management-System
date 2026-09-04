@@ -30,6 +30,7 @@ class VisitorReportDashboardService
         return [
             'filters' => $f,
             'cards' => $this->cards($f),
+            'dueCards' => $this->dueCards($f),
             'averageTimeToCloseCapa' => $this->averageTimeToCloseCapa($f),
             'severity' => $this->severityDistribution($f),
             'section' => $this->sectionViolations($f),
@@ -40,6 +41,8 @@ class VisitorReportDashboardService
             'recurring' => $this->recurringViolations($f),
             'criticalViolations' => $this->criticalViolations($f),
             'capa' => $this->capaAnalytics($f),
+            'dueStatusChart' => $this->dueStatusDistribution($f),
+            'branchDueAnalysis' => $this->branchDueAnalysis($f),
             'inspectorPerformance' => $this->inspectorPerformance($f),
             'trend' => $this->scoreTrend($f),
         ];
@@ -108,19 +111,148 @@ class VisitorReportDashboardService
             ->where('visitors_visits.status', 'completed')
             ->when($f['date_from'], fn ($q, $v) => $q->whereDate('visitors_visits.visit_date', '>=', $v))
             ->when($f['date_to'], fn ($q, $v) => $q->whereDate('visitors_visits.visit_date', '<=', $v))
+            ->when($f['branch_id'], fn ($q, $v) => $q->where('visitors_visits.branch_id', $v))
             ->when($f['visit_type_id'], fn ($q, $v) => $q->where('visitors_visits.visit_type_id', $v))
+            ->when($f['inspector_id'], fn ($q, $v) => $q->where('visitors_visits.inspector_id', $v))
             ->whereIn('visitors_capa_actions.status', ['open', 'in_progress']);
 
         if ($kind === 'overdue') {
-            $q->whereDate('visitors_capa_actions.due_date', '<', today()->toDateString());
+            $q->whereNotNull('visitors_capa_actions.due_at')
+                ->where('visitors_capa_actions.due_at', '<', now()->toDateTimeString());
         } else {
             $q->where(function ($q) {
-                $q->whereNull('visitors_capa_actions.due_date')
-                    ->orWhereDate('visitors_capa_actions.due_date', '>=', today()->toDateString());
+                $q->whereNull('visitors_capa_actions.due_at')
+                    ->orWhere('visitors_capa_actions.due_at', '>=', now()->toDateTimeString());
             });
         }
 
         return (int) $q->count();
+    }
+
+    /**
+     * Cards for the Corrective Actions / Due Dates section: open, due-soon,
+     * overdue, immediate, closed-late counts and the completion rate.
+     */
+    private function dueCards(array $f): array
+    {
+        $base = $this->capaQueryBase($f);
+        $now = now()->toDateTimeString();
+        $soon = now()->addHours((float) config('visitors.due_soon_hours', 24))->toDateTimeString();
+
+        $row = (clone $base)
+            ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status IN (\'open\',\'in_progress\') THEN 1 ELSE 0 END) as open_count')
+            ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status = \'closed\' THEN 1 ELSE 0 END) as closed_count')
+            ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status = \'rejected\' THEN 1 ELSE 0 END) as rejected_count')
+            ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status IN (\'open\',\'in_progress\') AND visitors_capa_actions.due_at IS NULL THEN 1 ELSE 0 END) as immediate_count')
+            ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status IN (\'open\',\'in_progress\') AND visitors_capa_actions.due_at IS NOT NULL AND visitors_capa_actions.due_at < ? THEN 1 ELSE 0 END) as overdue_count', [$now])
+            ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status IN (\'open\',\'in_progress\') AND visitors_capa_actions.due_at IS NOT NULL AND visitors_capa_actions.due_at >= ? AND visitors_capa_actions.due_at < ? THEN 1 ELSE 0 END) as due_soon_count', [$now, $soon])
+            ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status = \'closed\' AND visitors_capa_actions.completed_at IS NOT NULL AND visitors_capa_actions.due_at IS NOT NULL AND visitors_capa_actions.completed_at > visitors_capa_actions.due_at THEN 1 ELSE 0 END) as closed_late_count')
+            ->first();
+
+        $open = (int) ($row->open_count ?? 0);
+        $closed = (int) ($row->closed_count ?? 0);
+        $immediate = (int) ($row->immediate_count ?? 0);
+        $overdue = (int) ($row->overdue_count ?? 0);
+        $dueSoon = (int) ($row->due_soon_count ?? 0);
+        $upcoming = max(0, $open - ($immediate + $overdue + $dueSoon));
+        $closedLate = (int) ($row->closed_late_count ?? 0);
+
+        $total = $open + $closed + (int) ($row->rejected_count ?? 0);
+
+        return [
+            'open' => $open,
+            'upcoming' => $upcoming,
+            'dueSoon' => $dueSoon,
+            'overdue' => $overdue,
+            'immediate' => $immediate,
+            'closed' => $closed,
+            'closedLate' => $closedLate,
+            'completionRate' => $total > 0 ? round(($closed / $total) * 100, 1) : null,
+        ];
+    }
+
+    /**
+     * Distribution of open CAPA actions by due status, for the chart.
+     */
+    private function dueStatusDistribution(array $f): array
+    {
+        $base = $this->capaQueryBase($f);
+        $now = now()->toDateTimeString();
+        $soon = now()->addHours((float) config('visitors.due_soon_hours', 24))->toDateTimeString();
+
+        $rows = (clone $base)
+            ->whereIn('visitors_capa_actions.status', ['open', 'in_progress'])
+            ->selectRaw('CASE WHEN visitors_capa_actions.due_at IS NULL THEN \'immediate\'
+                WHEN visitors_capa_actions.due_at < ? THEN \'overdue\'
+                WHEN visitors_capa_actions.due_at < ? THEN \'due_soon\'
+                ELSE \'upcoming\' END as bucket', [$now, $soon])
+            ->selectRaw('COUNT(*) as count')
+            ->groupBy('bucket')
+            ->get()
+            ->pluck('count', 'bucket');
+
+        $order = ['immediate', 'overdue', 'due_soon', 'upcoming'];
+        $colors = ['immediate' => '#7c3aed', 'overdue' => '#dc2626', 'due_soon' => '#ca8a04', 'upcoming' => '#2563eb'];
+
+        $out = [];
+        foreach ($order as $bucket) {
+            $out[] = [
+                'name' => $bucket,
+                'count' => (int) ($rows[$bucket] ?? 0),
+                'color' => $colors[$bucket],
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Open/overdue by branch for the branch analysis table.
+     */
+    private function branchDueAnalysis(array $f): array
+    {
+        $now = now()->toDateTimeString();
+
+        return $this->capaQueryBase($f)
+            ->leftJoin('branches', 'branches.id', '=', 'visitors_visits.branch_id')
+            ->select('branches.name as branch_name', 'visitors_visits.branch_id')
+            ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status IN (\'open\',\'in_progress\') THEN 1 ELSE 0 END) as open_count')
+            ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status IN (\'open\',\'in_progress\') AND visitors_capa_actions.due_at IS NOT NULL AND visitors_capa_actions.due_at < ? THEN 1 ELSE 0 END) as overdue_count', [$now])
+            ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status = \'closed\' THEN 1 ELSE 0 END) as closed_count')
+            ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status = \'closed\' AND visitors_capa_actions.completed_at IS NOT NULL AND visitors_capa_actions.due_at IS NOT NULL AND visitors_capa_actions.completed_at > visitors_capa_actions.due_at THEN 1 ELSE 0 END) as closed_late_count')
+            ->groupBy('visitors_visits.branch_id', 'branches.name')
+            ->orderByDesc('open_count')
+            ->get()
+            ->map(function ($row) {
+                $open = (int) ($row->open_count ?? 0);
+                $closed = (int) ($row->closed_count ?? 0);
+                $total = $open + $closed;
+                return [
+                    'branch_id' => $row->branch_id,
+                    'name' => $row->branch_name ?: ('#'.$row->branch_id),
+                    'open' => $open,
+                    'overdue' => (int) ($row->overdue_count ?? 0),
+                    'closed' => $closed,
+                    'closed_late' => (int) ($row->closed_late_count ?? 0),
+                    'completionRate' => $total > 0 ? round(($closed / $total) * 100, 1) : null,
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * Shared CAPA query restricted to completed visits within the filters.
+     */
+    private function capaQueryBase(array $f)
+    {
+        return DB::table('visitors_capa_actions')
+            ->join('visitors_visits', 'visitors_visits.id', '=', 'visitors_capa_actions.visit_id')
+            ->where('visitors_visits.status', 'completed')
+            ->when($f['date_from'], fn ($q, $v) => $q->whereDate('visitors_visits.visit_date', '>=', $v))
+            ->when($f['date_to'], fn ($q, $v) => $q->whereDate('visitors_visits.visit_date', '<=', $v))
+            ->when($f['branch_id'], fn ($q, $v) => $q->where('visitors_visits.branch_id', $v))
+            ->when($f['visit_type_id'], fn ($q, $v) => $q->where('visitors_visits.visit_type_id', $v))
+            ->when($f['inspector_id'], fn ($q, $v) => $q->where('visitors_visits.inspector_id', $v));
     }
 
     private function averageTimeToCloseCapa(array $f): ?float
@@ -306,7 +438,8 @@ class VisitorReportDashboardService
                 // overdue is derived: split stored open/in_progress by due date
                 $overdue = (int) (clone $q)
                     ->where('visitors_capa_actions.status', $status)
-                    ->whereDate('visitors_capa_actions.due_date', '<', today()->toDateString())
+                    ->whereNotNull('visitors_capa_actions.due_at')
+                    ->where('visitors_capa_actions.due_at', '<', now()->toDateTimeString())
                     ->count();
                 $open = ($count - $overdue);
                 $statuses['overdue'] += $overdue;

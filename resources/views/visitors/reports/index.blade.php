@@ -24,7 +24,7 @@ $selectedColors = $filters['colors'] ?? [];
 
 {{-- Filters --}}
 <form method="GET" action="{{ route('visitors.reports') }}" class="card mb-6">
-    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6">
+    <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <div>
             <label class="form-label">{{ __('common.branch') }}</label>
             <select name="branch_id" class="form-input">
@@ -71,6 +71,15 @@ $selectedColors = $filters['colors'] ?? [];
                 @endforeach
             </div>
         </div>
+        <div>
+            <label class="form-label">{{ __('visitors.filter_due_status') }}</label>
+            <select name="due_status" class="form-input">
+                <option value="">{{ __('common.all') }}</option>
+                @foreach(['open','overdue','due_soon','immediate','closed_late','closed'] as $ds)
+                <option value="{{ $ds }}" @selected(($filters['due_status'] ?? null) === $ds)>{{ __("visitors.st_$ds") }}</option>
+                @endforeach
+            </select>
+        </div>
     </div>
     <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <button type="submit" class="btn-primary min-h-[44px] w-full sm:w-auto">{{ __('common.apply_filters') }}</button>
@@ -81,18 +90,23 @@ $selectedColors = $filters['colors'] ?? [];
 @if($visits->count())
 <div class="card overflow-hidden !p-0">
     <div class="overflow-x-auto -mx-3 sm:mx-0">
-        <table class="w-full text-sm">
+        <table class="w-full min-w-[1180px] text-sm text-center">
         <thead>
-            <tr class="border-b border-slate-200 bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                <th class="px-4 py-3">{{ __('common.complaint_id') }}</th>
-                <th class="px-4 py-3">{{ __('common.branch') }}</th>
-                <th class="px-4 py-3">{{ __('visitors.visit_type') }}</th>
-                <th class="px-4 py-3">{{ __('visitors.inspector') }}</th>
-                <th class="px-4 py-3">{{ __('visitors.visit_date') }}</th>
-                <th class="px-4 py-3">{{ __('visitors.score') }}</th>
-                <th class="px-4 py-3">{{ __('visitors.violations') }}</th>
-                <th class="px-4 py-3">{{ __('common.status') }}</th>
-                <th class="px-4 py-3">{{ __('visitors.actions') }}</th>
+            <tr class="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+                <th class="px-2 py-2.5 whitespace-nowrap">{{ __('common.complaint_id') }}</th>
+                <th class="px-2 py-2.5">{{ __('common.branch') }}</th>
+                <th class="px-2 py-2.5">{{ __('visitors.visit_type') }}</th>
+                <th class="px-2 py-2.5">{{ __('visitors.inspector') }}</th>
+                <th class="px-2 py-2.5 whitespace-nowrap">{{ __('visitors.visit_date') }}</th>
+                <th class="px-2 py-2.5 whitespace-nowrap">{{ __('visitors.score') }}</th>
+                <th class="px-2 py-2.5 whitespace-nowrap">{{ __('visitors.violations') }}</th>
+                <th class="px-2 py-2.5 whitespace-nowrap">{{ __('visitors.critical_violations') }}</th>
+                <th class="px-2 py-2.5 whitespace-nowrap">{{ __('visitors.open_actions') }}</th>
+                <th class="px-2 py-2.5 whitespace-nowrap">{{ __('visitors.due_soon_actions') }}</th>
+                <th class="px-2 py-2.5 whitespace-nowrap">{{ __('visitors.overdue_actions') }}</th>
+                <th class="px-2 py-2.5 whitespace-nowrap">{{ __('visitors.immediate_actions') }}</th>
+                <th class="px-2 py-2.5 whitespace-nowrap">{{ __('visitors.closed_actions') }}</th>
+                <th class="px-2 py-2.5 whitespace-nowrap">{{ __('visitors.actions') }}</th>
             </tr>
         </thead>
         <tbody>
@@ -100,24 +114,30 @@ $selectedColors = $filters['colors'] ?? [];
             @php
                 $score = $visit->getAttribute('score');
                 [$scoreHex, $scoreClasses] = $colors[$score['color']] ?? $colors['slate'];
+                $due = $visit->getAttribute('capa_due');
             @endphp
-            <tr class="border-b border-slate-100 hover:bg-slate-50">
-                <td class="px-4 py-3 font-semibold text-slate-900">#{{ $visit->id }}</td>
-                <td class="px-4 py-3">{{ $visit->branch?->name ?: '—' }}</td>
-                <td class="px-4 py-3">{{ $visit->visitType?->name ?: '—' }}</td>
-                <td class="px-4 py-3">{{ $visit->inspector?->name ?: '—' }}</td>
-                <td class="px-4 py-3">{{ $visit->visit_date?->format('d/m/Y') }}</td>
-                <td class="px-4 py-3">
-                    <span class="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-bold {{ $scoreClasses }}">
+            <tr class="border-b border-slate-100 align-middle hover:bg-slate-50">
+                <td class="px-2 py-2 font-semibold whitespace-nowrap text-slate-900">#{{ $visit->id }}</td>
+                <td class="px-2 py-2">{{ $visit->branch?->name ?: '—' }}</td>
+                <td class="px-2 py-2">{{ $visit->visitType?->name ?: '—' }}</td>
+                <td class="px-2 py-2">{{ $visit->inspector?->name ?: '—' }}</td>
+                <td class="px-2 py-2 whitespace-nowrap">{{ $visit->visit_date?->format('d/m/Y') }}</td>
+                <td class="px-2 py-2">
+                    <span class="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold {{ $scoreClasses }}">
                         {{ $score['percentage'] !== null ? $score['percentage'].'%' : '—' }}
                     </span>
                 </td>
-                <td class="px-4 py-3"><span class="{{ $visit->getAttribute('violations') ? 'font-bold text-rose-600' : 'text-slate-500' }}">{{ $visit->getAttribute('violations') }}</span></td>
-                <td class="px-4 py-3"><span class="badge" style="--badge-color:#16a34a">{{ __('visitors.completed') }}</span></td>
-                <td class="px-4 py-3">
-                    <div class="flex gap-2 flex-wrap">
-                        <a href="{{ route('visitors.reports.show', $visit) }}" class="btn-secondary !px-3 !py-1.5 text-xs min-h-[36px] inline-flex items-center">{{ __('visitors.view_report') }}</a>
-                        <a href="{{ route('visitors.reports.pdf', $visit) }}" class="btn-primary !px-3 !py-1.5 text-xs min-h-[36px] inline-flex items-center">{{ __('visitors.print_pdf') }}</a>
+                <td class="px-2 py-2 tabular-nums"><span class="{{ $visit->getAttribute('violations') ? 'font-bold text-rose-600' : 'text-slate-500' }}">{{ $visit->getAttribute('violations') }}</span></td>
+                <td class="px-2 py-2 tabular-nums"><span class="{{ $visit->getAttribute('critical_violations') ? 'font-bold text-rose-700' : 'text-slate-500' }}">{{ $visit->getAttribute('critical_violations') }}</span></td>
+                <td class="px-2 py-2 tabular-nums"><span class="{{ $due['open'] ? 'font-bold text-blue-600' : 'text-slate-500' }}">{{ $due['open'] }}</span></td>
+                <td class="px-2 py-2 tabular-nums"><span class="{{ $due['due_soon'] ? 'font-bold text-amber-600' : 'text-slate-500' }}">{{ $due['due_soon'] }}</span></td>
+                <td class="px-2 py-2 tabular-nums"><span class="{{ $due['overdue'] ? 'font-bold text-rose-600' : 'text-slate-500' }}">{{ $due['overdue'] }}</span></td>
+                <td class="px-2 py-2 tabular-nums"><span class="{{ $due['immediate'] ? 'font-bold text-violet-600' : 'text-slate-500' }}">{{ $due['immediate'] }}</span></td>
+                <td class="px-2 py-2 tabular-nums"><span class="{{ $due['closed'] ? 'font-bold text-emerald-600' : 'text-slate-500' }}">{{ $due['closed'] }}</span></td>
+                <td class="px-2 py-2">
+                    <div class="flex items-center justify-center gap-2 flex-nowrap">
+                        <a href="{{ route('visitors.reports.show', $visit) }}" class="btn-secondary !px-2.5 !py-1 text-[11px] min-h-[34px] inline-flex items-center whitespace-nowrap">{{ __('visitors.view_report') }}</a>
+                        <a href="{{ route('visitors.reports.pdf', $visit) }}" class="btn-primary !px-2.5 !py-1 text-[11px] min-h-[34px] inline-flex items-center whitespace-nowrap">{{ __('visitors.print_pdf') }}</a>
                     </div>
                 </td>
             </tr>

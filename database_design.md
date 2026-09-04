@@ -294,16 +294,16 @@ A separate `visitors_`-prefixed set of tables models quality inspections. They a
 | `visitors_visit_types` | id, name, code, is_active | Inspection type (daily, monthly, occupational_safety) |
 | `visitors_sections` | id, name, code, sort_order, is_active | Checklist grouping |
 | `visitors_root_causes` | id, name, code, is_active | Non-compliance root causes |
-| `visitors_checklist_items` | id, visit_type_id (FK), section_id (FK), code, title, severity, deduction_score, photo_required, immediate_action, corrective_action, preventive_action, responsible, deadline, sort_order, is_active, root_cause_id (FK nullable) | Questionnaire; `photo_required` set when severity = critical; `root_cause_id` is the suggested/default root cause added by the Excel master-import migration (inspector still chooses freely at NC time) |
+| `visitors_checklist_items` | id, visit_type_id (FK), section_id (FK), code, title, severity, deduction_score, photo_required, immediate_action, corrective_action, preventive_action, responsible, period_hours, sort_order, is_active, root_cause_id (FK nullable) | Questionnaire; `photo_required` set when severity = critical; `root_cause_id` is the suggested/default root cause added by the Excel master-import migration (inspector still chooses freely at NC time) |
 | `visitors_severities` | id, name, code, sort_order, is_active | Severity master seeded Critical/Major/Minor; deduction is configured per item and never derived from the severity name |
 
 ### Transactions
 | Table | Columns | Notes |
 |---|---|---|
 | `visitors_visits` | id, visit_type_id, branch_id, inspector_id, visit_date, status, started_at, completed_at | status = in_progress/completed; indexed on inspector/status and branch/date |
-| `visitors_visit_items` | id, visit_id (FK cascade), checklist_item_id (FK), status, visited_at, root_cause_id, note, main_kitchen, support_department, and snapshot columns (item_code, item_title, section_name, severity, deduction_score, photo_required, immediate/corrective/preventive_action, responsible, deadline) | unique(visit_id, checklist_item_id); snapshot is immutable at creation |
+| `visitors_visit_items` | id, visit_id (FK cascade), checklist_item_id (FK), status, visited_at, root_cause_id, note, main_kitchen, support_department, and snapshot columns (item_code, item_title, section_name, severity, deduction_score, photo_required, immediate/corrective/preventive_action, responsible, period_hours) | unique(visit_id, checklist_item_id); snapshot is immutable at creation |
 | `visitors_visit_photos` | id, visit_id (FK cascade), visit_item_id (FK noAction), path, original_name, mime_type, original_size, compressed_size | Stored privately on the `local` disk; served via authenticated route |
-| `visitors_capa_actions` | id, visit_id (FK cascade), visit_item_id (FK noAction), title, immediate/corrective/preventive_action, responsible_user_id (FK noAction), due_date, status, completed_at, reviewed_at, reviewed_by (FK noAction) | status = open/in_progress/overdue/closed/rejected |
+| `visitors_capa_actions` | id, visit_id (FK cascade), visit_item_id (FK noAction), title, immediate/corrective/preventive_action, responsible_user_id (FK noAction), period_hours, due_at, status, completed_at, reviewed_at, reviewed_by (FK noAction) | stored status = open/in_progress/closed/rejected only; overdue/completed/closed_late/immediate/upcoming/due_soon are virtual via `App\Services\Visitors\DueDateService::dueStatus()`; due_at = created_at + period_hours, computed once at creation (NULL when period_hours is 0/null -> Immediate = no due date); `period_hours` is decimal 8,2 nullable; legacy `due_date` column still exists but is unused; due_soon window uses `visitors.due_soon_hours` (default 24, env VISITORS_DUE_SOON_HOURS) |
 | `visitors_capa_updates` | id, capa_action_id (FK cascade), user_id, status, comment, photo, created_at | Append-only CAPA timeline |
 
 ### Master data imports (Excel)

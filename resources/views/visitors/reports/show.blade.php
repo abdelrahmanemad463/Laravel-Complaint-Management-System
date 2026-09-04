@@ -16,6 +16,17 @@ $capaStatusColor = [
     'open' => '#2563eb', 'in_progress' => '#7c3aed', 'overdue' => '#dc2626',
     'closed' => '#16a34a', 'rejected' => '#475569',
 ];
+$dueStatusColor = [
+    'immediate' => '#7c3aed', 'upcoming' => '#2563eb', 'due_soon' => '#ca8a04',
+    'overdue' => '#dc2626', 'completed' => '#16a34a', 'closed_late' => '#ea580c',
+    'rejected' => '#475569',
+];
+$dueStatusLabel = [
+    'immediate' => __('visitors.st_immediate'), 'upcoming' => __('visitors.st_upcoming'),
+    'due_soon' => __('visitors.st_due_soon'), 'overdue' => __('visitors.st_overdue'),
+    'completed' => __('visitors.st_completed'), 'closed_late' => __('visitors.st_closed_late'),
+    'rejected' => __('visitors.st_rejected'),
+];
 $visit = $report['visit'];
 @endphp
 <div class="mb-8 flex flex-wrap items-end justify-between gap-4 print:hidden">
@@ -62,6 +73,43 @@ $visit = $report['visit'];
         <div class="text-sm text-slate-600">{{ __('visitors.compliant') }}: <span class="font-bold text-emerald-600">{{ $report['counts']['ok'] }}</span></div>
         <div class="text-sm text-slate-600">{{ __('visitors.non_compliant') }}: <span class="font-bold text-rose-600">{{ $report['counts']['nc'] }}</span></div>
         <div class="text-sm text-slate-600">{{ __('visitors.not_applicable') }}: <span class="font-bold text-slate-700">{{ $report['counts']['na'] }}</span></div>
+    </div>
+
+    {{-- Violations & corrective-action due-summary cards --}}
+    @php $dueSummary = $report['dueSummary']; $totalViolations = $report['counts']['nc']; $criticalViolations = $report['severity']->where('severity', 'critical')->sum('count'); @endphp
+    <div class="mt-5 grid gap-4 text-center sm:grid-cols-2 lg:grid-cols-4">
+        <a href="#corrective-action-plan" class="rounded-xl border border-slate-200 p-4 transition hover:border-indigo-300 hover:bg-indigo-50/40 no-underline">
+            <div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.total_violations') }}</div>
+            <div class="mt-1 text-2xl font-black text-slate-900">{{ $totalViolations }}</div>
+        </a>
+        <a href="#corrective-action-plan" class="rounded-xl border border-slate-200 p-4 transition hover:border-rose-300 hover:bg-rose-50/40 no-underline">
+            <div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.critical_violations') }}</div>
+            <div class="mt-1 text-2xl font-black {{ $criticalViolations ? 'text-rose-600' : 'text-slate-900' }}">{{ $criticalViolations }}</div>
+        </a>
+        <a href="#corrective-action-plan" class="rounded-xl border border-slate-200 p-4 transition hover:border-blue-300 hover:bg-blue-50/40 no-underline">
+            <div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.open_actions') }}</div>
+            <div class="mt-1 text-2xl font-black text-blue-600">{{ $dueSummary['openActions'] }}</div>
+        </a>
+        <a href="#corrective-action-plan" class="rounded-xl border border-slate-200 p-4 transition hover:border-amber-300 hover:bg-amber-50/40 no-underline">
+            <div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.due_soon_actions') }}</div>
+            <div class="mt-1 text-2xl font-black {{ $dueSummary['dueSoon'] ? 'text-amber-600' : 'text-slate-900' }}">{{ $dueSummary['dueSoon'] }}</div>
+        </a>
+        <a href="#corrective-action-plan" class="rounded-xl border border-slate-200 p-4 transition hover:border-rose-300 hover:bg-rose-50/40 no-underline">
+            <div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.overdue_actions') }}</div>
+            <div class="mt-1 text-2xl font-black {{ $dueSummary['overdue'] ? 'text-rose-600' : 'text-slate-900' }}">{{ $dueSummary['overdue'] }}</div>
+        </a>
+        <a href="#corrective-action-plan" class="rounded-xl border border-slate-200 p-4 transition hover:border-violet-300 hover:bg-violet-50/40 no-underline">
+            <div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.immediate_actions') }}</div>
+            <div class="mt-1 text-2xl font-black {{ $dueSummary['immediate'] ? 'text-violet-600' : 'text-slate-900' }}">{{ $dueSummary['immediate'] }}</div>
+        </a>
+        <a href="#corrective-action-plan" class="rounded-xl border border-slate-200 p-4 transition hover:border-emerald-300 hover:bg-emerald-50/40 no-underline">
+            <div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.closed_actions') }}</div>
+            <div class="mt-1 text-2xl font-black text-emerald-600">{{ $dueSummary['closed'] }}</div>
+        </a>
+        <a href="#corrective-action-plan" class="rounded-xl border border-slate-200 p-4 transition hover:border-orange-300 hover:bg-orange-50/40 no-underline">
+            <div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.closed_late_actions') }}</div>
+            <div class="mt-1 text-2xl font-black {{ $dueSummary['closedLate'] ? 'text-orange-600' : 'text-slate-900' }}">{{ $dueSummary['closedLate'] }}</div>
+        </a>
     </div>
 </div>
 
@@ -144,16 +192,17 @@ $visit = $report['visit'];
     <h3 class="section-title mb-4">{{ __('visitors.violation_details') }}</h3>
     @if($report['violations']->count())
     <div class="overflow-x-auto -mx-3 sm:mx-0">
-    <table class="w-full text-sm min-w-[900px] text-center">
+    <table class="w-full text-sm min-w-[1080px] text-center">
         <thead><tr class="border-b border-slate-200 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
             <th class="py-2 px-2 text-center">#</th><th class="py-2 px-2 text-center">{{ __('common.code') }}</th><th class="py-2 px-2 text-center">{{ __('visitors.section') }}</th>
             <th class="py-2 px-2 text-center">{{ __('visitors.item') }}</th><th class="py-2 px-2 text-center">{{ __('visitors.severity') }}</th>
             <th class="py-2 px-2 text-center">{{ __('visitors.root_cause') }}</th><th class="py-2 px-2 text-center">{{ __('visitors.notes') }}</th>
-            <th class="py-2 px-2 text-center">{{ __('visitors.evidence') }}</th><th class="py-2 px-2 text-center">{{ __('visitors.capa_status') }}</th>
+            <th class="py-2 px-2 text-center">{{ __('visitors.evidence') }}</th><th class="py-2 px-2 text-center">{{ __('visitors.period') }}</th><th class="py-2 px-2 text-center">{{ __('visitors.due_status') }}</th>
+            <th class="py-2 px-2 text-center">{{ __('visitors.capa_status') }}</th>
         </tr></thead>
         <tbody>
-            @foreach($report['violations'] as $i => $item)
-            @php $capaStatus = $item->capaAction ? $item->capaAction->effectiveStatus() : '—'; @endphp
+            @foreach($report['violations'] as $i => $entry)
+            @php $item = $entry->item; $capaStatus = $entry->effectiveStatus ?? '—'; $dueStatus = $entry->dueStatus; @endphp
             <tr class="border-b border-slate-100 align-top">
                 <td class="py-2 px-2 text-center">{{ $i + 1 }}</td>
                 <td class="py-2 px-2 text-center"><span class="badge" style="--badge-color:#475569">{{ $item->item_code }}</span></td>
@@ -173,6 +222,17 @@ $visit = $report['visit'];
                     @endforelse
                     </span>
                 </td>
+                <td class="py-2 px-2 text-center whitespace-nowrap">{{ $entry->periodLabel ?: '—' }}</td>
+                <td class="py-2 px-2 text-center">
+                    @if($dueStatus)
+                    <span class="badge" style="--badge-color:{{ $dueStatusColor[$dueStatus] ?? '#475569' }}">{{ $dueStatusLabel[$dueStatus] ?? ucfirst($dueStatus) }}</span>
+                    @if($dueStatus === 'due_soon' || $dueStatus === 'upcoming')
+                    <div class="mt-0.5 text-[11px] text-slate-500">{{ $entry->dueAt?->format('d/m/Y H:i') }}</div>
+                    @endif
+                    @else
+                    <span class="text-slate-400">—</span>
+                    @endif
+                </td>
                 <td class="py-2 px-2 text-center">
                     @if($capaStatus !== '—')
                     <span class="badge" style="--badge-color:{{ $capaStatusColor[$capaStatus] ?? '#475569' }}">{{ ucfirst($capaStatus) }}</span>
@@ -191,16 +251,17 @@ $visit = $report['visit'];
 </div>
 
 {{-- 8. Corrective action plan / CAPA --}}
-<div class="mb-8 card p-4 sm:p-6">
+<div id="corrective-action-plan" class="mb-8 card p-4 sm:p-6">
     <h3 class="section-title mb-4">{{ __('visitors.corrective_action_plan') }}</h3>
     @if($report['capa']['actions']->count())
     <div class="overflow-x-auto -mx-3 sm:mx-0">
-    <table class="w-full text-sm min-w-[1150px] text-center">
+    <table class="w-full text-sm min-w-[1250px] text-center">
         <thead><tr class="border-b border-slate-200 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
             <th class="py-2 px-2 text-center w-10">#</th><th class="py-2 px-2 text-center min-w-[190px]">{{ __('visitors.item') }}</th><th class="py-2 px-2 text-center">{{ __('visitors.severity') }}</th>
             <th class="py-2 px-2 text-center">{{ __('visitors.root_cause') }}</th><th class="py-2 px-2 text-center min-w-[150px]">{{ __('visitors.immediate_action') }}</th>
             <th class="py-2 px-2 text-center min-w-[150px]">{{ __('visitors.corrective_action') }}</th><th class="py-2 px-2 text-center min-w-[150px]">{{ __('visitors.preventive_action') }}</th>
-            <th class="py-2 px-2 text-center min-w-[110px]">{{ __('visitors.responsible') }}</th><th class="py-2 px-2 text-center">{{ __('visitors.due_date') }}</th>
+            <th class="py-2 px-2 text-center min-w-[110px]">{{ __('visitors.responsible') }}</th><th class="py-2 px-2 text-center">{{ __('visitors.period') }}</th>
+            <th class="py-2 px-2 text-center">{{ __('visitors.due_date') }}</th><th class="py-2 px-2 text-center">{{ __('visitors.due_status') }}</th>
             <th class="py-2 px-2 text-center">{{ __('visitors.status') }}</th>
         </tr></thead>
         <tbody>
@@ -208,6 +269,12 @@ $visit = $report['visit'];
             @php
                 $action = $entry->action;
                 $vi = $action->visitItem;
+                $remaining = null;
+                if (in_array($action->dueStatus(), ['due_soon', 'upcoming'], true) && $action->due_at) {
+                    $remaining = $action->due_at->diffForHumans(now(), ['parts' => 1]);
+                } elseif ($action->dueStatus() === 'overdue' && $action->due_at) {
+                    $remaining = $action->due_at->diffForHumans(now(), ['parts' => 1]);
+                }
             @endphp
             <tr class="border-b border-slate-100 align-top">
                 <td class="py-2 px-2 text-center align-top">{{ $i + 1 }}</td>
@@ -218,7 +285,14 @@ $visit = $report['visit'];
                 <td class="py-2 px-2 text-center align-top break-words whitespace-normal">{{ $action->corrective_action ?: '—' }}</td>
                 <td class="py-2 px-2 text-center align-top break-words whitespace-normal">{{ $action->preventive_action ?: '—' }}</td>
                 <td class="py-2 px-2 text-center align-top break-words">{{ $action->responsible?->name ?: ($vi?->responsible ?: '—') }}</td>
-                <td class="py-2 px-2 text-center align-top whitespace-nowrap">{{ $action->due_date?->format('d/m/Y') ?: '—' }}</td>
+                <td class="py-2 px-2 text-center align-top whitespace-nowrap">{{ $entry->periodLabel ?: '—' }}</td>
+                <td class="py-2 px-2 text-center align-top whitespace-nowrap">{{ $action->due_at?->format('d/m/Y H:i') ?: '—' }}</td>
+                <td class="py-2 px-2 text-center align-top">
+                    <span class="badge" style="--badge-color:{{ $dueStatusColor[$entry->dueStatus] ?? '#475569' }}">{{ $dueStatusLabel[$entry->dueStatus] ?? ucfirst($entry->dueStatus) }}</span>
+                    @if($remaining)
+                    <div class="mt-0.5 text-[11px] text-slate-500">{{ $remaining }}</div>
+                    @endif
+                </td>
                 <td class="py-2 px-2 text-center align-top">
                     <span class="badge" style="--badge-color:{{ $capaStatusColor[$entry->status] ?? '#475569' }}">{{ ucfirst($entry->status) }}</span>
                     @if(in_array($entry->status, ['open', 'in_progress', 'overdue'], true))

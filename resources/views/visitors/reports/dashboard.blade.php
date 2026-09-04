@@ -11,6 +11,7 @@ $charts = [
     'section' => array_map(fn ($r) => ['name' => $r['name'], 'total' => $r['count'], 'color' => '#4f46e5'], $d['section']),
     'rootCause' => array_map(fn ($r) => ['name' => $r['name'], 'total' => $r['count'], 'color' => '#0891b2'], $d['rootCause']),
     'trend' => ['labels' => array_map(fn ($r) => $r['label'], $d['trend']), 'values' => array_map(fn ($r) => $r['score'], $d['trend'])],
+    'dueStatus' => array_map(fn ($r) => ['name' => __("visitors.st_{$r['name']}"), 'total' => $r['count'], 'color' => $r['color']], $d['dueStatusChart']),
 ];
 @endphp
 <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -70,11 +71,52 @@ $charts = [
 {{-- Cards --}}
 <div class="mb-8 grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.total_visits') }}</div><div class="mt-1 text-3xl font-black text-slate-900">{{ $cards['totalVisits'] }}</div></div>
-    <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.avg_score') }}</div><div class="mt-1 text-3xl font-black" style="color:{{ $scoreHex }}">{{ $cards['avgScore'] !== null ? $cards['avgScore'].'%' : 'â€”' }}</div></div>
+    <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.avg_score') }}</div><div class="mt-1 text-3xl font-black" style="color:{{ $scoreHex }}">{{ $cards['avgScore'] !== null ? $cards['avgScore'].'%' : '—' }}</div></div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.critical_violations') }}</div><div class="mt-1 text-3xl font-black {{ $cards['criticalViolations'] ? 'text-rose-600' : 'text-slate-900' }}">{{ $cards['criticalViolations'] }}</div></div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.total_violations') }}</div><div class="mt-1 text-3xl font-black text-orange-600">{{ $cards['totalViolations'] }}</div></div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.open_capa') }}</div><div class="mt-1 text-3xl font-black text-blue-600">{{ $cards['openCapa'] }}</div></div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.overdue_capa') }}</div><div class="mt-1 text-3xl font-black {{ $cards['overdueCapa'] ? 'text-rose-600' : 'text-slate-900' }}">{{ $cards['overdueCapa'] }}</div></div>
+</div>
+
+{{-- Corrective Actions / Due Dates section --}}
+@php $due = $d['dueCards']; @endphp
+<div class="mb-8">
+    <h3 class="mb-3 text-lg font-bold text-slate-900">{{ __('visitors.corrective_action_plan') }} — {{ __('visitors.filter_due_status') }}</h3>
+    <div class="mb-6 grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
+        <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.open_actions') }}</div><div class="mt-1 text-2xl font-black text-blue-600">{{ $due['open'] }}</div></div>
+        <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.st_upcoming') }}</div><div class="mt-1 text-2xl font-black text-indigo-600">{{ $due['upcoming'] }}</div></div>
+        <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.due_soon_actions') }}</div><div class="mt-1 text-2xl font-black {{ $due['dueSoon'] ? 'text-amber-600' : 'text-slate-900' }}">{{ $due['dueSoon'] }}</div></div>
+        <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.overdue_actions') }}</div><div class="mt-1 text-2xl font-black {{ $due['overdue'] ? 'text-rose-600' : 'text-slate-900' }}">{{ $due['overdue'] }}</div></div>
+        <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.immediate_actions') }}</div><div class="mt-1 text-2xl font-black {{ $due['immediate'] ? 'text-violet-600' : 'text-slate-900' }}">{{ $due['immediate'] }}</div></div>
+        <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.closed_actions') }}</div><div class="mt-1 text-2xl font-black text-emerald-600">{{ $due['closed'] }}</div></div>
+        <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.closed_late_actions') }}</div><div class="mt-1 text-2xl font-black {{ $due['closedLate'] ? 'text-orange-600' : 'text-slate-900' }}">{{ $due['closedLate'] }}</div></div>
+        <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.completion_rate') }}</div><div class="mt-1 text-2xl font-black text-slate-900">{{ $due['completionRate'] !== null ? $due['completionRate'].'%' : '—' }}</div></div>
+    </div>
+
+    <div class="grid gap-6 grid-cols-1 lg:grid-cols-2">
+        <div class="card p-4 sm:p-6"><h3 class="section-title mb-4">{{ __('visitors.violations_by_severity') }} <span class="text-xs font-normal text-slate-400">({{ __('visitors.filter_due_status') }})</span></h3><div class="h-64 sm:h-72"><canvas id="report-dueStatus-chart"></canvas></div></div>
+        <div class="card overflow-x-auto p-4 sm:p-6">
+            <h3 class="section-title mb-4">{{ __('visitors.branch_comparison') }} — {{ __('visitors.open_actions') }}</h3>
+            @if($d['branchDueAnalysis'])
+            <table class="w-full text-sm">
+                <thead><tr class="border-b border-slate-200 text-left text-xs font-bold uppercase tracking-wide text-slate-500"><th class="py-2">{{ __('common.branch') }}</th><th class="py-2">{{ __('visitors.open_actions') }}</th><th class="py-2">{{ __('visitors.overdue_actions') }}</th><th class="py-2">{{ __('visitors.closed_actions') }}</th><th class="py-2">{{ __('visitors.completion_rate') }}</th></tr></thead>
+                <tbody>
+                    @foreach($d['branchDueAnalysis'] as $row)
+                    <tr class="border-b border-slate-100">
+                        <td class="py-2 font-semibold">{{ $row['name'] }}</td>
+                        <td class="py-2 {{ $row['open'] ? 'font-bold text-blue-600' : 'text-slate-500' }}">{{ $row['open'] }}</td>
+                        <td class="py-2 {{ $row['overdue'] ? 'font-bold text-rose-600' : 'text-slate-500' }}">{{ $row['overdue'] }}</td>
+                        <td class="py-2 text-emerald-600">{{ $row['closed'] }}</td>
+                        <td class="py-2 font-semibold">{{ $row['completionRate'] !== null ? $row['completionRate'].'%' : '—' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            @else
+            <p class="text-slate-500">{{ __('visitors.no_data') }}</p>
+            @endif
+        </div>
+    </div>
 </div>
 
 <script type="application/json" id="visit-report-chart-data">{!! json_encode(['charts' => $charts]) !!}</script>

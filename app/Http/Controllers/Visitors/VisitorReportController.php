@@ -47,7 +47,7 @@ class VisitorReportController extends Controller
     {
         $this->abortUnlessReportsAccess();
 
-        $filters = $request->only(['branch_id', 'visit_type_id', 'inspector_id', 'date_from', 'date_to', 'colors']);
+        $filters = $request->only(['branch_id', 'visit_type_id', 'inspector_id', 'date_from', 'date_to', 'colors', 'due_status']);
         $filters['colors'] = $request->input('colors', []);
 
         $visits = $this->reports->listReports($filters);
