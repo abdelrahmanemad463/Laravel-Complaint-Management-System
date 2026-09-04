@@ -1,6 +1,6 @@
 # Complaint Desk — Persistent Project Memory
 
-**Last synchronized:** 2026-09-02
+**Last synchronized:** 2026-09-04
 **Project root:** `C:\xampp\htdocs\complaint`  
 **Application:** Complaint Desk / Complaint Management System  
 **Source of truth:** The current codebase, migrations, configuration, tests, and generated build output. This file is a concise continuation guide; `project_structure.md` and `database_design.md` contain the fuller architecture and database narratives.
@@ -193,6 +193,9 @@ The `.env.example` specifies `SESSION_DRIVER=database`, and the default Laravel 
 | `app/Models/Complaint.php` | Complaint relationships, casts, soft deletes, and filter scope |
 | `app/Services/ComplaintStatusService.php` | Transactional status transition/history/resolution logic |
 | `app/Services/ActivityLogService.php` | Activity-log persistence |
+| `app/helpers.php` | `pdf_ar()` Arabic PDF text shaping helper (ar-php `utf8Glyphs`) |
+| `config/dompdf.php` | Published dompdf config (`font_dir` = `storage/fonts`) |
+| `storage/fonts/` | Amiri-Regular/Bold TTFs for Arabic PDF rendering |
 | `app/Exports/ComplaintsExport.php` | Query-based localized Excel export |
 | `app/Providers/AppServiceProvider.php` | Super Admin Gate bypass + visitors policy registration |
 | `app/Http/Middleware/SetLocale.php` | Session locale validation and application locale selection |
@@ -365,6 +368,23 @@ Completed the open→closed workflow directly on the report page per request —
 ### Roles edit page localization — 2026-09-02
 
 Localized `http://localhost/complaint/public/roles/{role}/edit` (`resources/views/roles/form.blade.php:1`) which previously showed raw permission names (`customer.view`, `complaint.update` …). Added bilingual `lang/en|ar/permissions.php` covering every `PermissionSeeder` permission (56 module·action + `complaint.view_logs`/`complaint.export`/`report.export`/`visit.submit`/`visit.manage`/`visit.master.*`) and `group_customer`…`group_visit` group headers. The form now groups permissions by module (sorted `customer`→`visit`) in card sections with localized headers (`permissions.group_*`) and localized permission labels (`permissions.complaint.view` = View Complaints / عرض الشكاوى), keeping the raw name as the checkbox `value` so `Role::syncPermissions()` is unchanged, with `Super Admin` remaining read-only. Added cancel button (`common.cancel`). No schema/route change; `view:clear` + full suite still **92 passed / 489 assertions**; the file is registered in `memory.md:185` important-files table via the permissions dictionaries entry.
+
+### Submit Visit button moved to bottom of inspection page — 2026-09-02
+
+User asked for the Submit button to be at the bottom of the inspection page so it's reached after marking all checkboxes. `resources/views/visitors/show.blade.php`: removed the `#submit-visit-form` (with its `btn-primary` Submit button) from the page header (the header now keeps just the progress card + the `Completed` badge for completed visits) and re-added the same `#submit-visit-form` at the **bottom**, just after the `#visit-checklist` form closes. It is `hidden ... sm:flex` so only the **desktop** bottom button renders there (right-aligned); on mobile the existing sticky bottom bar still provides the Submit button, whose `type="submit" form="submit-visit-form"` attribute keeps pointing at the (now hidden on small screens) form and still submits correctly. No test asserted the header placement; full suite **92 passed / 489 assertions**.
+
+### Arabic PDF report fixed (dompdf + ar-php shaping + Amiri font) — 2026-09-02
+
+User reported that exporting a report to PDF (`visitors/reports`) produced garbled/unjoined/reversed Arabic (e.g. `ةنايصلاو عقومل`). Root cause: dompdf's CPDF backend does **not** shape or re-order RTL text, and the bundled DejaVu Sans has **no Arabic presentation-form glyphs** (U+FB50–FEFF), so letters rendered as isolated glyphs in logical order. Fix (user approved installing a package + font):
+
+- **Package:** `khaled.alshamaa/ar-php` `^7.0` (the canonical ar-php; the abandoned `ar-php/ar-php` tawfekov fork had no `shape()`/`utf8Glyphs()` and was swapped out). Composer noted it as the recommended replacement for the abandoned one.
+- **Font:** downloaded OFL-licensed **Amiri** into `storage/fonts/` (`Amiri-Regular.ttf`, `Amiri-Bold.ttf`). Verified via a TTF cmap parse that Amiri contains every presentation-form codepoint (e.g. U+FE94, FEE7, FE8E, FEF4, FEBB, FECA, FED7, FEEE, FEE3) needed by shaped Arabic.
+- **Helper:** new `app/helpers.php` (registered in `composer.json` `autoload.files`) defining `pdf_ar(?string): string`. It shapes **any string that actually contains Arabic** (U+0600–06FF) via `(new ArPHP\I18N\Arabic('Glyphs'))->utf8Glyphs($text)` (joins letters into presentation forms and reverses order for RTL PDF rendering), regardless of the current app locale; strings with no Arabic characters pass through unchanged (English labels/numbers/dates unaffected). This matters because **Arabic can live in the database** (item/section/root-cause/branch names, notes, CAPA actions) and must render correctly even when the app UI is English. A single `ArPHP\I18N\Arabic('Glyphs')` is memoized in a static.
+- **View:** `resources/views/visitors/reports/print.blade.php` — added `@font-face` for `Amiri` (regular+bold) pointing at the `storage/fonts` TTFs (forward-slash-normalised path via `str_replace('\\','/',...)` so dompdf resolves it within chroot); body `font-family: Amiri, 'DejaVu Sans'`; bumped font-size to 12px. Every text output is now wrapped in the shorthand `$sh = fn($s) => pdf_ar($s)` defined in the top `@php` block (labels from `__('...')`, branch/inspector/type names, section/item titles, root causes, notes, CAPA actions, footer company + labels, status badges, and severity labels). Numbers/dates/percentages are left as-is.
+- **Config:** published `config/dompdf.php` (`php artisan vendor:publish --provider=Barryvdh\DomPDF\ServiceProvider`); `font_dir` = `storage_path('fonts')`.
+- **Test:** `VisitorReportsTest` — kept `test_pdf_generation_works` and added `test_arabic_pdf_embeds_amiri_font` (loops over **both** `ar` and `en` locales, sets an Arabic branch name into the DB so the English-locale PDF must still shape Arabic data, and asserts the raw response contains `Amiri`). Manual end-to-end dump confirmed DejaVu count 0 / Amiri embedded, and the shaped glyphs all exist in the font. Full suite now **93 passed / 502 assertions**.
+
+Relevant files: `app/helpers.php`, `config/dompdf.php`, `composer.json`/`composer.lock`, `storage/fonts/Amiri-{Regular,Bold}.ttf`, `resources/views/visitors/reports/print.blade.php`, `tests/Feature/VisitorReportsTest.php`.
 
 ### No default choice + live score hidden on inspection page — 2026-09-02
 

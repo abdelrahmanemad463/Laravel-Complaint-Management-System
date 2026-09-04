@@ -264,6 +264,30 @@ class VisitorReportsTest extends TestCase
         $this->assertStringContainsString('pdf', strtolower($contentType));
     }
 
+    public function test_arabic_pdf_embeds_amiri_font(): void
+    {
+        foreach (['ar', 'en'] as $locale) {
+            app()->setLocale($locale);
+
+            // Force Arabic into the DB data itself, so the English-locale PDF
+            // must still shape it (Arabic stored data must render in both languages).
+            $branch = $this->branch();
+            $branch->update(['name' => 'فرع المدينة']);
+
+            $visit = $this->makeCompletedVisit($branch);
+            $response = $this->actingAs($this->manager)->get(route('visitors.reports.pdf', $visit));
+            $response->assertOk();
+
+            $raw = $response->baseResponse->getContent() ?? '';
+
+            // The Arabic-capable Amiri font (with presentation forms U+FB50-FEFF)
+            // must be embedded so Arabic letters are joined and RTL-ordered —
+            // in both the Arabic and the English locale.
+            $this->assertNotEmpty($raw, "empty PDF for locale $locale");
+            $this->assertStringContainsString('Amiri', $raw, "Amiri missing for locale $locale");
+        }
+    }
+
     public function test_filters_return_correct_results(): void
     {
         $a = $this->branch();

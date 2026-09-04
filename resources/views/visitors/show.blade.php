@@ -24,14 +24,9 @@
                 <div class="mt-1 text-[10px] font-semibold text-slate-500">{{ $progressPct }}%</div>
             </div>
         </div>
-        @unless($visit->isCompleted())
-        <form id="submit-visit-form" method="POST" action="{{ route('visitors.submit', $visit) }}" class="w-full sm:w-auto">
-            @csrf
-            <button type="submit" class="btn-primary w-full sm:w-auto">{{ __('visitors.submit_visit') }}</button>
-        </form>
-        @else
+        @if($visit->isCompleted())
         <span class="badge self-start sm:self-auto" style="--badge-color:#16a34a">{{ __('visitors.completed') }}</span>
-        @endunless
+        @endif
     </div>
 </div>
 
@@ -171,6 +166,14 @@
     @endforeach
 </div>
 </form>
+
+{{-- Bottom submit (desktop; mobile uses the sticky bottom bar) --}}
+@unless($visit->isCompleted())
+<form id="submit-visit-form" method="POST" action="{{ route('visitors.submit', $visit) }}" class="mt-8 hidden justify-end sm:flex">
+    @csrf
+    <button type="submit" class="btn-primary px-8 py-3 text-base">{{ __('visitors.submit_visit') }}</button>
+</form>
+@endunless
 
 {{-- Sticky mobile bottom bar --}}
 @unless($visit->isCompleted())
