@@ -20,7 +20,13 @@ class PwaTest extends TestCase
             ->assertOk()
             ->assertSee('rel="manifest"', false)
             ->assertSee('name="theme-color" content="#4f46e5"', false)
-            ->assertSee('rel="apple-touch-icon"', false);
+            ->assertSee('rel="apple-touch-icon"', false)
+            ->assertSee('id="wco-titlebar"', false);
+
+        $layout = (string) file_get_contents(resource_path('views/layouts/app.blade.php'));
+        $this->assertStringContainsString('data-install-button class="hidden shrink-0 items-center gap-1.5', $layout);
+        $this->assertStringContainsString('data-install-button-mobile class="mt-3 hidden w-full', $layout);
+        $this->assertStringNotContainsString('sm:inline-flex sm:text-sm"><svg data-install-icon', $layout);
     }
 
     public function test_authenticated_layout_exposes_theme_switch_and_bootstrap(): void
@@ -44,6 +50,13 @@ class PwaTest extends TestCase
         $this->assertStringContainsString("html[data-theme='dark'] .form-label", $styles);
         $this->assertStringContainsString("html[data-theme='dark'] .btn-secondary", $styles);
         $this->assertStringContainsString("html[data-theme='dark'] .nav-link", $styles);
+        $this->assertStringContainsString('#wco-titlebar', $styles);
+        $this->assertStringContainsString('env(titlebar-area-width', $styles);
+        $this->assertStringContainsString('-webkit-app-region: drag', $styles);
+
+        $this->assertStringContainsString('@media (display-mode: standalone)', $styles);
+        $this->assertStringContainsString('display: none !important', $styles);
+        $this->assertStringContainsString('[data-install-button]', $styles);
     }
 
     public function test_shared_footer_exposes_localized_contact_details_without_location(): void

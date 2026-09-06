@@ -22,6 +22,13 @@
     @vite(['resources/css/app.css','resources/js/app.js'])
 </head>
 <body class="bg-slate-50 text-slate-900 overflow-x-hidden">
+{{-- Installed desktop PWA (window-controls-overlay): branded draggable title strip. --}}
+{{-- The browser draws only the min/max/close buttons; this strip fills the --}}
+{{-- overlay area with the app icon + name and is the window drag handle. --}}
+<div id="wco-titlebar" aria-hidden="true">
+    <img src="{{ asset('icons/icon-192x192.png') }}" alt="" width="18" height="18">
+    <span>{{ __('common.application_name') }}</span>
+</div>
 <div class="flex min-h-screen flex-col overflow-x-hidden">
     <header class="sticky top-0 z-40 border-b border-slate-200 bg-white">
         <div class="mx-auto flex max-w-7xl items-center justify-between gap-3 px-3 py-3 sm:gap-4 sm:px-4 sm:py-4 lg:gap-6">
@@ -53,7 +60,7 @@
             </nav>
             <div class="flex shrink-0 items-center gap-1.5 sm:gap-2 text-sm xl:gap-2 2xl:gap-3">
                 <a href="{{ route('locale', app()->getLocale() === 'ar' ? 'en' : 'ar') }}" class="hidden shrink-0 whitespace-nowrap rounded-md border px-2 py-1 text-xs sm:inline-flex sm:text-sm">{{ app()->getLocale() === 'ar' ? 'English' : 'العربية' }}</a>
-                <button type="button" data-install-button class="hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-indigo-300 bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition duration-150 hover:bg-indigo-700 sm:inline-flex sm:text-sm"><svg data-install-icon xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 3a1 1 0 0 1 1 1v7.586l2.293-2.293a1 1 0 1 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L9 11.586V4a1 1 0 0 1 1-1Z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M4 15a1 1 0 0 1 1 1v1h10v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1Z" clip-rule="evenodd"/></svg><span data-install-label>{{ __('common.install_app') }}</span></button>
+                <button type="button" data-install-button class="hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-indigo-300 bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition duration-150 hover:bg-indigo-700 sm:text-sm"><svg data-install-icon xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 3a1 1 0 0 1 1 1v7.586l2.293-2.293a1 1 0 1 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L9 11.586V4a1 1 0 0 1 1-1Z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M4 15a1 1 0 0 1 1 1v1h10v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1Z" clip-rule="evenodd"/></svg><span data-install-label>{{ __('common.install_app') }}</span></button>
                 <button type="button" class="theme-toggle inline-flex h-10 w-10 shrink-0 items-center justify-center whitespace-nowrap p-0 sm:h-auto sm:w-auto sm:px-2.5 sm:py-1.5" data-theme-toggle data-light-label="{{ __('common.light_mode') }}" data-dark-label="{{ __('common.dark_mode') }}" data-theme-switcher="{{ __('common.theme_switcher') }}" aria-pressed="false" aria-label="{{ __('common.theme_switcher') }}">
                     <span data-theme-icon aria-hidden="true">☾</span>
                     <span data-theme-label class="hidden sm:inline ms-1">{{ __('common.dark_mode') }}</span>

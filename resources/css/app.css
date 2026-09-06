@@ -345,3 +345,70 @@ html[data-theme='dark'] [data-install-modal] [data-install-close] {
 html[data-theme='dark'] [data-install-modal] [data-install-close]:hover {
     background-color: #334155 !important;
 }
+
+/* Installed desktop PWA: custom window title strip (window-controls-overlay).
+   The manifest's display_override makes desktop Chrome hand the title-bar area
+   to the page; without this the top of the installed window is a blank strip
+   with nothing to grab. This strip carries the app icon + name and is the
+   window drag handle (the browser keeps drawing min/max/close at the side).
+   env() keeps it clear of the OS buttons; hidden everywhere else. */
+#wco-titlebar {
+    display: none;
+}
+@media (display-mode: window-controls-overlay) {
+    #wco-titlebar {
+        display: flex;
+        position: fixed;
+        top: 0;
+        left: env(titlebar-area-x, 0);
+        width: env(titlebar-area-width, 100%);
+        height: env(titlebar-area-height, 40px);
+        z-index: 30;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px;
+        background: #ffffff;
+        color: #312e81;
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-app-region: drag;
+        app-region: drag;
+    }
+    #wco-titlebar img {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        pointer-events: none;
+        -webkit-app-region: drag;
+        app-region: drag;
+    }
+    #wco-titlebar span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        pointer-events: none;
+        -webkit-app-region: drag;
+        app-region: drag;
+    }
+    body {
+        padding-top: env(titlebar-area-height, 40px);
+    }
+}
+html[data-theme='dark'] #wco-titlebar {
+    background: #0f172a;
+    color: #e2e8f0;
+}
+
+/* Once installed, never show the Install App buttons — whether the app window
+   is standalone, window-controls-overlay, or minimal-ui. This is the CSS
+   guarantee behind the JS installed-detection: even with a stale cached
+   bundle the buttons cannot appear inside the installed window. */
+@media (display-mode: standalone), (display-mode: window-controls-overlay), (display-mode: minimal-ui) {
+    [data-install-button],
+    [data-install-button-mobile] {
+        display: none !important;
+    }
+}
