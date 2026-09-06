@@ -268,6 +268,23 @@ class VisitorReportsTest extends TestCase
         $this->assertCount(0, $onlyClosed);
     }
 
+    public function test_reports_dashboard_buckets_open_capa_by_due_status(): void
+    {
+        // Portable GROUP BY check: SQL Server rejects grouping by a SELECT alias,
+        // so the dashboard buckets open CAPA actions via a subquery.
+        $visit = $this->makeCompletedVisit();
+        $chart = collect(app(VisitorReportDashboardService::class)->build([])['dueStatusChart'])->pluck('count', 'name');
+        $this->assertSame(1, $chart['upcoming']);
+        $this->assertSame(0, $chart['overdue'] + $chart['due_soon'] + $chart['immediate']);
+
+        $visit->capaActions()->firstOrFail()->update(['due_at' => now()->subDay()]);
+        $chart = collect(app(VisitorReportDashboardService::class)->build([])['dueStatusChart'])->pluck('count', 'name');
+        $this->assertSame(1, $chart['overdue']);
+        $this->assertSame(0, $chart['upcoming']);
+
+        $this->actingAs($this->manager)->get(route('visitors.reports.dashboard'))->assertOk();
+    }
+
     public function test_historical_snapshot_values_are_used(): void
     {
         $visit = $this->startVisit();

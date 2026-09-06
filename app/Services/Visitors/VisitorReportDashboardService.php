@@ -180,15 +180,21 @@ class VisitorReportDashboardService
         $now = now()->toDateTimeString();
         $soon = now()->addHours((float) config('visitors.due_soon_hours', 24))->toDateTimeString();
 
-        $rows = (clone $base)
+        // SQL Server cannot GROUP BY a SELECT alias (or an expression containing
+        // different bound parameters), so compute the bucket in a subquery and
+        // group by the derived column outside. Portable across SQLite/MySQL/SQL Server.
+        $case = 'CASE WHEN visitors_capa_actions.due_at IS NULL THEN \'immediate\'
+            WHEN visitors_capa_actions.due_at < ? THEN \'overdue\'
+            WHEN visitors_capa_actions.due_at < ? THEN \'due_soon\'
+            ELSE \'upcoming\' END';
+
+        $inner = (clone $base)
             ->whereIn('visitors_capa_actions.status', ['open', 'in_progress'])
-            ->selectRaw('CASE WHEN visitors_capa_actions.due_at IS NULL THEN \'immediate\'
-                WHEN visitors_capa_actions.due_at < ? THEN \'overdue\'
-                WHEN visitors_capa_actions.due_at < ? THEN \'due_soon\'
-                ELSE \'upcoming\' END as bucket', [$now, $soon])
-            ->selectRaw('COUNT(*) as count')
+            ->selectRaw($case . ' as bucket', [$now, $soon]);
+
+        $rows = DB::query()->fromSub($inner, 'due_buckets')
+            ->selectRaw('bucket, COUNT(*) as count')
             ->groupBy('bucket')
-            ->get()
             ->pluck('count', 'bucket');
 
         $order = ['immediate', 'overdue', 'due_soon', 'upcoming'];
