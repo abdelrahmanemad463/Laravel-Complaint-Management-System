@@ -60,7 +60,6 @@
             </nav>
             <div class="flex shrink-0 items-center gap-1.5 sm:gap-2 text-sm xl:gap-2 2xl:gap-3">
                 <a href="{{ route('locale', app()->getLocale() === 'ar' ? 'en' : 'ar') }}" class="hidden shrink-0 whitespace-nowrap rounded-md border px-2 py-1 text-xs sm:inline-flex sm:text-sm">{{ app()->getLocale() === 'ar' ? 'English' : 'العربية' }}</a>
-                <button type="button" data-install-button class="hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-indigo-300 bg-indigo-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition duration-150 hover:bg-indigo-700 sm:text-sm"><svg data-install-icon xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 3a1 1 0 0 1 1 1v7.586l2.293-2.293a1 1 0 1 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L9 11.586V4a1 1 0 0 1 1-1Z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M4 15a1 1 0 0 1 1 1v1h10v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1Z" clip-rule="evenodd"/></svg><span data-install-label>{{ __('common.install_app') }}</span></button>
                 <button type="button" class="theme-toggle inline-flex h-10 w-10 shrink-0 items-center justify-center whitespace-nowrap p-0 sm:h-auto sm:w-auto sm:px-2.5 sm:py-1.5" data-theme-toggle data-light-label="{{ __('common.light_mode') }}" data-dark-label="{{ __('common.dark_mode') }}" data-theme-switcher="{{ __('common.theme_switcher') }}" aria-pressed="false" aria-label="{{ __('common.theme_switcher') }}">
                     <span data-theme-icon aria-hidden="true">☾</span>
                     <span data-theme-label class="hidden sm:inline ms-1">{{ __('common.dark_mode') }}</span>
@@ -113,7 +112,6 @@
                             <span data-theme-icon>☾</span><span data-theme-label>{{ __('common.dark_mode') }}</span>
                         </button>
                     </div>
-                    <button type="button" data-install-button-mobile class="mt-3 hidden w-full items-center justify-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 3a1 1 0 0 1 1 1v7.586l2.293-2.293a1 1 0 1 1 1.414 1.414l-4 4a1 1 0 0 1-1.414 0l-4-4a1 1 0 1 1 1.414-1.414L9 11.586V4a1 1 0 0 1 1-1Z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M4 15a1 1 0 0 1 1 1v1h10v-1a1 1 0 1 1 2 0v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2a1 1 0 0 1 1-1Z" clip-rule="evenodd"/></svg><span data-install-label-mobile>{{ __('common.install_app') }}</span></button>
                     <form method="POST" action="{{ route('logout') }}" class="mt-3">@csrf<button class="w-full rounded-lg bg-rose-600 px-3 py-2.5 text-sm font-semibold text-white hover:bg-rose-700">{{ __('common.logout') }}</button></form>
                 </div>
             </div>
@@ -143,20 +141,6 @@
         </div>
     </footer>
 </div>
-
-@auth
-<div data-install-modal class="fixed inset-0 z-[60] hidden items-center justify-center p-4" aria-hidden="true" role="dialog" aria-modal="true">
-    <div data-install-overlay class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"></div>
-    <div class="relative w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
-        <div class="flex items-start justify-between gap-3">
-            <h3 class="text-lg font-bold text-slate-900">{{ __('common.install_instructions_title') }}</h3>
-            <button type="button" data-install-close aria-label="{{ __('common.install_close') }}" class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">✕</button>
-        </div>
-        <p data-install-android class="mt-4 hidden text-sm text-slate-700 sm:hidden">{{ __('common.install_instructions_android') }}</p>
-        <p data-install-ios class="mt-4 hidden text-sm text-slate-700">{{ __('common.install_instructions_ios') }}</p>
-    </div>
-</div>
-@endauth
 
 @stack('scripts')
 <script>

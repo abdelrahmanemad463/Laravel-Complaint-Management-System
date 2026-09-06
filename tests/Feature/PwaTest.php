@@ -24,9 +24,9 @@ class PwaTest extends TestCase
             ->assertSee('id="wco-titlebar"', false);
 
         $layout = (string) file_get_contents(resource_path('views/layouts/app.blade.php'));
-        $this->assertStringContainsString('data-install-button class="hidden shrink-0 items-center gap-1.5', $layout);
-        $this->assertStringContainsString('data-install-button-mobile class="mt-3 hidden w-full', $layout);
-        $this->assertStringNotContainsString('sm:inline-flex sm:text-sm"><svg data-install-icon', $layout);
+        $this->assertStringNotContainsString('data-install-button', $layout);
+        $this->assertStringNotContainsString('data-install-modal', $layout);
+        $this->assertStringNotContainsString('install_instructions_title', $layout);
     }
 
     public function test_authenticated_layout_exposes_theme_switch_and_bootstrap(): void
@@ -53,10 +53,8 @@ class PwaTest extends TestCase
         $this->assertStringContainsString('#wco-titlebar', $styles);
         $this->assertStringContainsString('env(titlebar-area-width', $styles);
         $this->assertStringContainsString('-webkit-app-region: drag', $styles);
-
-        $this->assertStringContainsString('@media (display-mode: standalone)', $styles);
-        $this->assertStringContainsString('display: none !important', $styles);
-        $this->assertStringContainsString('[data-install-button]', $styles);
+        $this->assertStringNotContainsString('[data-install-button]', $styles);
+        $this->assertStringNotContainsString('[data-install-modal]', $styles);
     }
 
     public function test_shared_footer_exposes_localized_contact_details_without_location(): void

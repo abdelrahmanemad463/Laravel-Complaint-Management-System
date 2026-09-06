@@ -316,36 +316,6 @@ html[data-theme='dark'] [data-mobile-menu-panel] details {
     }
 }
 
-/* Install App button + modal */
-html[data-theme='dark'] [data-install-button],
-html[data-theme='dark'] [data-install-button-mobile] {
-    background-color: #4338ca !important;
-    border-color: #6366f1 !important;
-    color: #ffffff !important;
-}
-html[data-theme='dark'] [data-install-button]:hover,
-html[data-theme='dark'] [data-install-button-mobile]:hover {
-    background-color: #4f46e5 !important;
-}
-html[data-theme='dark'] [data-install-modal] > div[class*="rounded-2xl"] {
-    background-color: #1e293b !important;
-    border-color: #334155 !important;
-}
-html[data-theme='dark'] [data-install-modal] .text-slate-900 {
-    color: #f8fafc !important;
-}
-html[data-theme='dark'] [data-install-modal] .text-slate-700 {
-    color: #e2e8f0 !important;
-}
-html[data-theme='dark'] [data-install-modal] [data-install-close] {
-    border-color: #475569 !important;
-    color: #cbd5e1 !important;
-    background-color: #1e293b !important;
-}
-html[data-theme='dark'] [data-install-modal] [data-install-close]:hover {
-    background-color: #334155 !important;
-}
-
 /* Installed desktop PWA: custom window title strip (window-controls-overlay).
    The manifest's display_override makes desktop Chrome hand the title-bar area
    to the page; without this the top of the installed window is a blank strip
@@ -402,13 +372,4 @@ html[data-theme='dark'] #wco-titlebar {
     color: #e2e8f0;
 }
 
-/* Once installed, never show the Install App buttons — whether the app window
-   is standalone, window-controls-overlay, or minimal-ui. This is the CSS
-   guarantee behind the JS installed-detection: even with a stale cached
-   bundle the buttons cannot appear inside the installed window. */
-@media (display-mode: standalone), (display-mode: window-controls-overlay), (display-mode: minimal-ui) {
-    [data-install-button],
-    [data-install-button-mobile] {
-        display: none !important;
-    }
-}
+
