@@ -39,7 +39,7 @@
                 @can('dashboard.view')<a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'nav-link-active' : '' }}">{{ __('common.dashboard') }}</a>@endcan
                 <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'nav-link-active' : '' }}">{{ __('common.customers') }}</a>
                 <details class="group relative" data-nav-dropdown>
-                    <summary class="nav-link cursor-pointer list-none {{ (request()->routeIs('complaints.*') || request()->routeIs('visitors.*')) ? 'nav-link-active' : '' }}">{{ __('common.complaints') }}</summary>
+                    <summary class="nav-link cursor-pointer list-none {{ (request()->routeIs('complaints.*') || request()->routeIs('visitors.*')) ? 'nav-link-active' : '' }}">{{ __('common.services') }}</summary>
                     <div class="absolute start-0 top-full z-20 mt-1 w-56 rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
                         <a href="{{ route('complaints.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 {{ request()->routeIs('complaints.*') ? 'bg-indigo-50 text-indigo-700' : '' }}">{{ __('common.customer_complaints') }}</a>
                         @can('visit.view')<a href="{{ route('visitors.home') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 {{ request()->routeIs('visitors.*') ? 'bg-indigo-50 text-indigo-700' : '' }}">{{ __('common.quality_visits') }}</a>@endcan
