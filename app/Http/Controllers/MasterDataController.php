@@ -12,7 +12,7 @@ class MasterDataController extends Controller
         'services' => ['model' => \App\Models\Service::class, 'title' => 'services', 'module' => 'service', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
         'sources' => ['model' => \App\Models\ComplaintSource::class, 'title' => 'sources', 'module' => 'source', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
         'categories' => ['model' => \App\Models\ComplaintCategory::class, 'title' => 'categories', 'module' => 'category', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
-        'types' => ['model' => \App\Models\ComplaintType::class, 'title' => 'types', 'module' => 'type', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
+        'types' => ['model' => \App\Models\ComplaintType::class, 'title' => 'types', 'module' => 'type', 'fields' => ['name', 'color', 'category_id', 'priority_id', 'is_active', 'sort_order']],
         'priorities' => ['model' => \App\Models\Priority::class, 'title' => 'priorities', 'module' => 'priority', 'fields' => ['name', 'color', 'level', 'is_active', 'sort_order']],
         'statuses' => ['model' => \App\Models\ComplaintStatus::class, 'title' => 'statuses', 'module' => 'status', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
     ];
@@ -35,8 +35,21 @@ class MasterDataController extends Controller
             'color' => in_array('color', $config['fields'], true) ? ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'] : ['nullable', 'string', 'max:30'],
             'code' => ['nullable', 'string', 'max:50'],
             'level' => ['nullable', 'integer', 'min:0'],
+            'category_id' => in_array('category_id', $config['fields'], true) ? ['required', 'integer', 'exists:complaint_categories,id'] : ['nullable', 'integer'],
+            'priority_id' => in_array('priority_id', $config['fields'], true) ? ['required', 'integer', 'exists:priorities,id'] : ['nullable', 'integer'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
+        ];
+    }
+
+    private function relationOptions(string $type): array
+    {
+        if ($type !== 'types') {
+            return [];
+        }
+        return [
+            'categories' => \App\Models\ComplaintCategory::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(),
+            'priorities' => \App\Models\Priority::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(),
         ];
     }
 
@@ -44,7 +57,11 @@ class MasterDataController extends Controller
     {
         $config = $this->config($type);
         $this->authorizeAction($config, 'view');
-        $items = ($config['model'])::orderBy('sort_order')->orderBy('name')->paginate(20);
+        $query = ($config['model'])::query();
+        if ($type === 'types') {
+            $query->with(['category', 'priority']);
+        }
+        $items = $query->orderBy('sort_order')->orderBy('name')->paginate(20);
         return view('master-data.index', compact('type', 'config', 'items'));
     }
 
@@ -52,7 +69,7 @@ class MasterDataController extends Controller
     {
         $config = $this->config($type);
         $this->authorizeAction($config, 'create');
-        return view('master-data.form', compact('type', 'config'));
+        return view('master-data.form', compact('type', 'config') + $this->relationOptions($type));
     }
 
     public function store(Request $request, string $type)
@@ -71,7 +88,7 @@ class MasterDataController extends Controller
         $config = $this->config($type);
         $this->authorizeAction($config, 'update');
         $record = ($config['model'])::findOrFail($item);
-        return view('master-data.form', compact('type', 'config', 'record'));
+        return view('master-data.form', compact('type', 'config', 'record') + $this->relationOptions($type));
     }
 
     public function update(Request $request, string $type, int $item)

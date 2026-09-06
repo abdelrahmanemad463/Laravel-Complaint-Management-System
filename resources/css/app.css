@@ -146,6 +146,12 @@ html[data-theme='dark'] #branch-results .branch-option {
     color: #e2e8f0 !important;
 }
 
+html[data-theme='dark'] .badge {
+    color: color-mix(in srgb, var(--badge-color, #94a3b8) 62%, #f8fafc) !important;
+    border-color: color-mix(in srgb, var(--badge-color, #94a3b8) 55%, transparent) !important;
+    background-color: color-mix(in srgb, var(--badge-color, #94a3b8) 24%, transparent) !important;
+}
+
 html[data-theme='dark'] .border {
     border-color: #475569 !important;
 }

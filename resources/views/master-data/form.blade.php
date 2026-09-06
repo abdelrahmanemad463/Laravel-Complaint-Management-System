@@ -44,6 +44,27 @@
         </div>
     @endif
 
+    @if($type === 'types')
+        <div>
+            <label class="form-label">{{ __('common.category') }} *</label>
+            <select class="form-input" name="category_id" required>
+                <option value="">{{ __('common.select') }}</option>
+                @foreach($categories as $item)
+                    <option value="{{ $item->id }}" @selected(old('category_id', $record->category_id ?? '') == $item->id)>{{ $item->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="form-label">{{ __('common.priority') }} *</label>
+            <select class="form-input" name="priority_id" required>
+                <option value="">{{ __('common.select') }}</option>
+                @foreach($priorities as $item)
+                    <option value="{{ $item->id }}" @selected(old('priority_id', $record->priority_id ?? '') == $item->id)>{{ $item->name }}</option>
+                @endforeach
+            </select>
+        </div>
+    @endif
+
     <div>
         <label class="form-label">{{ __('common.order') }}</label>
         <input class="form-input" type="number" name="sort_order" value="{{ old('sort_order', $record->sort_order ?? 0) }}">

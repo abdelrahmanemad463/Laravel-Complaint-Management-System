@@ -304,10 +304,10 @@ The Spatie permission tables are standard package tables: `permissions`, `roles`
 | `services` | Complaint service master data | `name`, nullable `color`, indexed `is_active`, `sort_order`; soft deletes |
 | `complaint_sources` | Complaint-origin master data | Same common master-data shape; soft deletes |
 | `complaint_categories` | Complaint-category master data | Same common master-data shape; soft deletes |
-| `complaint_types` | Complaint-type master data | Same common master-data shape; soft deletes |
+| `complaint_types` | Complaint-type master data | Same common master-data shape plus required `category_id` → complaint_categories and `priority_id` → priorities (nullable in DB, enforced by master-data and complaint validation); soft deletes |
 | `priorities` | Complaint priority master data | Required `color`, nullable `level`, indexed `is_active`, `sort_order`; soft deletes |
 | `complaint_statuses` | Complaint status master data | Required `color`, indexed `is_active`, `sort_order`; soft deletes |
-| `complaints` | Main complaint record | Required foreign keys to customer, branch, service, source, category, type, priority, status; required descriptions/date/creator; nullable resolver, resolved time, resolution; soft deletes |
+| `complaints` | Main complaint record | Required foreign keys to customer, branch, service, source, **category, type, priority (category/priority derived from type — not client submits)**, status; required descriptions/date/creator; nullable resolver, resolved time, resolution; soft deletes |
 | `complaint_status_histories` | Append-only status transitions | Complaint, optional previous status, new status, reason, actor, and `changed_at`; restrictive complaint/status/user foreign keys |
 | `activity_logs` | Audit trail | Nullable actor, stable action string, nullable polymorphic subject, description, JSON old/new snapshots, indexed action/date |
 | `visitors_visit_types` | Quality inspection types | `name`, `code`, `is_active` |
@@ -351,9 +351,13 @@ Migrations are stored in `database/migrations/` and use Laravel timestamped file
 2026_08_31_180000_create_visitors_master_import_tables
         ↓
 2026_09_04_190000_replace_deadline_with_period_hours
+        ↓
+2026_09_06_000001_add_serial_number_and_price_to_complaints_table
+        ↓
+2026_09_06_000002_add_category_priority_to_complaint_types_table
 ```
 
-The permission migration creates package roles, permissions, model-role/model-permission pivots, and role-permission pivots. The master-data migration creates customers, branches, services, sources, categories, types, priorities, and statuses. The complaints migration depends on those tables and creates complaint foreign keys plus branch/date and status/date composite indexes. The final complaint migration creates status history and polymorphic activity logs. The visitors master-data migration creates visit types, sections, root causes, and checklist items; the visitors transaction migration creates visits, visit items (snapshot), photos, CAPA actions, and CAPA updates. The visitors transaction migration uses `noActionOnDelete()` on derived foreign keys to satisfy SQL Server's single-cascade-path rule. The visitors master-import migration adds `visitors_severities`, `visitors_imports`, `visitors_import_rows`, and the nullable `root_cause_id` FK on `visitors_checklist_items` for the Excel master-data import feature.
+The permission migration creates package roles, permissions, model-role/model-permission pivots, and role-permission pivots. The master-data migration creates customers, branches, services, sources, categories, types, priorities, and statuses. The complaints migration depends on those tables and creates complaint foreign keys plus branch/date and status/date composite indexes. The final complaint migration creates status history and polymorphic activity logs. The visitors master-data migration creates visit types, sections, root causes, and checklist items; the visitors transaction migration creates visits, visit items (snapshot), photos, CAPA actions, and CAPA updates. The visitors transaction migration uses `noActionOnDelete()` on derived foreign keys to satisfy SQL Server's single-cascade-path rule. The visitors master-import migration adds `visitors_severities`, `visitors_imports`, `visitors_import_rows`, and the nullable `root_cause_id` FK on `visitors_checklist_items` for the Excel master-data import feature. The two `2026_09_06_*` migrations add nullable `serial_number`/`price` to `complaints` and nullable `category_id`/`priority_id` (→ `complaint_categories`/`priorities`) to `complaint_types` for the complaint type → category/priority derivation.
 
 `DatabaseSeeder` runs `PermissionSeeder`, `MasterDataSeeder`, `DemoDataSeeder`, `VisitorsSeeder`, and `VisitorChecklistSeeder` in that order. Future schema changes should add a new migration rather than editing an already-applied migration and should update this document when they affect project structure or data design.
 

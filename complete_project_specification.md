@@ -603,12 +603,14 @@ name
 color
 is_active
 sort_order
+category_id (FK → complaint_categories; required, sets the complaint's category)
+priority_id (FK → priorities; required, sets the complaint's priority)
 created_at
 updated_at
 deleted_at
 ```
 
-Admin can manage these values.
+Admin can manage these values. The complaint create/edit form no longer asks for Category and Priority: both are derived from the selected Complaint Type. The type must have both `category_id` and `priority_id` configured; otherwise complaint validation rejects the submission with `common.type_missing_category_priority`. See Section 66.45.
 
 ---
 
@@ -2443,6 +2445,12 @@ The implemented migration order is:
 2026_08_23_161200_create_complaint_master_data_tables
 2026_08_23_161300_create_complaints_table
 2026_08_23_161400_create_complaint_history_tables
+2026_08_31_170000_create_visitors_master_data_tables
+2026_08_31_170100_create_visitors_transaction_tables
+2026_08_31_180000_create_visitors_master_import_tables
+2026_09_04_190000_replace_deadline_with_period_hours
+2026_09_06_000001_add_serial_number_and_price_to_complaints_table
+2026_09_06_000002_add_category_priority_to_complaint_types_table
 ```
 
 The complaint and master-data migrations use foreign keys, restrictive deletion behavior for historical references, nullable resolver/activity actor references where appropriate, indexes for phone/date/filter access, and soft deletes on business records. `DatabaseSeeder` runs permissions/roles, master data, and demo data in that order.
@@ -2958,3 +2966,16 @@ Replaced the legacy `deadline` (string snapshot) and `due_date` columns with a `
 - **Print/PDF:** mirrors Period / Due Date / Due Status columns.
 - **Master-data Excel import/export:** `period_hours` header (numeric hours, decimals allowed, `0` = Immediate; free text rejected on IMPORT; legacy `period` key accepted as normalize fallback). Template example values are numeric (24, 0, 0). Seeder seeds `period_hours => 48`.
 - **Tests:** new `tests/Unit/Visitors/DueDateServiceTest.php` (14 tests) + 3 new `VisitorReportsTest` tests (capa `period_hours`/`due_at` snapshot; list `capa_due` aggregates; `due_status` filter). Full suite: **110 tests passed / 562 assertions**.
+
+## 66.74 Complaint Type → Category/Priority derivation - 2026-09-06
+
+Complaint Categories and Priorities are no longer manually selected on the complaint create/edit form. Each Complaint Type now carries a configured `category_id` + `priority_id`, and the system derives the complaint's category and priority from the selected type. The backend is authoritative: client-submitted `category_id`/`priority_id` values are ignored on create, and on edit the values are re-derived only when the type changes (otherwise the stored values are preserved so unrelated data is never overwritten).
+
+- **Schema:** migration `2026_09_06_000002_add_category_priority_to_complaint_types_table.php` adds nullable `category_id` (FK → `complaint_categories`, nullOnDelete) and `priority_id` (FK → `priorities`, nullOnDelete) to `complaint_types`. Nullable at the DB layer; required in the master-data type form and enforced by complaint request validation.
+- **Model:** `ComplaintType` gains `category_id`/`priority_id` in `$fillable` and `category()`/`priority()` belongsTo relations.
+- **Master data (Complaint Types):** `MasterDataController` types config adds the two fields; `rules()` requires them (`exists:` checks); `create()`/`edit()` pass active `$categories`/`$priorities` options; `index()` eager-loads `category`/`priority` and shows two extra columns. `master-data/form.blade.php` renders two required selects; Type rows show Category and Priority columns.
+- **Complaint form:** the grid no longer contains `category_id`/`priority_id` selects (loop is now branch, service, source, status + type + date). Type options carry `data-category-id/name/color` and `data-priority-id/name/color`; a read-only `#type-derived` panel shows Category/Priority badges updated by a small inline script (hidden when the selected type has no config).
+- **Backend:** `StoreComplaintRequest`/`UpdateComplaintRequest` removed the category/priority rules and add an `after()`-validator error on `type_id` (`common.type_missing_category_priority`) when the selected type has no category/priority; both expose a memoized `type()` accessor. `ComplaintController::store()` sets category/priority from the type; `update()` overrides them only on type change and snapshots `$old` after mapping for a clean activity diff.
+- **Seed:** `MasterDataSeeder` now associates each seeded type with a seeded category/priority (Wrong Order→Order/High, Missing Item→Order/Medium, Late Delivery→Delivery/Medium, Bad Treatment→Customer Service/Medium, Wrong Price→Payment/High, Food Quality→Food Quality/Medium).
+- **Lang:** `common.auto_determined` and `common.type_missing_category_priority` added to both locales.
+- **Tests:** `ComplaintManagementTest` — `complaintData()` no longer posts category/priority; added derive-on-store, ignore-manipulated-values, reject-unconfigured-type, derive-on-type-change, preserve-on-unchanged-type, form-hides-selects, and master-data-requires/stores tests. Full suite: **117 tests passed / 608 assertions**.

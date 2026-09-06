@@ -30,10 +30,39 @@
     </div>
     <p class="mt-2 text-xs text-slate-600">{{ __('common.customer_required_help') }}</p>
 </div>
-<div class="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">@foreach(['branch_id'=>'branches','service_id'=>'services','source_id'=>'sources','category_id'=>'categories','type_id'=>'types','priority_id'=>'priorities','status_id'=>'statuses'] as $field=>$key)<div><label class="form-label">{{ __('common.'.str_replace('_id','',$field)) }} *</label><select class="form-input" required name="{{ $field }}"><option value="">{{ __('common.select') }}</option>@foreach($data[$key] as $item)<option value="{{ $item->id }}" @selected(old($field,$complaint->$field??'')==$item->id)>{{ $item->name }}</option>@endforeach</select></div>@endforeach<div><label class="form-label">{{ __('common.complaint_date') }} *</label><input class="form-input" type="date" required name="complaint_date" value="{{ old('complaint_date',optional($complaint->complaint_date ?? null)->format('Y-m-d') ?? now()->format('Y-m-d')) }}"></div></div>
+<div class="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">@foreach(['branch_id'=>'branches','service_id'=>'services','source_id'=>'sources','status_id'=>'statuses'] as $field=>$key)<div><label class="form-label">{{ __('common.'.str_replace('_id','',$field)) }} *</label><select class="form-input" required name="{{ $field }}"><option value="">{{ __('common.select') }}</option>@foreach($data[$key] as $item)<option value="{{ $item->id }}" @selected(old($field,$complaint->$field??'')==$item->id)>{{ $item->name }}</option>@endforeach</select></div>@endforeach<div><label class="form-label">{{ __('common.type') }} *</label><select class="form-input" required name="type_id" data-type-select><option value="">{{ __('common.select') }}</option>@foreach($data['types'] as $item)<option value="{{ $item->id }}" @selected(old('type_id',$complaint->type_id??'')==$item->id) data-category-id="{{ $item->category_id }}" data-category-name="{{ $item->category?->name }}" data-category-color="{{ $item->category?->color }}" data-priority-id="{{ $item->priority_id }}" data-priority-name="{{ $item->priority?->name }}" data-priority-color="{{ $item->priority?->color }}">{{ $item->name }}</option>@endforeach</select></div><div><label class="form-label">{{ __('common.complaint_date') }} *</label><input class="form-input" type="date" required name="complaint_date" value="{{ old('complaint_date',optional($complaint->complaint_date ?? null)->format('Y-m-d') ?? now()->format('Y-m-d')) }}"></div></div>
+<div id="type-derived" class="hidden rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
+    <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-indigo-700">{{ __('common.auto_determined') }}</p>
+    <div class="flex flex-wrap gap-2">
+        <span id="derived-category" class="badge font-semibold" style="--badge-color:#94a3b8"><span class="opacity-70">{{ __('common.category') }}:</span> <b data-derived-category-name class="ms-1">—</b></span>
+        <span id="derived-priority" class="badge font-semibold" style="--badge-color:#94a3b8"><span class="opacity-70">{{ __('common.priority') }}:</span> <b data-derived-priority-name class="ms-1">—</b></span>
+    </div>
+</div>
 <div><label class="form-label">{{ __('common.short_description') }} *</label><input class="form-input" required name="short_description" value="{{ old('short_description',$complaint->short_description??'') }}"></div><div><label class="form-label">{{ __('common.description') }} *</label><textarea class="form-input" required rows="6" name="description">{{ old('description',$complaint->description??'') }}</textarea></div>
 <div class="grid gap-5 grid-cols-1 sm:grid-cols-2"><div><label class="form-label">{{ __('common.serial_number') }}</label><input class="form-input" name="serial_number" value="{{ old('serial_number',$complaint->serial_number??'') }}"></div><div><label class="form-label">{{ __('common.price') }}</label><input class="form-input" type="number" step="0.01" min="0" name="price" value="{{ old('price',$complaint->price??'') }}"></div></div>
 <div><label class="form-label">{{ __('common.resolution') }}</label><textarea class="form-input" rows="4" name="resolution">{{ old('resolution',$complaint->resolution??'') }}</textarea></div>@if($editing)<div><label class="form-label">{{ __('common.status_reason') }}</label><input class="form-input" name="status_reason" placeholder="{{ __('common.status_reason_hint') }}"></div>@endif
 <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><a class="btn-secondary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto" href="{{ $editing ? route('complaints.show',$complaint) : route('complaints.index') }}">{{ __('common.cancel') }}</a><button class="btn-primary min-h-[44px] w-full sm:w-auto">{{ __('common.save') }}</button></div>
 </form>
+<script>
+    (() => {
+        const select = document.querySelector('[data-type-select]');
+        const panel = document.getElementById('type-derived');
+        if (!select || !panel) return;
+        const categoryName = panel.querySelector('[data-derived-category-name]');
+        const priorityName = panel.querySelector('[data-derived-priority-name]');
+        const categoryBadge = document.getElementById('derived-category');
+        const priorityBadge = document.getElementById('derived-priority');
+        const render = () => {
+            const option = select.selectedOptions[0];
+            const hasConfig = Boolean(option && option.dataset.categoryId && option.dataset.priorityId);
+            categoryName.textContent = hasConfig ? option.dataset.categoryName : '—';
+            priorityName.textContent = hasConfig ? option.dataset.priorityName : '—';
+            categoryBadge && categoryBadge.style.setProperty('--badge-color', option && option.dataset.categoryColor ? option.dataset.categoryColor : '#94a3b8');
+            priorityBadge && priorityBadge.style.setProperty('--badge-color', option && option.dataset.priorityColor ? option.dataset.priorityColor : '#94a3b8');
+            panel.classList.toggle('hidden', !hasConfig);
+        };
+        select.addEventListener('change', render);
+        render();
+    })();
+</script>
 @endsection

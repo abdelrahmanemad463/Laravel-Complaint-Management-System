@@ -12,6 +12,12 @@ class MasterDataSeeder extends Seeder
         foreach (['Food Quality','Customer Service','Staff','Delivery','Payment','Order'] as $i => $name) ComplaintCategory::updateOrCreate(['name'=>$name], ['color'=>'#475569','sort_order'=>$i,'is_active'=>true]);
         foreach (['Wrong Order','Missing Item','Late Delivery','Bad Treatment','Wrong Price','Food Quality'] as $i => $name) ComplaintType::updateOrCreate(['name'=>$name], ['color'=>'#64748b','sort_order'=>$i,'is_active'=>true]);
         foreach ([['Low','#16a34a',1],['Medium','#ca8a04',2],['High','#ea580c',3],['Critical','#dc2626',4]] as [$name,$color,$level]) Priority::updateOrCreate(['name'=>$name], ['color'=>$color,'level'=>$level,'sort_order'=>$level,'is_active'=>true]);
+        foreach ([['Wrong Order','Order','High'],['Missing Item','Order','Medium'],['Late Delivery','Delivery','Medium'],['Bad Treatment','Customer Service','Medium'],['Wrong Price','Payment','High'],['Food Quality','Food Quality','Medium']] as [$type,$category,$priority]) {
+            $record = ComplaintType::where('name',$type)->first();
+            $categoryRow = ComplaintCategory::where('name',$category)->first();
+            $priorityRow = Priority::where('name',$priority)->first();
+            if ($record && $categoryRow && $priorityRow) $record->update(['category_id'=>$categoryRow->id,'priority_id'=>$priorityRow->id]);
+        }
         foreach ([['Pending','#64748b'],['In Progress','#2563eb'],['Solved','#16a34a'],['Closed','#0f172a'],['Reopened','#9333ea']] as $i => [$name,$color]) ComplaintStatus::updateOrCreate(['name'=>$name], ['color'=>$color,'sort_order'=>$i,'is_active'=>true]);
     }
 }

@@ -144,6 +144,8 @@ The migration order is:
 2026_09_04_190000_replace_deadline_with_period_hours
         ↓
 2026_09_06_000001_add_serial_number_and_price_to_complaints_table
+        ↓
+2026_09_06_000002_add_category_priority_to_complaint_types_table
 ```
 
 ### Core tables
@@ -156,10 +158,10 @@ The migration order is:
 | `services` | Service master data | Name, optional color, active flag, sort order, soft deletes |
 | `complaint_sources` | Complaint source master data | Name, optional color, active flag, sort order, soft deletes |
 | `complaint_categories` | Complaint category master data | Name, optional color, active flag, sort order, soft deletes |
-| `complaint_types` | Complaint type master data | Name, optional color, active flag, sort order, soft deletes |
+| `complaint_types` | Complaint type master data | Name, optional color, **required `category_id` → complaint_categories and `priority_id` → priorities**, active flag, sort order, soft deletes |
 | `priorities` | Priority master data | Name, required color, optional level, active flag, sort order, soft deletes |
 | `complaint_statuses` | Status master data | Name, required color, active flag, sort order, soft deletes |
-| `complaints` | Main complaint record | Required master-data/customer references, descriptions/date, creator; nullable resolver/resolution fields; soft deletes |
+| `complaints` | Main complaint record | Required master-data/customer references, descriptions/date, creator; nullable resolver/resolution fields; `category_id`/`priority_id` are derived from the selected complaint type (not client-editable); soft deletes |
 | `complaint_status_histories` | Append-only status transitions | Complaint, optional from status, to status, reason, actor, changed timestamp |
 | `activity_logs` | Audit trail | Actor, action, nullable polymorphic subject, description, old/new JSON values, timestamp |
 
@@ -175,6 +177,7 @@ The `.env.example` specifies `SESSION_DRIVER=database`, and the default Laravel 
 - Customer search checks name and all four phone columns.
 - New complaint selections use active master-data records only; existing complaints can still display inactive historical records.
 - Complaint creators are taken from `auth()->id()` and cannot be supplied by a client request.
+- Category and priority are never user-editable on complaint create/edit: they are derived from the selected complaint type on create, and re-derived only when the type changes on edit. Both store and update validate that the type has `category_id` and `priority_id` configured (error key `common.type_missing_category_priority`), so a client cannot submit arbitrary category/priority values.
 - Status changes create both a history row and an activity row inside a transaction.
 - The configured status named Solved sets resolution actor/time metadata.
 - Complaint and report lists use database pagination and query-string preservation.
@@ -707,3 +710,18 @@ In the desktop installed app (`display: standalone` with `display_override: wind
 ### Install App button removed entirely — 2026-09-06
 
 The user chose to drop the custom Install App button from the navbar everywhere instead of perfecting its hiding. All of it was deleted: the desktop header `data-install-button` and the mobile-drawer `data-install-button-mobile` in `resources/views/layouts/app.blade.php` (plus the whole `data-install-modal` block), the entire install IIFE in `resources/js/app.js` (`isStandalone`, `beforeinstallprompt`, `appinstalled`, `getInstalledRelatedApps`, the `complaint-installed` localStorage marker), the install dark-mode CSS in `resources/css/app.css`, and the install lang keys (`install_app`, `add_to_home_screen`, `install_instructions_title`, `install_instructions_android`, `install_instructions_ios`, `install_now`, `install_close`) from `lang/en|ar/common.php` (**221 → 214 keys** per locale; stripped safely with a temp PHP script — UTF-8, no BOM — and both files `php -l` clean). PWA installability itself is untouched: the manifest, service worker, and the `#wco-titlebar` draggable strip remain, and users install via the browser's own install menu. `PwaTest` now asserts the layout and CSS contain **no** `data-install-button`/`data-install-modal`. Verified: `npm.cmd run build` (bundle `public/build/assets/app-BIVoMiA1.js` + `public/build/assets/app-Bip2pWax.css`) + `php artisan view:clear` + full suite **110 passed / 577 assertions** (PwaTest 5/58). `project_structure.md` and `complete_project_specification.md` bullets updated.
+
+### Complaint Type → Category/Priority derivation — 2026-09-06
+
+Category and Priority are no longer manually chosen on the complaint create/edit form; every Complaint Type now defines its `category_id` + `priority_id`, and the system derives the complaint's category/priority from the selected type (backend-authoritative, client cannot override).
+
+- **Schema:** migration `2026_09_06_000002_add_category_priority_to_complaint_types_table.php` adds nullable `category_id` → `complaint_categories` and `priority_id` → `priorities` to `complaint_types` (both `nullOnDelete`). Nullable in DB; required is enforced by the master-data type form and complaint validation. Applied to the live SQL Server DB via `php artisan migrate --force`. `complaint_categories` / `priorities` tables use table names `complaint_categories` (no `s`) and `priorities`.
+- **Model:** `App\Models\ComplaintType` — `$fillable` now includes `category_id`, `priority_id`; added `category()` and `priority()` belongsTo.
+- **Master data:** `MasterDataController::$types['types']['fields']` now `['name','color','category_id','priority_id','is_active','sort_order']`; `rules()` gates `category_id`/`priority_id` as required+exists per type; `create()`/`edit()` pass `$categories`/`$priorities` via static `relationOptions('types')`; `index()` eager-loads `with(['category','priority'])` for types only. `master-data/form.blade.php` renders two required selects for types; `master-data/index.blade.php` shows optional Category/Priority columns for types (colspan `5 + ($type==='types' ? 2 : 0)`).
+- **Complaint flow:** `complaints/form.blade.php` grid loop is now `branch_id, service_id, source_id, status_id` + type select + date (category/priority selects removed). Type options carry `data-category-id/name/color` + `data-priority-id/name/color` (from `$data['types']` eager-loaded in `ComplaintController::masterData()`); a `#type-derived` panel shows read-only Category/Priority badges (`.badge` with `--badge-color`), an inline script updates them on type change; panel hidden when the selected type lacks config.
+- **Backend:** `StoreComplaintRequest`/`UpdateComplaintRequest` no longer accept `category_id`/`priority_id`; `type_id` keeps `Rule::exists(...,'is_active',true)`; both add a lazy `after()` validator error on `type_id` (`common.type_missing_category_priority`) when the type lacks category/priority; both expose `type()` (memoized, eager-loads `category`/`priority`). `ComplaintController::store()` sets `category_id`/`priority_id` from `$request->type()`; `update()` re-derives them **only when `type_id` changed**, computing `$old` after the mapping so the activity log stays clean and unrelated data is never overwritten.
+- **Seed:** `MasterDataSeeder` association block after priorities maps the six seeded types → category/priority (Wrong Order→Order/High, Missing Item→Order/Medium, Late Delivery→Delivery/Medium, Bad Treatment→Customer Service/Medium, Wrong Price→Payment/High, Food Quality→Food Quality/Medium). Re-run on live DB via `php artisan db:seed --class=MasterDataSeeder --force`; verified all 6 live types configured (tinker check).
+- **Lang:** `common.auto_determined` + `common.type_missing_category_priority` added to `lang/en|ar/common.php` (per-locale now 223/219 «=>'» entries; `created` key duplicated once in both locales — pre-existing, untouched; temp PHP script, UTF-8 no-BOM, both `php -l` clean).
+- **Tests:** `ComplaintManagementTest` — `complaintData()` no longer posts category/priority; status-change and update fixtures derive category/priority from the type for direct `Complaint::create` (columns are NOT NULL) and post `array_merge` payloads (the `+` union helper does NOT override existing keys); NEW: store derives, store ignores manipulated category/priority (picker chooses ids ≠ the type's config), store rejects unconfigured active type, update re-derives on type change, update preserves on unchanged type, create+edit forms hide category/priority selects and render badges, master-data type store requires+persists both (Admin user).
+- **Verification:** `php artisan migrate --force` (SQL Server Ran), `php artisan view:clear`, `php -l` on all changed PHP files, full suite **117 passed / 608 assertions** (13 complaint-management tests / 56 assertions). Docs: `database_design.md` (new §3.3.1 Derived category and priority + complaint_types columns + §3.4 notes), `project_structure.md`, `complete_project_specification.md` synced.
+- **Dark-mode badge fix (same day, user report):** the derived Category/Priority badges were unreadable in dark mode because `.badge` renders text in the raw master-data color (e.g. dark slate `#475569`) on the dark surface. Added `html[data-theme='dark'] .badge` override in `resources/css/app.css` using `color-mix()` — text = badge color 62% + `#f8fafc`, border 55%, background 24% — so badges keep their hue but stay legible on dark; also fixes the same badges on the complaint show page. Rebuilt (`public/build/assets/app-RLfl2y8e.css`, rule confirmed in bundle) + `view:clear` + full suite **117 passed / 608 assertions**. Note: the service worker caches hashed assets, so hard-refresh/reinstall to see the new styling.

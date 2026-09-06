@@ -104,6 +104,12 @@ Column application by table:
 | priorities | No | Yes, required | Yes, useful for severity ordering |
 | complaint_statuses | No | Yes, required | No |
 
+Instead of `code`/`level`, `complaint_types` additionally carries two nullable foreign keys: `category_id` referencing `complaint_categories` and `priority_id` referencing `priorities`, both `nullOnDelete`. They are required at the application level: the master-data type form requires them, and complaint create/edit validation rejects a type that lacks either. Every complaint type must therefore map to one category and one priority so the complaint category/priority can be derived from the selected type.
+
+### 3.3.1 Derived category and priority
+
+`complaints.category_id` and `complaints.priority_id` are read-only from the user's perspective. On complaint creation the controller derives both from the selected complaint type (`StoreComplaintRequest::type()`). On edit they are re-derived only when the selected type changes; otherwise the stored values are preserved so unrelated data is never overwritten. `StoreComplaintRequest`/`UpdateComplaintRequest` omit them from their rules and add a validation error on `type_id` when the type has no configured category/priority (`common.type_missing_category_priority`). The complaint form renders them as read-only badges (`#type-derived`), not as editable selects.
+
 Branch `code` should be unique among non-deleted branches if it is used operationally. Names should have a practical uniqueness rule per table, normally unique among active/non-deleted records. The migration should avoid database-specific partial unique indexes unless required; validation and a conventional unique field can be used where appropriate.
 
 ### 3.4 `complaints`
@@ -115,9 +121,9 @@ Branch `code` should be unique among non-deleted branches if it is used operatio
 | branch_id | foreign big integer | Required; references branches |
 | service_id | foreign big integer | Required; references services |
 | source_id | foreign big integer | Required; references complaint_sources |
-| category_id | foreign big integer | Required; references complaint_categories |
+| category_id | foreign big integer | Required; references complaint_categories (derived from the selected complaint type — not client-editable) |
 | type_id | foreign big integer | Required; references complaint_types |
-| priority_id | foreign big integer | Required; references priorities |
+| priority_id | foreign big integer | Required; references priorities (derived from the selected complaint type — not client-editable) |
 | status_id | foreign big integer | Required; references complaint_statuses |
 | short_description | string | Required summary |
 | description | text | Required full complaint |
