@@ -35,6 +35,8 @@
             <div><dt class="text-slate-500">{{ __('common.source') }}</dt><dd>{{ $complaint->source?->name }}</dd></div>
             <div><dt class="text-slate-500">{{ __('common.category') }}</dt><dd>{{ $complaint->category?->name }}</dd></div>
             <div><dt class="text-slate-500">{{ __('common.type') }}</dt><dd>{{ $complaint->type?->name }}</dd></div>
+            <div><dt class="text-slate-500">{{ __('common.serial_number') }}</dt><dd>{{ $complaint->serial_number ?: '—' }}</dd></div>
+            <div><dt class="text-slate-500">{{ __('common.price') }}</dt><dd>{{ $complaint->price !== null ? number_format((float) $complaint->price, 2) : '—' }}</dd></div>
             <div><dt class="text-slate-500">{{ __('common.created_by') }}</dt><dd>{{ $complaint->creator?->name }}</dd></div>
         </dl>
     </div>

@@ -26,7 +26,7 @@ class ComplaintExportTest extends TestCase
         $excluded = $this->makeComplaint($user, $second);
         $export = new ComplaintsExport(['branch_ids' => [$first->id]]);
         $this->assertTrue($export->query()->whereKey($excluded->id)->doesntExist());
-        $this->assertSame(17, count($export->headings()));
+        $this->assertSame(19, count($export->headings()));
     }
 
     public function test_export_query_respects_description_filter(): void
@@ -78,15 +78,18 @@ class ComplaintExportTest extends TestCase
         ]);
 
         $export = new ComplaintsExport([]);
+        $complaint->update(['serial_number' => 'SN-2026-001', 'price' => 1234.50]);
         $row = $export->map($export->query()->whereKey($complaint->id)->firstOrFail());
 
-        $this->assertSame('Short Description', $export->headings()[11]);
-        $this->assertSame('Timeline', $export->headings()[16]);
-        $this->assertSame('Export complaint', $row[11]);
-        $this->assertStringContainsString('Complaint created.', $row[16]);
-        $this->assertStringContainsString('Complaint updated.', $row[16]);
-        $this->assertStringContainsString('Pending → Solved', $row[16]);
-        $this->assertStringContainsString('Resolved by support', $row[16]);
+        $this->assertSame('Short Description', $export->headings()[13]);
+        $this->assertSame('Timeline', $export->headings()[18]);
+        $this->assertSame('SN-2026-001', $row[11]);
+        $this->assertSame(1234.5, $row[12]);
+        $this->assertSame('Export complaint', $row[13]);
+        $this->assertStringContainsString('Complaint created.', $row[18]);
+        $this->assertStringContainsString('Complaint updated.', $row[18]);
+        $this->assertStringContainsString('Pending → Solved', $row[18]);
+        $this->assertStringContainsString('Resolved by support', $row[18]);
     }
 
     public function test_export_headings_follow_locale(): void
@@ -97,8 +100,12 @@ class ComplaintExportTest extends TestCase
         $arabic = (new ComplaintsExport([]))->headings();
         $this->assertSame('Complaint ID', $english[0]);
         $this->assertSame('رقم الشكوى', $arabic[0]);
-        $this->assertSame('الوصف المختصر', $arabic[11]);
-        $this->assertSame('الخط الزمني', $arabic[16]);
+        $this->assertSame('Serial Number', $english[11]);
+        $this->assertSame('Price', $english[12]);
+        $this->assertSame('رقم السيريال', $arabic[11]);
+        $this->assertSame('السعر', $arabic[12]);
+        $this->assertSame('الوصف المختصر', $arabic[13]);
+        $this->assertSame('الخط الزمني', $arabic[18]);
     }
 
     private function makeComplaint(User $user, Branch $branch): Complaint

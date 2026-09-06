@@ -25,6 +25,8 @@ class UpdateComplaintRequest extends FormRequest
             'short_description' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
             'complaint_date' => ['required', 'date'],
+            'serial_number' => ['nullable', 'string', 'max:255'],
+            'price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'resolution' => ['nullable', 'string'],
         ];
     }

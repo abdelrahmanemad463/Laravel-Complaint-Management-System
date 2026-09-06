@@ -122,6 +122,8 @@ Branch `code` should be unique among non-deleted branches if it is used operatio
 | short_description | string | Required summary |
 | description | text | Required full complaint |
 | complaint_date | date/datetime | Required business submission/occurrence date; indexed |
+| serial_number | string (255) nullable | Optional product/device serial number (since 2026-09-06) |
+| price | decimal (12,2) nullable | Optional purchase price (since 2026-09-06) |
 | created_by | foreign big integer | Required; references users |
 | resolved_by | foreign big integer nullable | Resolver user; populated when solved |
 | resolved_at | timestamp nullable | Resolution timestamp |

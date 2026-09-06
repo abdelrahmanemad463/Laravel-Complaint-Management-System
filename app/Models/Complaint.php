@@ -13,12 +13,13 @@ class Complaint extends \Illuminate\Database\Eloquent\Model
     protected $fillable = [
         'customer_id', 'branch_id', 'service_id', 'source_id', 'category_id', 'type_id',
         'priority_id', 'status_id', 'short_description', 'description', 'complaint_date',
+        'serial_number', 'price',
         'created_by', 'resolved_by', 'resolved_at', 'resolution',
     ];
 
     protected function casts(): array
     {
-        return ['complaint_date' => 'date', 'resolved_at' => 'datetime'];
+        return ['complaint_date' => 'date', 'resolved_at' => 'datetime', 'price' => 'decimal:2'];
     }
 
     public function customer() { return $this->belongsTo(Customer::class); }
