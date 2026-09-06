@@ -131,6 +131,144 @@ So: give the role `dashboard.visitors.view` (or `complaint.view`/`visit.view` fo
 
 ---
 
+## 6. How are evidence photos compressed and downscaled before they are stored?
+
+Every evidence photo goes through the same one-way pipeline in `app/Services/Visitors/VisitorPhotoService.php` — `store(UploadedFile $file)` does: **validate → decode → downscale → re-encode as JPEG quality 80 → save on the private `local` disk**. There are no temp files and no third-party libraries; compression uses PHP's built-in GD extension, and the visit item only ever sees the resulting `VisitorPhoto` record (whose `compressed_size` column shows how small the output got).
+
+### Logic, step by step
+
+1. **Size gate.** `MAX_ORIGINAL_SIZE = 20 MB`; any larger upload throws `RuntimeException('The photo exceeds the maximum allowed size of 20 MB.')`.
+2. **GD decode.** PNG and WebP are loaded with `imagecreatefromstring($contents)`; JPEG uses `imagecreatefromjpeg($file->getRealPath())`. A failed decode (`@` suppresses the warning) throws `'The uploaded file is not a valid image.'`.
+3. **Downscale.** If either dimension exceeds `$maxDim = 1600`, the ratio `min(1600 / width, 1600 / height)` is applied and the image is resampled with `imagecopyresampled()` into an `imagecreatetruecolor()` canvas — the longest edge becomes ≤ 1600 px, which shrinks the pixel data before any encoding happens.
+4. **Re-encode to JPEG q80.** GD writes directly into an output buffer instead of a file:
+   ```php
+   ob_start();
+   imagejpeg($image, null, 80);   // null file = write to the output buffer
+   $compressed = ob_get_clean();
+   imagedestroy($image);
+   ```
+5. **Persist.** `Storage::disk('local')->put($path, $compressed)` where `$path = 'visitor-photos/Y/m/d/'.Str::uuid().'.jpeg'` — so **every** photo is stored as a `.jpeg` with `mime_type` forced to `image/jpeg`, even when the source was PNG or WebP. Alpha transparency is flattened (transparent areas become black), and the original pixel dimensions are not kept.
+6. **Return.** The method returns `{ path, original_name, mime_type: 'image/jpeg', original_size, compressed_size: strlen($compressed) }`, which is exactly what creates the `VisitorPhoto` row. Photos are served back later through the `visitors.photos.serve` route (`VisitPhotoController@serve`).
+
+### Example — the relevant part of the real service
+
+```php
+// app/Services/Visitors/VisitorPhotoService.php
+public function store(UploadedFile $file): array
+{
+    if ($file->getSize() > self::MAX_ORIGINAL_SIZE) {            // 1. 20 MB cap
+        throw new RuntimeException('The photo exceeds the maximum allowed size of 20 MB.');
+    }
+    $originalName = $file->getClientOriginalName();
+    $mime = $file->getMimeType();
+    $originalSize = $file->getSize();
+
+    $image = $this->loadImage($file, $mime);                     // 2 + 3. decode + downscale to <= 1600px
+    $path = 'visitor-photos/'.date('Y/m/d').'/'.Str::uuid().'.jpg';
+
+    ob_start();                                                  // 4. JPEG quality 80
+    imagejpeg($image, null, 80);
+    $compressed = ob_get_clean();
+    imagedestroy($image);
+
+    Storage::disk('local')->put($path, $compressed);             // 5. private local disk
+
+    return [                                                     // 6.
+        'path' => $path, 'original_name' => $originalName, 'mime_type' => 'image/jpeg',
+        'original_size' => $originalSize, 'compressed_size' => strlen($compressed),
+    ];
+}
+
+private function loadImage(UploadedFile $file, string $mime)
+{
+    $contents = file_get_contents($file->getRealPath());
+    $image = match ($mime) {
+        'image/png', 'image/webp' => @imagecreatefromstring($contents),
+        default                   => @imagecreatefromjpeg($file->getRealPath()),
+    };
+    if (!$image) throw new RuntimeException('The uploaded file is not a valid image.');
+
+    $maxDim = 1600; $width = imagesx($image); $height = imagesy($image);
+    if ($width > $maxDim || $height > $maxDim) {
+        $ratio = min($maxDim / $width, $maxDim / $height);
+        $resized = imagecreatetruecolor((int) round($width * $ratio), (int) round($height * $ratio));
+        imagecopyresampled($resized, $image, 0, 0, 0, 0, imagesx($resized), imagesy($resized), $width, $height);
+        imagedestroy($image); $image = $resized;
+    }
+    return $image;
+}
+```
+
+Net effect: a ~8 MB JPEG phone photo becomes a ≤1600 px, quality-80 JPEG (typically a few hundred KB — exactly the number stored in `compressed_size`), and PNG/WebP uploads are converted to JPEG so the private disk only ever holds one format.
+
+---
+
+## 7. How can a Super Admin open another inspector's in-progress visit from a copied link, while everyone else gets "This action is unauthorized"?
+
+The route is `visitors/{visit}` (name `visitors.show`), handled by `VisitController@show`, which calls `$this->authorize('view', $visit)`. That triggers policy `VisitorVisitPolicy::view` — **owner only**:
+
+```php
+// app/Policies/VisitorVisitPolicy.php
+public function view(User $user, VisitorVisit $visit): bool
+{
+    return (int) $visit->inspector_id === (int) $user->id;   // only the inspecting user passes
+}
+```
+
+So when a regular inspector pastes a copied link to a colleague's visit, the policy returns `false`, `authorize()` throws `AuthorizationException`, and Laravel renders the **403 "This action is unauthorized"** page. Same pattern guards `update()` and `submit()` (both also require not-completed), so a non-owner can't touch the visit either.
+
+### Why a Super Admin sails through — the `Gate::before` bypass
+
+`app/Providers/AppServiceProvider.php:25` registers a global "before" hook that Laravel runs **before every policy/permission check**:
+
+```php
+Gate::before(function ($user, string $ability) {
+    return $user->hasRole('Super Admin') ? true : null;
+});
+```
+
+- **Super Admin** → hook returns `true`, so the check short-circuits to "allowed" and `VisitorVisitPolicy` is never consulted.
+- **Everyone else** → hook returns `null` ("no opinion"), so normal policy evaluation continues — owner-only → foreign visit → 403.
+
+This works because the `Super Admin` role is created with **every seeded permission** in the seeder (`PermissionSeeder` → `$super->syncPermissions($all)` → assigned to `admin@example.com`), and the role itself is protected: the roles screen disables its checkboxes (`roles/form.blade.php`) and only a Super Admin may assign or remove it (`UserController` aborts 403).
+
+### What this means in practice
+
+- A Super Admin pasting any `visitors/{id}` link can view — and even **update / submit** — a visit that another inspector has in progress (the bypass covers all abilities on `VisitorVisit`, not just `view`).
+- The same `null` (normal) path is why non-admins get the exact list they're allowed to see: on the reports page, `viewReport` returns `false` for foreign **in-progress** visits for everyone, and for completed reports only `visit.manage` holders (or the inspecting user with `report.view`) pass.
+
+So: "action not authorized" = the policy's owner check failed; "clicking into it works for the boss" = `Gate::before` short-circuits the check to `true` for anyone holding the `Super Admin` role.
+
+---
+
+## 8. Why do two Laravel apps on the same host (e.g. `localhost/complaint` and `localhost/POS`) log each other out on the same browser?
+
+Because both ship the **default session cookie name `laravel_session`** and both set it for the **same host (`localhost`) at cookie path `/`** — and a browser only keeps **one cookie per (name, domain, path) trio**. Whichever app logs in last overwrites the shared cookie, so the other app suddenly can't authenticate.
+
+### Why the other app then "logs you out"
+
+The cookie alone doesn't carry the session — it only stores the session **ID**, which the app must (1) decrypt with **its own `APP_KEY`** and (2) look up in **its own session store**. `http://localhost/complaint/public/` and `http://localhost/POS/public/` are two independent Laravel installs with different `.env` → different `APP_KEY` → different encrypted cookie and different `sessions` table/file. When app B (POS) overwrites the `laravel_session` cookie, the next request to app A (complaint) reads a cookie encrypted with B's key (and pointing at a session ID B created). A cannot decrypt it or find the session, so A treats the user as a guest — the same in reverse. Login to A effectively "kicks you out" of B and vice versa.
+
+### The fix (applied to this repo on 2026-09-04)
+
+Give each app a **unique session cookie name** in its own `.env`:
+
+```dotenv
+# C:\xampp\htdocs\complaint\.env
+SESSION_COOKIE=complaint_session
+
+# C:\xampp\htdocs\POS\.env   (sibling app — do the same there)
+SESSION_COOKIE=pos_session
+```
+
+`config/session.php:130` already reads `env('SESSION_COOKIE', 'laravel_session')`, so no code change is needed — the value flows straight into the response cookie. Optionally scope the cookie path per app too (`SESSION_PATH=/complaint/public` and `/POS/public`) so each browser only sends the relevant cookie to the matching app, but the unique name alone is sufficient.
+
+After changing `.env` run `php artisan config:clear` in each app (so the cached config picks up the new value) and clear `localhost` cookies once in the browser to drop the stale `laravel_session` cookie. Both apps then keep their own login independent of the other.
+
+> Note: Laravel also sets a shared `XSRF-TOKEN` cookie on the same host, but this app reads the CSRF token from the `<meta name="csrf-token">` tag / hidden `@csrf` inputs (never from that cookie), so the cookie-name collision does **not** affect CSRF here.
+
+---
+
 ## How to add more entries
 
 Keep each entry self-contained: rephrase the question the way a future developer would google it, then answer with the exact file/line patterns and the business rule behind them. If an answer changes because the code changes, update it here in the same edit and note the change in `memory.md`.
