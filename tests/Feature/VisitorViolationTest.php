@@ -337,15 +337,40 @@ class VisitorViolationTest extends TestCase
         app(CapaService::class)->submitResolution($action, 'Fixed');
     }
 
-    // 9b. The resolve endpoint rejects a missing photo outright (422).
+    // 9b. The resolve endpoint rejects a missing photo outright (422) for critical.
     public function test_resolve_endpoint_requires_photo(): void
     {
-        $visit = $this->makeCompletedVisit();
-        $action = $visit->capaActions()->firstOrFail();
+        $visit = $this->startVisit();
+        $critical = $visit->items()->where('severity', 'critical')->first();
+        $this->assertNotNull($critical, 'Seed must include a critical item for this test.');
+        $critical->update(['status' => 'nc', 'visited_at' => now(), 'root_cause_id' => VisitorRootCause::firstOrFail()->id]);
+        $visit->items()->whereKeyNot($critical->id)->update(['status' => 'ok', 'visited_at' => now()]);
+
+        $initial = UploadedFile::fake()->image('initial.jpg', 200, 200);
+        $this->actingAs($this->inspector)->post(route('visitors.items.photo', $critical), ['photo' => $initial])->assertOk();
+        $this->submit($visit);
+
+        $action = $visit->fresh()->capaActions()->firstOrFail();
+        $this->assertSame('critical', $action->visitItem->severity);
 
         $this->actingAs($this->inspector)->post(route('visitors.violations.resolve', $action), ['note' => 'no photo'])
             ->assertSessionHasErrors('photo');
         $this->assertSame('open', $action->fresh()->status);
+    }
+
+    // 9c. Non-critical violations can be resolved without a resolution photo.
+    public function test_non_critical_resolve_without_photo_succeeds(): void
+    {
+        $visit = $this->makeCompletedVisit();
+        $action = $visit->capaActions()->firstOrFail();
+        $this->assertNotSame('critical', $action->visitItem->severity);
+
+        $this->actingAs($this->inspector)->post(route('visitors.violations.resolve', $action), ['note' => 'Fixed, no photo needed'])
+            ->assertSessionHas('success', __('visitors.violation_submitted_for_review'));
+
+        $action->refresh();
+        $this->assertSame('pending_review', $action->status);
+        $this->assertNull($action->visitItem->photos()->where('evidence_role', 'resolution')->first());
     }
 
     // 9c. Critical violations can be resolved via the endpoint WITH resolution evidence.

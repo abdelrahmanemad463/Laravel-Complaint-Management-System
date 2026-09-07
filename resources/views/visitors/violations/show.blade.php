@@ -85,7 +85,7 @@ $canReview = auth()->user()->can('visit.review');
 
 @if($vi->reject_reason)
 <div class="mb-8 rounded-xl border border-rose-200 bg-rose-50 p-4 sm:p-6">
-    <div class="text-sm font-bold text-rose-700">{{ __('visitors.rejection_reason') }}</div>
+    <div class="text-sm font-bold text-rose-700">{{ __('visitors.reject_reason') }}</div>
     <p class="mt-1 text-sm text-rose-600">{{ $vi->reject_reason }}</p>
 </div>
 @endif
@@ -113,7 +113,7 @@ $canReview = auth()->user()->can('visit.review');
             @csrf
             <div class="space-y-3">
                 <div>
-                    <label class="form-label">{{ __('visitors.rejection_reason') }} *</label>
+                    <label class="form-label">{{ __('visitors.reject_reason') }} *</label>
                     <textarea name="reject_reason" class="form-input" rows="2" required placeholder="{{ __('visitors.reject_reason_placeholder') }}"></textarea>
                 </div>
                 <button type="submit" class="w-full rounded-xl border border-rose-300 bg-white px-4 py-3 text-sm font-bold text-rose-700 hover:bg-rose-50">{{ __('visitors.reject_violation') }}</button>
@@ -137,7 +137,7 @@ $canReview = auth()->user()->can('visit.review');
                     <span class="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">*</span>
                     @endif
                 </label>
-                <input type="file" name="photo" class="form-input" accept="image/jpeg,image/png,image/webp" required>
+                <input type="file" name="photo" class="form-input" accept="image/jpeg,image/png,image/webp" @if(strtolower((string) $item?->severity) === 'critical') required @endif>
                 <p class="mt-1 text-xs text-slate-500">{{ __('visitors.photo_help') }}</p>
             </div>
             <button type="submit" class="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700">{{ __('visitors.submit_resolution') }}</button>

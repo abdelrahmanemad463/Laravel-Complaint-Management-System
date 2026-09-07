@@ -81,21 +81,25 @@ class VisitorViolationController extends Controller
     {
         abort_unless($request->user()->can('visit.update') || $request->user()->can('visit.review'), 403);
 
+        $isCritical = strtolower((string) $capaAction->visitItem?->severity) === 'critical';
+
         $data = $request->validate([
             'note' => ['nullable', 'string', 'max:4000'],
-            'photo' => ['required', 'file', 'image', 'mimes:jpeg,jpg,png,webp', 'max:20480'],
+            'photo' => [$isCritical ? 'required' : 'nullable', 'file', 'image', 'mimes:jpeg,jpg,png,webp', 'max:20480'],
         ]);
 
         try {
-            // Attach resolution photo to the violation's origin visit item.
-            $photos = app(VisitorPhotoService::class);
-            $photoData = $photos->store($request->file('photo'));
+            if ($request->file('photo')) {
+                // Attach resolution photo to the violation's origin visit item.
+                $photos = app(VisitorPhotoService::class);
+                $photoData = $photos->store($request->file('photo'));
 
-            $capaAction->visitItem->photos()->create(array_merge($photoData, [
-                'visit_id' => $capaAction->visit_id,
-                'capa_action_id' => $capaAction->id,
-                'evidence_role' => 'resolution',
-            ]));
+                $capaAction->visitItem->photos()->create(array_merge($photoData, [
+                    'visit_id' => $capaAction->visit_id,
+                    'capa_action_id' => $capaAction->id,
+                    'evidence_role' => 'resolution',
+                ]));
+            }
 
             $this->capa->submitResolution($capaAction, $data['note'] ?? null);
         } catch (\RuntimeException $e) {
