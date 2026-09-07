@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Visitors;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Visitors\StoreVisitPhotoRequest;
+use App\Models\VisitorCapaAction;
 use App\Models\VisitorVisitItem;
 use App\Models\VisitorVisitPhoto;
 use App\Services\Visitors\VisitorPhotoService;
@@ -22,6 +23,16 @@ class VisitPhotoController extends Controller
     {
         $this->authorize('update', $visitItem->visit);
 
+        $evidenceRole = $request->input('evidence_role', 'initial');
+        $capaActionId = $request->input('capa_action_id');
+
+        // Resolution evidence must reference the linked violation on this item.
+        if ($evidenceRole === 'resolution') {
+            if (!$capaActionId || $capaActionId !== $visitItem->linked_capa_action_id) {
+                abort(422, 'Invalid capa_action_id for resolution evidence.');
+            }
+        }
+
         try {
             $data = $this->photos->store($request->file('photo'));
         } catch (\RuntimeException $e) {
@@ -30,6 +41,8 @@ class VisitPhotoController extends Controller
 
         $photo = $visitItem->photos()->create(array_merge($data, [
             'visit_id' => $visitItem->visit_id,
+            'capa_action_id' => $capaActionId,
+            'evidence_role' => $evidenceRole,
         ]));
 
         return response()->json([
@@ -39,6 +52,7 @@ class VisitPhotoController extends Controller
                 'url' => route('visitors.photos.serve', $photo),
                 'original_name' => $photo->original_name,
                 'compressed_size' => $photo->compressed_size,
+                'evidence_role' => $photo->evidence_role,
             ],
         ]);
     }

@@ -73,7 +73,28 @@ class VisitController extends Controller
             'maintenance', 'purchasing', 'training', 'human_resources', 'it',
             'central_kitchen', 'marketing', 'customer_service', 'accounting', 'senior_management',
         ];
-        return view('visitors.show', compact('visit', 'grouped', 'score', 'rootCauses', 'supportDepartments'));
+
+        // For in-progress visits, compute which items have an existing open
+        // violation so the inspector can choose the follow-up action.
+        $existingOpenMap = collect();
+        if (!$visit->isCompleted()) {
+            $existingOpenMap = app(\App\Services\Visitors\CapaService::class)
+                ->existingOpenMap($visit)
+                ->map(fn ($a) => [
+                    'id' => $a->id,
+                    'status' => $a->status,
+                    'dueStatus' => $a->dueStatus(),
+                    'dueAt' => $a->due_at?->format('Y-m-d H:i'),
+                    'itemTitle' => $a->visitItem?->item_title,
+                    'itemCode' => $a->visitItem?->item_code,
+                    'createdAt' => $a->created_at->format('Y-m-d H:i'),
+                    'periodLabel' => $a->periodLabel(),
+                ]);
+
+            $visit->load('items.linkedViolation');
+        }
+
+        return view('visitors.show', compact('visit', 'grouped', 'score', 'rootCauses', 'supportDepartments', 'existingOpenMap'));
     }
 
     public function submit(VisitorVisit $visit)

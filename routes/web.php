@@ -22,8 +22,6 @@ Route::middleware('auth')->group(function () {
         Route::get('reports/dashboard', [\App\Http\Controllers\Visitors\VisitorReportController::class,'dashboard'])->name('reports.dashboard')->middleware('permission:dashboard.visitors.view');
         Route::get('reports/{visit}/pdf', [\App\Http\Controllers\Visitors\VisitorReportController::class,'pdf'])->name('reports.pdf');
         Route::get('reports/{visit}', [\App\Http\Controllers\Visitors\VisitorReportController::class,'show'])->name('reports.show');
-        Route::post('capa/{capaAction}/close', [\App\Http\Controllers\Visitors\VisitorCapaController::class,'close'])->name('capa.close');
-        Route::patch('capa/{capaAction}', [\App\Http\Controllers\Visitors\VisitorCapaController::class,'update'])->name('capa.update');
         Route::get('master-data', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'index'])->name('master-data');
         Route::get('master-data/template', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'template'])->name('master-data.template');
         Route::get('master-data/template-example', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'templateExample'])->name('master-data.template-example');
@@ -32,6 +30,14 @@ Route::middleware('auth')->group(function () {
         Route::get('master-data/import/{import}/preview', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'preview'])->name('master-data.import.preview');
         Route::post('master-data/import/{import}/confirm', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'confirm'])->name('master-data.import.confirm');
         Route::post('master-data/import/{import}/cancel', [\App\Http\Controllers\Visitors\VisitorMasterDataController::class,'cancel'])->name('master-data.import.cancel');
+
+        // Follow-up / Violations workflow
+        Route::get('violations', [\App\Http\Controllers\Visitors\VisitorViolationController::class,'index'])->name('violations');
+        Route::get('violations/{capaAction}', [\App\Http\Controllers\Visitors\VisitorViolationController::class,'show'])->name('violations.show');
+        Route::post('violations/{capaAction}/resolve', [\App\Http\Controllers\Visitors\VisitorViolationController::class,'resolve'])->name('violations.resolve');
+        Route::post('violations/{capaAction}/approve', [\App\Http\Controllers\Visitors\VisitorViolationController::class,'approve'])->name('violations.approve');
+        Route::post('violations/{capaAction}/reject', [\App\Http\Controllers\Visitors\VisitorViolationController::class,'reject'])->name('violations.reject');
+
         Route::post('{visit}/submit', [\App\Http\Controllers\Visitors\VisitController::class,'submit'])->name('submit');
         Route::get('{visit}', [\App\Http\Controllers\Visitors\VisitController::class,'show'])->name('show');
         Route::put('items/{visitItem}', [\App\Http\Controllers\Visitors\VisitItemController::class,'update'])->name('items.update');

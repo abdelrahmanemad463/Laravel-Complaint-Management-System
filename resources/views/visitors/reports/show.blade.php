@@ -13,19 +13,19 @@ $colors = [
 [$scoreHex, $scoreClasses] = $colors[$scoreColor] ?? $colors['slate'];
 $severityBadge = ['critical' => '#dc2626', 'major' => '#ea580c', 'minor' => '#16a34a'];
 $capaStatusColor = [
-    'open' => '#2563eb', 'in_progress' => '#7c3aed', 'overdue' => '#dc2626',
-    'closed' => '#16a34a', 'rejected' => '#475569',
+    'open' => '#2563eb', 'in_progress' => '#7c3aed', 'pending_review' => '#d97706',
+    'overdue' => '#dc2626', 'closed' => '#16a34a', 'rejected' => '#475569',
 ];
 $dueStatusColor = [
     'immediate' => '#7c3aed', 'upcoming' => '#2563eb', 'due_soon' => '#ca8a04',
     'overdue' => '#dc2626', 'completed' => '#16a34a', 'closed_late' => '#ea580c',
-    'rejected' => '#475569',
+    'pending_review' => '#d97706', 'rejected' => '#475569',
 ];
 $dueStatusLabel = [
     'immediate' => __('visitors.st_immediate'), 'upcoming' => __('visitors.st_upcoming'),
     'due_soon' => __('visitors.st_due_soon'), 'overdue' => __('visitors.st_overdue'),
     'completed' => __('visitors.st_completed'), 'closed_late' => __('visitors.st_closed_late'),
-    'rejected' => __('visitors.st_rejected'),
+    'pending_review' => __('visitors.st_pending_review'), 'rejected' => __('visitors.st_rejected'),
 ];
 $visit = $report['visit'];
 @endphp
@@ -294,13 +294,21 @@ $visit = $report['visit'];
                     @endif
                 </td>
                 <td class="py-2 px-2 text-center align-top">
-                    <span class="badge" style="--badge-color:{{ $capaStatusColor[$entry->status] ?? '#475569' }}">{{ ucfirst($entry->status) }}</span>
-                    @if(in_array($entry->status, ['open', 'in_progress', 'overdue'], true))
-                    <form method="POST" action="{{ route('visitors.capa.close', $action) }}" class="mt-1.5 print:hidden" onsubmit="return confirm('{{ __('visitors.capa_close_confirm') }}')">
-                        @csrf
-                        <button type="submit" class="rounded-full bg-emerald-600 px-3 py-1 text-[11px] font-bold text-white hover:bg-emerald-700">{{ __('visitors.close') }}</button>
-                    </form>
-                    @endif
+                    <span class="badge" style="--badge-color:{{ $capaStatusColor[$entry->status] ?? '#475569' }}">{{ ucfirst(str_replace('_', ' ', $entry->status)) }}</span>
+                    <div class="mt-1.5 flex flex-wrap items-center justify-center gap-1 print:hidden">
+                        @if($entry->status === 'pending_review' && auth()->user()->can('visit.review'))
+                        <form method="POST" action="{{ route('visitors.violations.approve', $action) }}" class="inline" onsubmit="return confirm('{{ __('visitors.approve_confirm') }}')">
+                            @csrf
+                            <button type="submit" class="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-emerald-700">{{ __('visitors.approve') }}</button>
+                        </form>
+                        <form method="POST" action="{{ route('visitors.violations.reject', $action) }}" class="inline" onsubmit="return confirm('{{ __('visitors.reject_confirm') }}')">
+                            @csrf
+                            <input type="hidden" name="reject_reason" value="{{ __('visitors.rejected_from_report') }}">
+                            <button type="submit" class="rounded-full border border-rose-300 bg-white px-2 py-0.5 text-[10px] font-bold text-rose-700 hover:bg-rose-50">{{ __('visitors.reject') }}</button>
+                        </form>
+                        @endif
+                        <a href="{{ route('visitors.violations.show', $action) }}" class="text-[10px] font-bold text-indigo-600 hover:underline">{{ __('common.view') }}</a>
+                    </div>
                 </td>
             </tr>
             @endforeach

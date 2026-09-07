@@ -101,6 +101,7 @@ class VisitorReportDashboardService
             'avgScore' => $avgScore,
             'openCapa' => $this->countCapa($f, 'open'),
             'overdueCapa' => $this->countCapa($f, 'overdue'),
+            'pendingReviewCapa' => $this->countCapa($f, 'pending_review'),
         ];
     }
 
@@ -113,8 +114,13 @@ class VisitorReportDashboardService
             ->when($f['date_to'], fn ($q, $v) => $q->whereDate('visitors_visits.visit_date', '<=', $v))
             ->when($f['branch_id'], fn ($q, $v) => $q->where('visitors_visits.branch_id', $v))
             ->when($f['visit_type_id'], fn ($q, $v) => $q->where('visitors_visits.visit_type_id', $v))
-            ->when($f['inspector_id'], fn ($q, $v) => $q->where('visitors_visits.inspector_id', $v))
-            ->whereIn('visitors_capa_actions.status', ['open', 'in_progress']);
+            ->when($f['inspector_id'], fn ($q, $v) => $q->where('visitors_visits.inspector_id', $v));
+
+        if ($kind === 'pending_review') {
+            return (int) $q->where('visitors_capa_actions.status', 'pending_review')->count();
+        }
+
+        $q->whereIn('visitors_capa_actions.status', ['open', 'in_progress']);
 
         if ($kind === 'overdue') {
             $q->whereNotNull('visitors_capa_actions.due_at')
@@ -437,7 +443,7 @@ class VisitorReportDashboardService
             ->get()
             ->pluck('count', 'status');
 
-        $statuses = ['open' => 0, 'in_progress' => 0, 'overdue' => 0, 'closed' => 0, 'rejected' => 0];
+        $statuses = ['open' => 0, 'in_progress' => 0, 'pending_review' => 0, 'overdue' => 0, 'closed' => 0, 'rejected' => 0];
 
         foreach ($rows as $status => $count) {
             if (in_array($status, ['open', 'in_progress'], true)) {

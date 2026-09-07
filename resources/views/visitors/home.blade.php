@@ -29,5 +29,12 @@
         <p class="mt-1 text-sm text-slate-500">{{ __('visitors.reports_help') }}</p></div>
     </a>
     @endcan
+    @can('visit.view')
+    <a href="{{ route('visitors.violations') }}" class="card group flex flex-col items-center justify-center gap-4 text-center transition duration-150 hover:-translate-y-1 hover:border-rose-300 hover:shadow-md">
+        <span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-100 text-3xl text-rose-700">⚠</span>
+        <div><div class="text-lg font-bold text-slate-900">{{ __('visitors.follow_up_report') }}</div>
+        <p class="mt-1 text-sm text-slate-500">{{ __('visitors.follow_up_report_help') }}</p></div>
+    </a>
+    @endcan
 </div>
 @endsection

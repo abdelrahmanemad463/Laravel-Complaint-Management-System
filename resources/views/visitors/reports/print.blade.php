@@ -47,8 +47,8 @@ $visit = $report['visit'];
 $colors = ['blue' => '#2563eb', 'green' => '#16a34a', 'yellow' => '#ca8a04', 'red' => '#dc2626', 'slate' => '#475569'];
 $sev = ['critical' => '#dc2626', 'major' => '#ea580c', 'minor' => '#16a34a'];
 $capaCol = ['open' => '#2563eb', 'in_progress' => '#7c3aed', 'overdue' => '#dc2626', 'closed' => '#16a34a', 'rejected' => '#475569'];
-$dueCol = ['immediate' => '#7c3aed', 'upcoming' => '#2563eb', 'due_soon' => '#ca8a04', 'overdue' => '#dc2626', 'completed' => '#16a34a', 'closed_late' => '#ea580c', 'rejected' => '#475569'];
-$dueLbl = ['immediate' => __('visitors.st_immediate'), 'upcoming' => __('visitors.st_upcoming'), 'due_soon' => __('visitors.st_due_soon'), 'overdue' => __('visitors.st_overdue'), 'completed' => __('visitors.st_completed'), 'closed_late' => __('visitors.st_closed_late'), 'rejected' => __('visitors.st_rejected')];
+$dueCol = ['immediate' => '#7c3aed', 'upcoming' => '#2563eb', 'due_soon' => '#ca8a04', 'overdue' => '#dc2626', 'completed' => '#16a34a', 'closed_late' => '#ea580c', 'pending_review' => '#d97706', 'rejected' => '#475569'];
+$dueLbl = ['immediate' => __('visitors.st_immediate'), 'upcoming' => __('visitors.st_upcoming'), 'due_soon' => __('visitors.st_due_soon'), 'overdue' => __('visitors.st_overdue'), 'completed' => __('visitors.st_completed'), 'closed_late' => __('visitors.st_closed_late'), 'pending_review' => __('visitors.st_pending_review'), 'rejected' => __('visitors.st_rejected')];
 $hex = $colors[$score['color']] ?? '#475569';
 $sh = fn($s) => pdf_ar($s);
 @endphp

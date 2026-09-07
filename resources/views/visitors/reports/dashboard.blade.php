@@ -69,12 +69,13 @@ $charts = [
 </form>
 
 {{-- Cards --}}
-<div class="mb-8 grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+<div class="mb-8 grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.total_visits') }}</div><div class="mt-1 text-3xl font-black text-slate-900">{{ $cards['totalVisits'] }}</div></div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.avg_score') }}</div><div class="mt-1 text-3xl font-black" style="color:{{ $scoreHex }}">{{ $cards['avgScore'] !== null ? $cards['avgScore'].'%' : '—' }}</div></div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.critical_violations') }}</div><div class="mt-1 text-3xl font-black {{ $cards['criticalViolations'] ? 'text-rose-600' : 'text-slate-900' }}">{{ $cards['criticalViolations'] }}</div></div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.total_violations') }}</div><div class="mt-1 text-3xl font-black text-orange-600">{{ $cards['totalViolations'] }}</div></div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.open_capa') }}</div><div class="mt-1 text-3xl font-black text-blue-600">{{ $cards['openCapa'] }}</div></div>
+    <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.pending_review_capa') }}</div><div class="mt-1 text-3xl font-black text-amber-600">{{ $cards['pendingReviewCapa'] }}</div></div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.overdue_capa') }}</div><div class="mt-1 text-3xl font-black {{ $cards['overdueCapa'] ? 'text-rose-600' : 'text-slate-900' }}">{{ $cards['overdueCapa'] }}</div></div>
 </div>
 

@@ -13,6 +13,7 @@ class VisitorVisitItem extends Model
         'main_kitchen', 'support_department',
         'item_code', 'item_title', 'section_name', 'severity', 'deduction_score', 'photo_required',
         'immediate_action', 'corrective_action', 'preventive_action', 'responsible', 'period_hours',
+        'follow_up_action', 'linked_capa_action_id',
     ];
 
     protected function casts(): array
@@ -49,6 +50,25 @@ class VisitorVisitItem extends Model
     public function capaAction()
     {
         return $this->hasOne(VisitorCapaAction::class, 'visit_item_id');
+    }
+
+    /**
+     * The existing open violation this item's follow-up action refers to
+     * (Still Open / Resolved / New Violation on a later inspection).
+     */
+    public function linkedViolation()
+    {
+        return $this->belongsTo(VisitorCapaAction::class, 'linked_capa_action_id');
+    }
+
+    public function followUpChoice(): ?string
+    {
+        return $this->follow_up_action; // still_open | resolved | new_violation
+    }
+
+    public function isFollowUp(): bool
+    {
+        return $this->linked_capa_action_id !== null;
     }
 
     public function isReviewed(): bool

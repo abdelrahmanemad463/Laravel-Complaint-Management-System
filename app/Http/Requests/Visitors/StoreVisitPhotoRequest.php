@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Visitors;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreVisitPhotoRequest extends FormRequest
 {
@@ -17,6 +18,8 @@ class StoreVisitPhotoRequest extends FormRequest
     {
         return [
             'photo' => ['required', 'file', 'image', 'mimes:jpeg,jpg,png,webp', 'max:'.(self::MAX_MB * 1024)],
+            'evidence_role' => ['sometimes', Rule::in(['initial', 'resolution'])],
+            'capa_action_id' => ['nullable', 'integer', Rule::exists('visitors_capa_actions', 'id')],
         ];
     }
 }

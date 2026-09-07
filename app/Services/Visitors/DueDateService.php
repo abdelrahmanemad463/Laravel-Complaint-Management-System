@@ -170,12 +170,14 @@ class DueDateService
      *   completed   -> closed on or before the due date
      *   closed_late -> closed after the due date (only possible when a due date exists)
      *
-     * Rejected actions keep their stored status.
+     * Rejected actions keep their stored status; a violation submitted for
+     * reviewer approval (pending_review) is an explicit workflow state rather
+     * than a derived due bucket.
      */
     public static function dueStatus(VisitorCapaAction $action): string
     {
-        if ($action->status === 'rejected') {
-            return 'rejected';
+        if ($action->status === 'rejected' || $action->status === 'pending_review') {
+            return $action->status;
         }
 
         if ($action->status === 'closed') {
