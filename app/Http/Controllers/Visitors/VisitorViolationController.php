@@ -65,6 +65,7 @@ class VisitorViolationController extends Controller
             'visit.branch', 'visit.inspector', 'visit.visitType',
             'visitItem.photos', 'visitItem.rootCause',
             'responsible', 'updates.user', 'photos',
+            'followUps.performer', 'followUps.visit', 'followUps.visitItem', 'followUps.photos',
         ]);
 
         $capaAction->setAttribute('periodLabel', $capaAction->periodLabel());

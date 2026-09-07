@@ -9,6 +9,7 @@ use App\Models\VisitorChecklistItem;
 use App\Models\VisitorRootCause;
 use App\Models\VisitorVisit;
 use App\Models\VisitorVisitType;
+use App\Models\VisitorViolationFollowUp;
 use App\Services\Visitors\CapaService;
 use App\Services\Visitors\DueDateService;
 use App\Services\Visitors\VisitorReportDashboardService;
@@ -128,43 +129,45 @@ class VisitorViolationTest extends TestCase
         $this->assertNull($action->submitted_review_at);
     }
 
-    // 2. Same branch + same checklist item with an open violation → no duplicate.
-    public function test_same_open_violation_is_not_duplicated_on_next_inspection(): void
+    // 2. A "still open" follow-up on the next inspection keeps the violation
+    //    open, records a follow-up row on the new visit, and appends a timeline
+    //    update — without touching the historical report.
+    public function test_still_open_follow_up_keeps_violation_open_and_records_follow_up(): void
     {
         $first = $this->makeCompletedVisit();
         $action = $first->capaActions()->firstOrFail();
         $masterItemId = $action->visitItem->checklist_item_id;
-        $branchId = $first->branch_id;
 
-        $this->assertSame(1, $this->actionCountOn($first, $masterItemId, $branchId));
-
-        // Second inspection of the same branch sees the panel and records a follow-up.
         $second = $this->startVisit($first->branch);
         $matching = $second->items()->where('checklist_item_id', $masterItemId)->firstOrFail();
+        $this->assertSame(0, $second->followUps()->count());
 
-        $this->actingAs($this->inspector)->putJson(route('visitors.items.update', $matching), [
-            'status' => 'nc',
-            'root_cause_id' => VisitorRootCause::firstOrFail()->id,
-            'note' => 'Still open',
-            'follow_up_action' => 'still_open',
-            'linked_capa_action_id' => $action->id,
-        ])->assertOk();
+        $res = $this->actingAs($this->inspector)->postJson(route('visitors.items.follow-up', $matching), [
+            'violation_ids' => [$action->id],
+            'result' => 'still_open',
+            'note' => 'Still non-compliant during re-inspection',
+        ])->assertOk()->json();
 
-        $matching->refresh();
-        $this->assertSame('still_open', $matching->follow_up_action);
-        $this->assertSame($action->id, $matching->linked_capa_action_id);
+        $this->assertSame('still_open', $res['follow_up']['result']);
+        $this->assertContains($action->id, $res['follow_up']['violation_ids']);
 
-        $second->items()->where('status', 'pending')->update(['status' => 'ok', 'visited_at' => now()]);
-        $this->submit($second);
+        $fu = VisitorViolationFollowUp::firstOrFail();
+        $this->assertSame($second->id, $fu->visit_id);
+        $this->assertSame($matching->id, $fu->visit_item_id);
+        $this->assertSame($this->inspector->id, $fu->performed_by_id);
+        $this->assertSame('still_open', $fu->result);
+        $this->assertSame('Still non-compliant during re-inspection', $fu->follow_up_note);
+        $this->assertTrue($fu->violations->pluck('id')->contains($action->id));
 
-        // Still exactly one violation for that item/branch — no duplicate.
-        $this->assertSame(1, $this->actionCountOn($second->fresh(), $masterItemId, $branchId));
-        // A follow-up note was appended to the original action's timeline.
-        $this->assertTrue($action->fresh()->updates->count() >= 2);
+        // The original open violation is untouched by a still-open follow-up.
+        $this->assertSame('open', $action->fresh()->status);
+        // A follow-up timeline update was appended.
+        $this->assertSame(1, $action->fresh()->updates()->where('comment', 'like', '%Follow-up%')->count());
     }
 
-    // The inspection page shows the existing-open panel on a repeated inspection.
-    public function test_inspection_page_marks_existing_open_violation(): void
+    // The inspection page shows the follow-up button + candidate data (instead
+    // of the legacy inline panel).
+    public function test_inspection_page_shows_follow_up_button_for_existing_open_violation(): void
     {
         $first = $this->makeCompletedVisit();
         $action = $first->capaActions()->firstOrFail();
@@ -173,14 +176,18 @@ class VisitorViolationTest extends TestCase
         $second = $this->startVisit($first->branch);
         $matching = $second->items()->where('checklist_item_id', $masterItemId)->firstOrFail();
 
-        $this->actingAs($this->inspector)->get(route('visitors.show', $second))
-            ->assertOk()
-            ->assertSee('data-existing-violation-id="'.$action->id.'"', false)
-            ->assertSee('data-existing-violation-status="'.$action->status.'"', false)
+        $req = $this->actingAs($this->inspector)->get(route('visitors.show', $second));
+        $req->assertOk()
+            ->assertSee('data-follow-up-count="1"', false)
+            ->assertSee('follow-up-open-btn', false)
             ->assertSee('data-checklist-id="'.$matching->checklist_item_id.'"', false);
+
+        // The candidate JSON (HTML-escaped) must contain the open violation id.
+        $this->assertStringContainsString('&quot;id&quot;:'.$action->id, $req->getContent());
     }
 
-    // 3. New violation allowed after the existing one is closed.
+    // 3. New violation allowed after the previous one is closed; the follow-up
+    //    button is no longer offered for a closed violation.
     public function test_new_violation_allowed_after_previous_is_closed(): void
     {
         $first = $this->makeCompletedVisit();
@@ -202,13 +209,16 @@ class VisitorViolationTest extends TestCase
             'status' => 'nc',
             'root_cause_id' => VisitorRootCause::firstOrFail()->id,
             'note' => 'New occurrence',
-            'follow_up_action' => 'new_violation',
-            'linked_capa_action_id' => $action->id,
         ])->assertOk();
         $second->items()->where('status', 'pending')->update(['status' => 'ok', 'visited_at' => now()]);
         $this->submit($second);
 
         $this->assertSame(2, $this->actionCountOn($second->fresh(), $masterItemId, $branchId));
+
+        // Closed violations are not eligible for the follow-up modal (count = 0).
+        $this->actingAs($this->inspector)->get(route('visitors.show', $second))
+            ->assertOk()
+            ->assertDontSee('data-follow-up-count="1"', false);
     }
 
     // 4. Submitting resolution moves a violation to pending review.

@@ -198,6 +198,34 @@ $sh = fn($s) => pdf_ar($s);
 <p class="muted">{{ $sh(__('visitors.no_capa')) }}</p>
 @endif
 
+{{-- 8bis. Violation follow-ups --}}
+<h2>{{ $sh(__('visitors.follow_up_section_title')) }}</h2>
+@if($report['followUps']->count())
+<table style="font-size:9px">
+    <thead><tr><th>#</th><th>{{ $sh(__('visitors.item')) }}</th><th>{{ $sh(__('visitors.followed_violations')) }}</th><th>{{ $sh(__('visitors.follow_up_result')) }}</th><th>{{ $sh(__('visitors.performed_by')) }}</th><th>{{ $sh(__('visitors.follow_up_date')) }}</th><th>{{ $sh(__('visitors.notes')) }}</th><th>{{ $sh(__('visitors.evidence')) }}</th></tr></thead>
+    <tbody>
+    @foreach($report['followUps'] as $i => $entry)
+    @php
+        $fu = $entry->followUp;
+        $vi = $entry->item;
+    @endphp
+    <tr>
+        <td>{{ $i + 1 }}</td>
+        <td>{{ $sh($vi?->item_title ?: '—') }}</td>
+        <td>{{ $fu->violations->map(fn ($v) => '#V-' . $v->id)->join(', ') ?: '—' }}</td>
+        <td><span class="badge" style="background:{{ $fu->isResolved() ? '#16a34a' : '#d97706' }}22; color:{{ $fu->isResolved() ? '#16a34a' : '#d97706' }}">{{ $sh($fu->isResolved() ? __('visitors.follow_up_resolved') : __('visitors.follow_up_still_open')) }}</span></td>
+        <td>{{ $sh($fu->performer?->name ?: '—') }}</td>
+        <td>{{ $fu->followed_up_at?->format('d/m/Y H:i') ?: '—' }}</td>
+        <td>{{ $sh($fu->follow_up_note ?: '—') }}</td>
+        <td>{{ $fu->photos->count() }}</td>
+    </tr>
+    @endforeach
+    </tbody>
+</table>
+@else
+<p class="muted">{{ $sh(__('visitors.no_follow_ups')) }}</p>
+@endif
+
 {{-- 9. Report footer --}}
 <div class="footer">
     <strong>{{ $sh($company) }}</strong><br>

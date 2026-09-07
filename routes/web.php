@@ -42,6 +42,7 @@ Route::middleware('auth')->group(function () {
         Route::get('{visit}', [\App\Http\Controllers\Visitors\VisitController::class,'show'])->name('show');
         Route::put('items/{visitItem}', [\App\Http\Controllers\Visitors\VisitItemController::class,'update'])->name('items.update');
         Route::post('items/{visitItem}/photo', [\App\Http\Controllers\Visitors\VisitPhotoController::class,'store'])->name('items.photo');
+        Route::post('items/{visitItem}/follow-up', [\App\Http\Controllers\Visitors\VisitorFollowUpController::class,'store'])->name('items.follow-up');
         Route::get('photos/{photo}', [\App\Http\Controllers\Visitors\VisitPhotoController::class,'serve'])->name('photos.serve');
     });
     Route::resource('users', UserController::class)->only(['index','create','store','edit','update']);

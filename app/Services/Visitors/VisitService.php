@@ -88,12 +88,8 @@ class VisitService
             $item->main_kitchen = false;
             $item->support_department = null;
         }
-        $item->follow_up_action = $data['follow_up_action'] ?? $item->follow_up_action;
-        if ($item->follow_up_action === 'new_violation' || $item->status !== 'nc') {
-            $item->linked_capa_action_id = null;
-        } elseif (array_key_exists('linked_capa_action_id', $data)) {
-            $item->linked_capa_action_id = $data['linked_capa_action_id'] ?: null;
-        }
+        $item->follow_up_action = null;
+        $item->linked_capa_action_id = null;
         $item->save();
 
         return $item;
@@ -109,40 +105,26 @@ class VisitService
                 throw new RuntimeException('This visit is already completed.');
             }
 
-            $visit->load('items.rootCause', 'items.photos', 'items.linkedViolation');
+            $visit->load('items.rootCause', 'items.photos');
 
             $unreviewed = $visit->items->filter(fn ($i) => !$i->isReviewed());
             if ($unreviewed->isNotEmpty()) {
                 throw new RuntimeException('All checklist items must be reviewed before submission.');
             }
 
-            // Validate required evidence per follow-up action.
+            // Validate required evidence for the current visit's non-compliant
+            // items. Follow-up evidence photos (evidence_role = follow_up) never
+            // count as the mandatory initial evidence of a NEW violation.
             foreach ($visit->items as $item) {
                 if (!$item->isNonCompliant()) {
                     continue;
                 }
 
-                if ($item->follow_up_action === 'still_open') {
-                    // Still-open follow-ups carry evidence from the original
-                    // violation; nothing new is required on this visit item.
-                    continue;
-                }
-
-                if ($item->follow_up_action === 'resolved') {
-                    // Resolved critical items must carry resolution evidence.
-                    if ($item->isCritical()) {
-                        $hasResolution = $item->photos->contains(fn ($p) => $p->evidence_role === 'resolution');
-                        if (!$hasResolution) {
-                            throw new RuntimeException(__('visitors.resolution_evidence_required'));
-                        }
+                if ($item->requiresPhoto()) {
+                    $hasInitial = $item->photos->contains(fn ($p) => $p->evidence_role !== 'follow_up');
+                    if (!$hasInitial) {
+                        throw new RuntimeException(__('visitors.evidence_photo_required'));
                     }
-                    continue;
-                }
-
-                // New violation (or no follow-up action): require initial evidence
-                // for critical/photo-required items.
-                if ($item->requiresPhoto() && $item->photos->isEmpty()) {
-                    throw new RuntimeException(__('visitors.evidence_photo_required'));
                 }
             }
 

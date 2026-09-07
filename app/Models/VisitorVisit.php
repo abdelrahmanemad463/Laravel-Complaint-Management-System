@@ -52,6 +52,15 @@ class VisitorVisit extends Model
         return $this->hasMany(VisitorCapaAction::class, 'visit_id');
     }
 
+    /**
+     * Follow-ups performed during this visit (each references one or more
+     * previous violations from earlier visits).
+     */
+    public function followUps()
+    {
+        return $this->hasMany(VisitorViolationFollowUp::class, 'visit_id');
+    }
+
     public function isCompleted(): bool
     {
         return $this->status === 'completed';

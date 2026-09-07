@@ -64,7 +64,7 @@ class VisitController extends Controller
         $this->authorize('view', $visit);
         $visit->load([
             'visitType', 'branch', 'inspector',
-            'items.rootCause', 'items.photos', 'items.capaAction',
+            'items.rootCause', 'items.photos', 'items.capaAction', 'items.followUps.violations',
         ]);
         $grouped = $visit->items->groupBy('section_name');
         $score = $this->score->calculate($visit);
@@ -74,27 +74,29 @@ class VisitController extends Controller
             'central_kitchen', 'marketing', 'customer_service', 'accounting', 'senior_management',
         ];
 
-        // For in-progress visits, compute which items have an existing open
-        // violation so the inspector can choose the follow-up action.
-        $existingOpenMap = collect();
+        // For in-progress visits, compute which items have previous open
+        // violations so the inspector sees the Follow-up Violation (N) button
+        // and can pick one/more violations to follow up in the modal.
+        $followUpCandidates = collect();
         if (!$visit->isCompleted()) {
-            $existingOpenMap = app(\App\Services\Visitors\CapaService::class)
-                ->existingOpenMap($visit)
-                ->map(fn ($a) => [
+            $followUpCandidates = app(\App\Services\Visitors\ViolationFollowUpService::class)
+                ->candidateMap($visit)
+                ->map(fn ($group) => $group->map(fn ($a) => [
                     'id' => $a->id,
+                    'label' => '#V-'.$a->id,
                     'status' => $a->status,
                     'dueStatus' => $a->dueStatus(),
-                    'dueAt' => $a->due_at?->format('Y-m-d H:i'),
-                    'itemTitle' => $a->visitItem?->item_title,
+                    'dueDate' => $a->due_at?->format('Y-m-d H:i'),
                     'itemCode' => $a->visitItem?->item_code,
+                    'itemTitle' => $a->visitItem?->item_title,
+                    'originDate' => $a->visit?->visit_date?->format('Y-m-d') ?: $a->created_at->format('Y-m-d'),
                     'createdAt' => $a->created_at->format('Y-m-d H:i'),
-                    'periodLabel' => $a->periodLabel(),
-                ]);
-
-            $visit->load('items.linkedViolation');
+                    'note' => $a->visitItem?->note,
+                    'photos' => $a->photos->map(fn ($p) => route('visitors.photos.serve', $p))->values(),
+                ])->values());
         }
 
-        return view('visitors.show', compact('visit', 'grouped', 'score', 'rootCauses', 'supportDepartments', 'existingOpenMap'));
+        return view('visitors.show', compact('visit', 'grouped', 'score', 'rootCauses', 'supportDepartments', 'followUpCandidates'));
     }
 
     public function submit(VisitorVisit $visit)

@@ -64,18 +64,42 @@
         </h2>
         <div class="space-y-4">
             @foreach($sectionItems->sortBy('sort_order') as $itemIndex => $item)
-            @php $existingOpen = $existingOpenMap->get($item->checklist_item_id); @endphp
-            <article class="card visit-item !p-4 sm:!p-6" data-status="{{ $item->status }}" data-visited="{{ $item->visited_at ? '1' : '0' }}" data-item-id="{{ $item->id }}" data-critical="{{ $item->isCritical() ? '1' : '0' }}" data-checklist-id="{{ $item->checklist_item_id }}" data-follow-up-action="{{ $item->follow_up_action }}" data-linked-violation-id="{{ $item->linked_capa_action_id ?? '' }}" @if($existingOpen) data-existing-violation-id="{{ $existingOpen['id'] }}" data-existing-violation-status="{{ $existingOpen['status'] }}" @endif>
+            @php
+                $itemFollowUps = $followUpCandidates->get($item->checklist_item_id, collect());
+                $followUpJson = $itemFollowUps->values()->toJson();
+            @endphp
+            <article class="card visit-item !p-4 sm:!p-6" data-status="{{ $item->status }}" data-visited="{{ $item->visited_at ? '1' : '0' }}" data-item-id="{{ $item->id }}" data-critical="{{ $item->isCritical() ? '1' : '0' }}" data-checklist-id="{{ $item->checklist_item_id }}" data-follow-up-count="{{ $itemFollowUps->count() }}" data-follow-up-data='{{ $followUpJson }}'>
                 <div class="mb-3 flex flex-wrap items-start gap-2">
                     <span class="badge shrink-0" style="--badge-color:#475569">{{ $item->item_code }}</span>
                     <span class="badge shrink-0" style="--badge-color:{{ $item->isCritical() ? '#dc2626' : ($item->severity === 'major' ? '#ea580c' : '#16a34a') }}">{{ ucfirst($item->severity) }}</span>
                     <span class="min-w-0 flex-1 text-sm font-semibold leading-snug text-slate-900 sm:text-base">{{ $item->item_title }}</span>
                 </div>
 
-                <div class="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+                <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                     <button type="button" class="status-btn status-ok rounded-xl border text-sm font-bold touch-manipulation" data-value="ok" @disabled($visit->isCompleted())>{{ __('visitors.option_ok') }}</button>
                     <button type="button" class="status-btn status-nc rounded-xl border text-sm font-bold touch-manipulation" data-value="nc" @disabled($visit->isCompleted())>{{ __('visitors.option_nc') }}</button>
                     <button type="button" class="status-btn status-na rounded-xl border text-sm font-bold touch-manipulation" data-value="na" @disabled($visit->isCompleted())>{{ __('visitors.option_na') }}</button>
+                    @if($itemFollowUps->isNotEmpty() && !$visit->isCompleted())
+                    <button type="button" class="follow-up-open-btn inline-flex items-center justify-center gap-1 rounded-xl border border-amber-500 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800 transition hover:bg-amber-100" @disabled($visit->isCompleted())>
+                        <span>{{ __('visitors.follow_up_violation') }}</span>
+                        <span class="follow-up-count-badge rounded-full bg-amber-600 px-1.5 text-xs font-black text-white">{{ $itemFollowUps->count() }}</span>
+                    </button>
+                    @endif
+                </div>
+
+                {{-- Saved follow-ups for this item (this visit) --}}
+                <div class="follow-up-records mt-3 space-y-2 {{ $item->followUps->count() ? '' : 'hidden' }}">
+                    @foreach($item->followUps->sortByDesc('followed_up_at') as $fu)
+                    <div class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs text-amber-800">
+                        <span class="font-bold">{{ __('visitors.follow_up_recorded') }}</span>
+                        <span class="font-semibold">{{ $fu->violations->map(fn ($v) => '#V-'.$v->id)->join(', ') }}</span>
+                        <span class="rounded-full bg-{{ $fu->isResolved() ? 'emerald' : 'amber' }}-600 px-2 py-0.5 font-bold text-white">{{ $fu->isResolved() ? __('visitors.follow_up_resolved') : __('visitors.follow_up_still_open') }}</span>
+                        <span class="text-amber-600">{{ $fu->followed_up_at?->format('d/m/Y H:i') }}</span>
+                        @if($fu->photos->count())
+                        <span class="text-amber-600">{{ __('visitors.follow_up_photos_count', ['count' => $fu->photos->count()]) }}</span>
+                        @endif
+                    </div>
+                    @endforeach
                 </div>
 
                 {{-- Non-compliant details panel --}}
@@ -110,31 +134,8 @@
                     </div>
                     @endif
 
-                    {{-- Existing open violation panel --}}
-                    @if($existingOpen && !$visit->isCompleted())
-                    <div class="existing-open-panel rounded-xl border border-amber-300 bg-amber-50 p-3 sm:p-4 space-y-3" data-existing-violation-id="{{ $existingOpen['id'] }}">
-                        <div class="flex items-start gap-2">
-                            <span class="shrink-0 text-amber-600 text-lg">⚠️</span>
-                            <div class="min-w-0">
-                                <div class="text-sm font-bold text-amber-800">{{ __('visitors.existing_open_violation') }}</div>
-                                <div class="mt-1 flex flex-wrap gap-2 text-xs text-amber-700">
-                                    <span class="badge" style="--badge-color:#d97706">#V-{{ $existingOpen['id'] }}</span>
-                                    <span>{{ $existingOpen['itemCode'] }} · {{ $existingOpen['itemTitle'] }}</span>
-                                    <span>{{ __('visitors.violation_created') }}: {{ $existingOpen['createdAt'] }}</span>
-                                    @if($existingOpen['dueAt'])
-                                    <span>{{ __('visitors.due_date') }}: {{ $existingOpen['dueAt'] }}</span>
-                                    @endif
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                            <button type="button" class="follow-up-btn rounded-xl border px-3 py-2 text-xs font-bold transition" data-value="still_open" disabled @disabled($visit->isCompleted())>{{ __('visitors.follow_up_still_open') }}</button>
-                            <button type="button" class="follow-up-btn rounded-xl border px-3 py-2 text-xs font-bold transition" data-value="resolved" disabled @disabled($visit->isCompleted())>{{ __('visitors.follow_up_resolved') }}</button>
-                            <button type="button" class="follow-up-btn rounded-xl border px-3 py-2 text-xs font-bold transition" data-value="new_violation" disabled @disabled($visit->isCompleted())>{{ __('visitors.follow_up_new_violation') }}</button>
-                        </div>
-                        <p class="text-[11px] text-amber-600">{{ __('visitors.existing_open_violation_help') }}</p>
-                    </div>
-                    @endif
+                    {{-- Existing open violation follow-up: handled by the
+                         Follow-up Violation button + modal (see above) --}}
 
                     <div class="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
                         <label class="form-label flex items-center gap-2">
@@ -165,7 +166,8 @@
                         @endunless
                         <div class="mt-3 flex flex-wrap gap-2 photo-list">
                             @foreach($item->photos as $photo)
-                            <a href="{{ route('visitors.photos.serve', $photo) }}" target="_blank" @if($photo->isResolution()) class="resolution-evidence inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100" @else class="inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100" @endif>{{ $photo->original_name }}</a>
+                            @php $isFu = $photo->evidence_role === 'follow_up'; @endphp
+                            <a href="{{ route('visitors.photos.serve', $photo) }}" target="_blank" class="{{ $isFu ? 'follow-up-evidence inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100' : 'inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100' }}">{{ $photo->original_name }}@if($isFu)<span class="rounded-full bg-amber-600 px-1.5 text-[10px] font-black text-white">{{ __('visitors.follow_up_violation') }}</span>@endif</a>
                             @endforeach
                         </div>
                         @if($item->isCritical())
@@ -217,6 +219,50 @@
     <div id="visit-autosave-status-mobile" class="mt-2 hidden text-center text-xs font-semibold"></div>
 </div>
 @endunless
+
+{{-- Follow-up modal: multi-select previous violations, optional note/photos --}}
+<div id="follow-up-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true">
+    <div class="flex max-h-[92vh] w-full max-w-2xl flex-col rounded-2xl bg-white shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <h3 class="text-lg font-black text-slate-900">
+                {{ __('visitors.follow_up_modal_title') }}
+                <span class="ms-1 text-sm font-bold text-slate-400" id="follow-up-modal-item-ref"></span>
+            </h3>
+            <button type="button" id="follow-up-modal-close" class="rounded-full bg-slate-100 px-3 py-1 font-bold text-slate-600" aria-label="{{ __('common.close') }}">✕</button>
+        </div>
+        <form id="follow-up-form" class="flex min-h-0 flex-1 flex-col" enctype="multipart/form-data">
+            @csrf
+            <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
+                <div id="follow-up-form-msg" class="hidden rounded-lg bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700"></div>
+                <div>
+                    <label class="form-label">{{ __('visitors.follow_up_violations') }} *</label>
+                    <p class="mb-2 text-xs text-slate-500">{{ __('visitors.follow_up_violations_help') }}</p>
+                    <div id="follow-up-violation-list" class="space-y-2"></div>
+                </div>
+                <div>
+                    <label class="form-label">{{ __('visitors.follow_up_result') }}</label>
+                    <select name="result" id="follow-up-result" class="form-input">
+                        <option value="resolved">{{ __('visitors.follow_up_resolved') }}</option>
+                        <option value="still_open">{{ __('visitors.follow_up_still_open') }}</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" for="follow-up-note">{{ __('visitors.follow_up_note') }}</label>
+                    <textarea name="note" id="follow-up-note" class="form-input" rows="3" placeholder="{{ __('visitors.follow_up_note_placeholder') }}"></textarea>
+                </div>
+                <div>
+                    <label class="form-label">{{ __('visitors.follow_up_evidence') }}</label>
+                    <input type="file" name="photos[]" id="follow-up-photos" class="form-input" accept="image/jpeg,image/png,image/webp,image/*" multiple>
+                    <p class="mt-1 text-xs text-slate-500">{{ __('visitors.photo_help') }}</p>
+                </div>
+            </div>
+            <div class="flex items-center justify-end gap-3 border-t border-slate-200 px-5 py-4">
+                <button type="button" id="follow-up-modal-cancel" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50">{{ __('common.cancel') }}</button>
+                <button type="submit" class="rounded-xl bg-amber-600 px-5 py-2 text-sm font-bold text-white hover:bg-amber-700">{{ __('visitors.follow_up_save') }}</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 @push('scripts')
 <script>
@@ -311,31 +357,166 @@
             setStatus(e.message || '{{ __('visitors.save_failed') }}', 'saving');
         }
     };
+    // Follow-up modal wiring
+    const followUpModal = document.getElementById('follow-up-modal');
+    const followUpForm = document.getElementById('follow-up-form');
+    const followUpList = document.getElementById('follow-up-violation-list');
+    const followUpMsg = document.getElementById('follow-up-form-msg');
+    let followUpItemEl = null;
+
+    const closeFollowUpModal = () => {
+        followUpModal.classList.add('hidden');
+        followUpModal.classList.remove('flex');
+        followUpItemEl = null;
+    };
+
+    const openFollowUpModal = (itemEl) => {
+        followUpMsg.classList.add('hidden');
+        followUpForm.reset();
+        followUpList.innerHTML = '';
+        followUpItemEl = itemEl;
+        let candidates = [];
+        try { candidates = JSON.parse(itemEl.dataset.followUpData || '[]'); } catch (e) { candidates = []; }
+        if (candidates.length === 0) return;
+        document.getElementById('follow-up-modal-item-ref').textContent = itemEl.dataset.itemCode || '';
+        candidates.forEach((c, idx) => {
+            const label = document.createElement('label');
+            label.className = 'flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3 transition hover:border-amber-300';
+            const info = document.createElement('span');
+            info.className = 'min-w-0 flex-1';
+            const head = document.createElement('span');
+            head.className = 'flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-800';
+            const vio = document.createElement('span');
+            vio.className = 'rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-800';
+            vio.textContent = '#V-' + c.id;
+            head.appendChild(vio);
+            const code = document.createElement('span');
+            code.className = 'text-[11px] font-bold text-slate-500';
+            code.textContent = c.itemCode;
+            head.appendChild(code);
+            if (c.itemTitle) {
+                const title = document.createElement('span');
+                title.className = 'min-w-0 flex-1 break-words text-xs font-normal text-slate-600';
+                title.textContent = c.itemTitle;
+                head.appendChild(title);
+            }
+            info.appendChild(head);
+            const meta = document.createElement('span');
+            meta.className = 'mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-500';
+            const cells = [
+                `{{ __('visitors.original_visit') }}: ${c.originDate}`,
+                `{{ __('visitors.status') }}: ${c.status.replace(/_/g, ' ')}`
+            ];
+            if (c.dueDate) cells.push(`{{ __('visitors.due_date') }}: ${c.dueDate}`);
+            if (c.note) cells.push(c.note);
+            meta.textContent = cells.join('  •  ');
+            info.appendChild(meta);
+            label.appendChild(info);
+            if (c.photos && c.photos.length) {
+                const thumbs = document.createElement('span');
+                thumbs.className = 'flex shrink-0 flex-wrap gap-1';
+                c.photos.slice(0, 4).forEach((url) => {
+                    const img = document.createElement('img');
+                    img.src = url; img.alt = ''; img.className = 'h-10 w-10 rounded-lg border border-slate-200 object-cover';
+                    thumbs.appendChild(img);
+                });
+                if (c.photos.length > 4) {
+                    const more = document.createElement('span');
+                    more.className = 'self-center text-[10px] font-bold text-slate-400';
+                    more.textContent = `+${c.photos.length - 4}`;
+                    thumbs.appendChild(more);
+                }
+                label.appendChild(thumbs);
+            }
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.name = 'violation_ids[]';
+            input.value = c.id;
+            input.checked = idx === 0;
+            input.className = 'follow-up-vio-check mt-0.5 h-4 w-4 shrink-0 accent-amber-600';
+            label.prepend(input);
+            followUpList.appendChild(label);
+        });
+        followUpModal.classList.remove('hidden');
+        followUpModal.classList.add('flex');
+    };
+
+    document.querySelectorAll('.follow-up-open-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const itemEl = btn.closest('.visit-item');
+            if (!itemEl) return;
+            openFollowUpModal(itemEl);
+        });
+    });
+    document.getElementById('follow-up-modal-close')?.addEventListener('click', closeFollowUpModal);
+    document.getElementById('follow-up-modal-cancel')?.addEventListener('click', closeFollowUpModal);
+    followUpModal.addEventListener('click', (e) => { if (e.target === followUpModal) closeFollowUpModal(); });
+
+    const appendFollowUpChip = (itemEl, data) => {
+        const wrap = itemEl.querySelector('.follow-up-records');
+        if (!wrap || !data || !data.follow_up) return;
+        const chip = document.createElement('div');
+        chip.className = 'flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs text-amber-800';
+        const rec = document.createElement('span');
+        rec.className = 'font-bold';
+        rec.textContent = `{{ __('visitors.follow_up_recorded') }}`;
+        chip.appendChild(rec);
+        const ids = document.createElement('span');
+        ids.className = 'font-semibold';
+        ids.textContent = (data.follow_up.violation_ids || []).map((v) => '#V-' + v).join(', ');
+        chip.appendChild(ids);
+        const badge = document.createElement('span');
+        const resolved = data.follow_up.result === 'resolved';
+        badge.className = `rounded-full ${resolved ? 'bg-emerald-600' : 'bg-amber-600'} px-2 py-0.5 font-bold text-white`;
+        badge.textContent = resolved ? `{{ __('visitors.follow_up_resolved') }}` : `{{ __('visitors.follow_up_still_open') }}`;
+        chip.appendChild(badge);
+        if (data.follow_up.photo_count) {
+            const cnt = document.createElement('span');
+            cnt.className = 'text-amber-600';
+            cnt.textContent = `{{ __('visitors.follow_up_photos_count', ['count' => ':count']) }}`.replace(':count', data.follow_up.photo_count);
+            chip.appendChild(cnt);
+        }
+        wrap.classList.remove('hidden');
+        wrap.prepend(chip);
+    };
+
+    followUpForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!followUpItemEl) return;
+        if (!followUpList.querySelector('.follow-up-vio-check:checked')) {
+            followUpMsg.textContent = `{{ __('visitors.follow_up_no_selection') }}`;
+            followUpMsg.classList.remove('hidden');
+            return;
+        }
+        followUpMsg.classList.add('hidden');
+        const submitBtn = followUpForm.querySelector('button[type="submit"]');
+        const itemId = followUpItemEl.dataset.itemId;
+        const fd = new FormData(followUpForm);
+        submitBtn.disabled = true;
+        try {
+            const res = await fetch(`{{ url('/visitors/items') }}/${itemId}/follow-up`, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+                body: fd,
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || `{{ __('visitors.save_failed') }}`);
+            appendFollowUpChip(followUpItemEl, data);
+            setStatus(`{{ __('visitors.follow_up_saved') }}`, 'saved');
+            closeFollowUpModal();
+        } catch (err) {
+            followUpMsg.textContent = err.message;
+            followUpMsg.classList.remove('hidden');
+        } finally {
+            submitBtn.disabled = false;
+        }
+    });
 
     const collectNcPayload = (itemEl) => {
         const rc = itemEl.querySelector('.rc-select')?.value || '';
         const note = itemEl.querySelector('.note-input')?.value || '';
         const dept = itemEl.querySelector('.dept-select')?.value || '';
-        const payload = { root_cause_id: rc, note, support_department: dept };
-        const followUpBtn = itemEl.querySelector('.follow-up-btn.active');
-        if (followUpBtn) {
-            payload.follow_up_action = followUpBtn.dataset.value;
-            const existingViolId = itemEl.dataset.existingViolationId || itemEl.dataset.linkedViolationId;
-            if (existingViolId) payload.linked_capa_action_id = parseInt(existingViolId);
-        }
-        return payload;
-    };
-
-    const applyFollowUpStyles = (itemEl) => {
-        itemEl.querySelectorAll('.follow-up-btn').forEach((btn) => {
-            const active = itemEl.dataset.followUpAction === btn.dataset.value;
-            btn.classList.toggle('bg-amber-600', active);
-            btn.classList.toggle('text-white', active);
-            btn.classList.toggle('border-amber-600', active);
-            btn.classList.toggle('bg-white', !active);
-            btn.classList.toggle('border-slate-200', !active);
-            btn.classList.toggle('text-slate-700', !active);
-        });
+        return { root_cause_id: rc, note, support_department: dept };
     };
 
     document.querySelectorAll('.visit-item').forEach((itemEl) => {
@@ -397,24 +578,6 @@
         const deptSelect = itemEl.querySelector('.dept-select');
         if (deptSelect) deptSelect.addEventListener('change', () => saveItem(itemEl, { status: 'nc', ...collectNcPayload(itemEl) }));
 
-        // Follow-up action panel
-        itemEl.dataset.followUpAction = itemEl.dataset.linkedViolationId ? (itemEl.dataset.followUpAction || '') : '';
-        const followUpBtns = itemEl.querySelectorAll('.follow-up-btn');
-        followUpBtns.forEach((btn) => {
-            btn.disabled = false;
-            btn.addEventListener('click', async () => {
-                itemEl.dataset.followUpAction = btn.dataset.value;
-                if (btn.dataset.value === 'new_violation') {
-                    itemEl.dataset.linkedViolationId = '';
-                } else {
-                    itemEl.dataset.linkedViolationId = itemEl.dataset.existingViolationId || itemEl.dataset.linkedViolationId || '';
-                }
-                applyFollowUpStyles(itemEl);
-                await saveItem(itemEl, { status: 'nc', ...collectNcPayload(itemEl) });
-            });
-        });
-        applyFollowUpStyles(itemEl);
-
         const photoInput = itemEl.querySelector('.photo-input');
         const camBtn = itemEl.querySelector('.photo-cam-btn');
         const uploadBtn = itemEl.querySelector('.photo-upload-btn');
@@ -439,11 +602,6 @@
                 const fd = new FormData();
                 fd.append('photo', file);
                 fd.append('_token', csrf);
-                const isResolved = itemEl.dataset.followUpAction === 'resolved';
-                if (isResolved && itemEl.dataset.linkedViolationId) {
-                    fd.append('evidence_role', 'resolution');
-                    fd.append('capa_action_id', itemEl.dataset.linkedViolationId);
-                }
                 setStatus('{{ __('visitors.uploading') }}', 'saving');
                 try {
                     const res = await fetch(`{{ url('/visitors/items') }}/${id}/photo`, {
@@ -458,7 +616,6 @@
                     link.href = data.photo.url;
                     link.target = '_blank';
                     link.className = 'inline-flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100';
-                    if (data.photo.evidence_role === 'resolution') link.classList.add('resolution-evidence');
                     link.textContent = data.photo.original_name;
                     list.appendChild(link);
                     setStatus('{{ __('visitors.saved') }}', 'saved');
@@ -499,15 +656,8 @@
             document.querySelectorAll('.visit-item').forEach((itemEl) => {
                 if (itemEl.dataset.critical !== '1') return;
                 if (itemEl.dataset.status !== 'nc') return;
-                const followUp = itemEl.dataset.followUpAction;
-                if (followUp === 'still_open') return;
-                if (followUp === 'resolved') {
-                    const hasResolution = itemEl.querySelector('.photo-list .resolution-evidence');
-                    if (!hasResolution) missing.push(itemEl.dataset.itemId);
-                    return;
-                }
-                const hasPhoto = itemEl.querySelectorAll('.photo-list a').length > 0;
-                if (!hasPhoto) missing.push(itemEl.dataset.itemId);
+                const hasInitial = itemEl.querySelectorAll('.photo-list a:not(.follow-up-evidence)').length > 0;
+                if (!hasInitial) missing.push(itemEl.dataset.itemId);
             });
             if (missing.length > 0) {
                 e.preventDefault();

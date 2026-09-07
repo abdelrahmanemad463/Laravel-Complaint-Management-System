@@ -54,6 +54,14 @@ class VisitorCapaAction extends Model
     }
 
     /**
+     * Follow-up records (on later visits) that referenced this violation.
+     */
+    public function followUps()
+    {
+        return $this->belongsToMany(VisitorViolationFollowUp::class, 'visitors_violation_follow_up_items', 'capa_action_id', 'violation_follow_up_id');
+    }
+
+    /**
      * Whether the violation is waiting on reviewer approval/rejection.
      */
     public function isPendingReview(): bool

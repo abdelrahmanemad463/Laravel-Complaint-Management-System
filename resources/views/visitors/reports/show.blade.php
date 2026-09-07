@@ -320,6 +320,57 @@ $visit = $report['visit'];
     @endif
 </div>
 
+{{-- 8bis. Violation follow-ups --}}
+<div class="mb-8 card p-4 sm:p-6">
+    <h3 class="section-title mb-4">{{ __('visitors.follow_up_section_title') }}</h3>
+    @if($report['followUps']->count())
+    <div class="overflow-x-auto -mx-3 sm:mx-0">
+    <table class="w-full text-sm min-w-[1000px] text-center">
+        <thead><tr class="border-b border-slate-200 text-center text-xs font-bold uppercase tracking-wide text-slate-500">
+            <th class="py-2 px-2 text-center w-10">#</th><th class="py-2 px-2 text-center min-w-[190px]">{{ __('visitors.item') }}</th>
+            <th class="py-2 px-2 text-center">{{ __('visitors.followed_violations') }}</th><th class="py-2 px-2 text-center min-w-[120px]">{{ __('visitors.follow_up_result') }}</th>
+            <th class="py-2 px-2 text-center min-w-[110px]">{{ __('visitors.performed_by') }}</th><th class="py-2 px-2 text-center whitespace-nowrap">{{ __('visitors.follow_up_date') }}</th>
+            <th class="py-2 px-2 text-center">{{ __('visitors.notes') }}</th><th class="py-2 px-2 text-center">{{ __('visitors.evidence') }}</th>
+        </tr></thead>
+        <tbody>
+            @foreach($report['followUps'] as $i => $entry)
+            @php $fu = $entry->followUp; $vi = $entry->item; @endphp
+            <tr class="border-b border-slate-100 align-top">
+                <td class="py-2 px-2 text-center">{{ $i + 1 }}</td>
+                <td class="py-2 px-2 text-center break-words whitespace-normal">
+                    @if($vi)
+                    <span class="badge" style="--badge-color:#475569">{{ $vi->item_code }}</span>
+                    <div class="mt-0.5 text-xs text-slate-600">{{ $vi->item_title }}</div>
+                    @else
+                    <span class="text-slate-400">—</span>
+                    @endif
+                </td>
+                <td class="py-2 px-2 text-center">
+                    <span class="inline-flex flex-wrap items-center justify-center gap-1">
+                    @forelse($fu->violations as $v)
+                    <a href="{{ route('visitors.violations.show', $v) }}" class="badge no-underline hover:opacity-80" style="--badge-color:#d97706">#V-{{ $v->id }}</a>
+                    @empty
+                    <span class="text-slate-400">—</span>
+                    @endforelse
+                    </span>
+                </td>
+                <td class="py-2 px-2 text-center">
+                    <span class="badge" style="--badge-color:{{ $fu->isResolved() ? '#16a34a' : '#d97706' }}">{{ $fu->isResolved() ? __('visitors.follow_up_resolved') : __('visitors.follow_up_still_open') }}</span>
+                </td>
+                <td class="py-2 px-2 text-center">{{ $fu->performer?->name ?: '—' }}</td>
+                <td class="py-2 px-2 text-center whitespace-nowrap">{{ $fu->followed_up_at?->format('d/m/Y H:i') ?: '—' }}</td>
+                <td class="py-2 px-2 text-center max-w-xs break-words">{{ $fu->follow_up_note ?: '—' }}</td>
+                <td class="py-2 px-2 text-center">{{ $fu->photos->count() }}</td>
+            </tr>
+            @endforeach
+        </tbody>
+    </table>
+    </div>
+    @else
+    <p class="text-slate-500">{{ __('visitors.no_follow_ups') }}</p>
+    @endif
+</div>
+
 {{-- 9. Report footer --}}
 <div class="mt-10 border-t border-slate-200 pt-4 text-sm text-slate-500">
     <p><strong>{{ $company ?? __('visitors.report_company_name') }}</strong></p>

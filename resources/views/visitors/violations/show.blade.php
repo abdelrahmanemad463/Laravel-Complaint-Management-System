@@ -181,4 +181,45 @@ $canReview = auth()->user()->can('visit.review');
     <p class="text-sm text-slate-500">{{ __('visitors.no_follow_ups') }}</p>
     @endif
 </div>
+{{-- Follow-up history (records that addressed this violation) --}}
+<div class="mb-8 card p-4 sm:p-6">
+    <h3 class="section-title mb-4">{{ __('visitors.related_follow_ups') }}</h3>
+    @if($vi->followUps->count())
+    <div class="space-y-4">
+        @foreach($vi->followUps->sortByDesc('followed_up_at') as $fu)
+        <div class="flex flex-wrap items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
+            <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="rounded-full bg-{{ $fu->isResolved() ? 'emerald' : 'amber' }}-600 px-2 py-0.5 text-[11px] font-bold text-white">{{ $fu->isResolved() ? __('visitors.follow_up_resolved') : __('visitors.follow_up_still_open') }}</span>
+                    <span class="text-xs text-slate-500">{{ $fu->followed_up_at?->format('d/m/Y H:i') }}</span>
+                    @if($fu->visit)
+                    <a href="{{ route('visitors.reports.show', $fu->visit) }}" class="text-xs font-bold text-indigo-600 hover:underline">{{ __('visitors.visit_number', ['id' => $fu->visit_id]) }}</a>
+                    @endif
+                    @if($fu->performer)
+                    <span class="text-xs text-slate-500">· {{ $fu->performer->name }}</span>
+                    @endif
+                </div>
+                @if($fu->follow_up_note)
+                <p class="mt-1.5 text-sm text-slate-700 break-words">{{ $fu->follow_up_note }}</p>
+                @endif
+                @if($fu->photos->count())
+                <div class="mt-2 text-xs text-amber-700">{{ __('visitors.follow_up_photos_count', ['count' => $fu->photos->count()]) }}</div>
+                @endif
+            </div>
+            @if($fu->photos->count())
+            <div class="flex shrink-0 flex-wrap gap-1">
+                @foreach($fu->photos->take(4) as $photo)
+                <a href="{{ route('visitors.photos.serve', $photo) }}" target="_blank">
+                    <img src="{{ route('visitors.photos.serve', $photo) }}" alt="{{ $photo->original_name }}" class="h-12 w-12 rounded-lg border border-slate-200 object-cover" loading="lazy">
+                </a>
+                @endforeach
+            </div>
+            @endif
+        </div>
+        @endforeach
+    </div>
+    @else
+    <p class="text-sm text-slate-500">{{ __('visitors.no_follow_ups') }}</p>
+    @endif
+</div>
 @endsection

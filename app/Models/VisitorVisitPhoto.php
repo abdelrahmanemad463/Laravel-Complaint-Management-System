@@ -9,7 +9,7 @@ class VisitorVisitPhoto extends Model
     protected $table = 'visitors_visit_photos';
 
     protected $fillable = [
-        'visit_id', 'visit_item_id', 'capa_action_id', 'evidence_role',
+        'visit_id', 'visit_item_id', 'capa_action_id', 'violation_follow_up_id', 'evidence_role',
         'path', 'original_name', 'mime_type', 'original_size', 'compressed_size',
     ];
 
@@ -37,8 +37,22 @@ class VisitorVisitPhoto extends Model
         return $this->belongsTo(VisitorCapaAction::class, 'capa_action_id');
     }
 
+    /**
+     * The follow-up record this photo belongs to. Null for initial/resolution
+     * evidence uploaded through the regular photo flow.
+     */
+    public function followUp()
+    {
+        return $this->belongsTo(VisitorViolationFollowUp::class, 'violation_follow_up_id');
+    }
+
     public function isResolution(): bool
     {
         return $this->evidence_role === 'resolution';
+    }
+
+    public function isFollowUp(): bool
+    {
+        return $this->evidence_role === 'follow_up';
     }
 }

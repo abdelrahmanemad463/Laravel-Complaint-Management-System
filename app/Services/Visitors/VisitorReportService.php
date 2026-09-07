@@ -3,6 +3,7 @@
 namespace App\Services\Visitors;
 
 use App\Models\VisitorCapaAction;
+use App\Models\VisitorViolationFollowUp;
 use App\Models\VisitorVisit;
 use App\Models\VisitorVisitItem;
 use App\Services\Visitors\DueDateService;
@@ -30,6 +31,7 @@ class VisitorReportService
             'visitType', 'branch', 'inspector',
             'items.rootCause', 'items.photos', 'items.capaAction',
             'capaActions.visitItem.rootCause', 'capaActions.responsible', 'capaActions.updates',
+            'followUps.visitItem', 'followUps.performer', 'followUps.photos', 'followUps.violations',
         ]);
 
         $items = $visit->items;
@@ -44,6 +46,7 @@ class VisitorReportService
             'rootCauses' => $this->rootCauseCounts($items),
             'violations' => $this->violations($visit),
             'capa' => $this->capa($visit),
+            'followUps' => $this->followUps($visit),
             'dueSummary' => $this->dueSummary($items),
         ];
     }
@@ -173,6 +176,22 @@ class VisitorReportService
             'statusCounts' => $statusCounts,
             'dueCounts' => $dueCounts,
         ];
+    }
+
+    /**
+     * Follow-up records: previous violations followed up during this visit.
+     */
+    private function followUps(VisitorVisit $visit): Collection
+    {
+        return $visit->followUps
+            ->sortByDesc('followed_up_at')
+            ->values()
+            ->map(function (VisitorViolationFollowUp $fu) {
+                return (object) [
+                    'followUp' => $fu,
+                    'item' => $fu->visitItem,
+                ];
+            });
     }
 
     /**
