@@ -31,6 +31,7 @@ class VisitorReportService
             'visitType', 'branch', 'inspector',
             'items.rootCause', 'items.photos', 'items.capaAction',
             'capaActions.visitItem.rootCause', 'capaActions.responsible', 'capaActions.updates',
+            'capaActions.submitter', 'capaActions.closer',
             'followUps.visitItem', 'followUps.performer', 'followUps.photos', 'followUps.violations',
         ]);
 

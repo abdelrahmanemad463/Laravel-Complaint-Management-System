@@ -295,17 +295,29 @@ $visit = $report['visit'];
                 </td>
                 <td class="py-2 px-2 text-center align-top">
                     <span class="badge" style="--badge-color:{{ $capaStatusColor[$entry->status] ?? '#475569' }}">{{ ucfirst(str_replace('_', ' ', $entry->status)) }}</span>
+                    @if($entry->status === 'pending_review')
+                    <div class="mt-1 text-[10px] leading-tight text-slate-500">
+                        {{ __('visitors.submitted_by') }}: {{ $action->submitter?->name ?: '—' }}<br>
+                        {{ $action->submitted_review_at?->format('d/m/Y H:i') }}
+                    </div>
+                    @endif
                     <div class="mt-1.5 flex flex-wrap items-center justify-center gap-1 print:hidden">
-                        @if($entry->status === 'pending_review' && auth()->user()->can('visit.review'))
+                        @if($entry->status === 'pending_review' && auth()->user()->can('visit.resolution.review'))
+                        @can('visit.resolution.approve')
+                        @if($action->submitted_by !== null && (int) $action->submitted_by !== (int) auth()->id())
                         <form method="POST" action="{{ route('visitors.violations.approve', $action) }}" class="inline" onsubmit="return confirm('{{ __('visitors.approve_confirm') }}')">
                             @csrf
                             <button type="submit" class="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-emerald-700">{{ __('visitors.approve') }}</button>
                         </form>
+                        @endif
+                        @endcan
+                        @can('visit.resolution.reject')
                         <form method="POST" action="{{ route('visitors.violations.reject', $action) }}" class="inline" onsubmit="return confirm('{{ __('visitors.reject_confirm') }}')">
                             @csrf
                             <input type="hidden" name="reject_reason" value="{{ __('visitors.rejected_from_report') }}">
                             <button type="submit" class="rounded-full border border-rose-300 bg-white px-2 py-0.5 text-[10px] font-bold text-rose-700 hover:bg-rose-50">{{ __('visitors.reject') }}</button>
                         </form>
+                        @endcan
                         @endif
                         <a href="{{ route('visitors.violations.show', $action) }}" class="text-[10px] font-bold text-indigo-600 hover:underline">{{ __('common.view') }}</a>
                     </div>

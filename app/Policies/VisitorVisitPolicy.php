@@ -29,8 +29,10 @@ class VisitorVisitPolicy
     /**
      * Reports follow the application's roles/permissions, not the owner rule.
      * Management roles (whose permissions include visit.manage) may view every
-     * completed report; roles with only report.view may additionally view
-     * completed reports they inspected. In-progress visits are never reports.
+     * completed report; resolution reviewers (visit.resolution.review) may
+     * also view any completed report to evaluate pending resolutions; roles
+     * with only report.view may additionally view completed reports they
+     * inspected. In-progress visits are never reports.
      */
     public function viewReport(User $user, VisitorVisit $visit): bool
     {
@@ -38,6 +40,9 @@ class VisitorVisitPolicy
             return false;
         }
         if ($user->can('visit.manage')) {
+            return true;
+        }
+        if ($user->can('visit.resolution.review')) {
             return true;
         }
         if ($user->can('report.view')) {

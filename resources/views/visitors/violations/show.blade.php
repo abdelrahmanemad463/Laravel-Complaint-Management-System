@@ -16,7 +16,11 @@ $dueStatusColor = [
     'rejected' => '#475569', 'pending_review' => '#d97706',
 ];
 $severityBadge = ['critical' => '#dc2626', 'major' => '#ea580c', 'minor' => '#16a34a'];
-$canReview = auth()->user()->can('visit.review');
+$canReview = auth()->user()->can('visit.resolution.review');
+$canApprove = auth()->user()->can('visit.resolution.approve');
+$canReject = auth()->user()->can('visit.resolution.reject');
+$canSubmitResolve = auth()->user()->can('visit.resolution.submit');
+$selfApproval = $vi->submitted_by !== null && (int) $vi->submitted_by === (int) auth()->id();
 @endphp
 
 <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
@@ -90,38 +94,87 @@ $canReview = auth()->user()->can('visit.review');
 </div>
 @endif
 
-{{-- Reviewer actions --}}
+{{-- Reviewer actions / resolution submissions --}}
 @if(in_array($status, ['pending_review','open','in_progress'], true))
 <div class="mb-8 card p-4 sm:p-6">
     <h3 class="section-title mb-4">{{ __('visitors.review_actions') }}</h3>
 
-    @if($status === 'pending_review' && $canReview)
-    <div class="grid gap-4 sm:grid-cols-2">
-        {{-- Approve --}}
-        <form method="POST" action="{{ route('visitors.violations.approve', $vi) }}" onsubmit="return confirm('{{ __('visitors.approve_confirm') }}')">
-            @csrf
-            <div class="space-y-3">
-                <div>
-                    <label class="form-label">{{ __('visitors.approver_comment') }}</label>
-                    <textarea name="comment" class="form-input" rows="2" placeholder="{{ __('visitors.approve_comment_placeholder') }}"></textarea>
-                </div>
-                <button type="submit" class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700">{{ __('visitors.approve_violation') }}</button>
+    @if($status === 'pending_review')
+        @if($canReview)
+        {{-- Submitted resolution details shown to the reviewer --}}
+        <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50/60 p-4 sm:p-5">
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="badge" style="--badge-color:#d97706">{{ __('visitors.pending_review_capa') }}</span>
+                <span class="text-xs text-slate-500">{{ __('visitors.pending_review_hint') }}</span>
             </div>
-        </form>
-        {{-- Reject --}}
-        <form method="POST" action="{{ route('visitors.violations.reject', $vi) }}" onsubmit="return confirm('{{ __('visitors.reject_confirm') }}')">
-            @csrf
-            <div class="space-y-3">
-                <div>
-                    <label class="form-label">{{ __('visitors.reject_reason') }} *</label>
-                    <textarea name="reject_reason" class="form-input" rows="2" required placeholder="{{ __('visitors.reject_reason_placeholder') }}"></textarea>
+            <dl class="mt-4 grid gap-3 gap-x-8 text-sm sm:grid-cols-2">
+                <div class="flex flex-col gap-0.5">
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('visitors.submitted_by') }}</dt>
+                    <dd class="text-slate-800">{{ $vi->submitter?->name ?: '—' }}</dd>
                 </div>
-                <button type="submit" class="w-full rounded-xl border border-rose-300 bg-white px-4 py-3 text-sm font-bold text-rose-700 hover:bg-rose-50">{{ __('visitors.reject_violation') }}</button>
+                <div class="flex flex-col gap-0.5">
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('visitors.submitted_at') }}</dt>
+                    <dd class="text-slate-800">{{ $vi->submitted_review_at?->format('d/m/Y H:i') ?: '—' }}</dd>
+                </div>
+            </dl>
+            @if($vi->resolution_note)
+            <div class="mt-3">
+                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('visitors.resolution_note') }}</div>
+                <p class="mt-1 text-sm break-words text-slate-700">{{ $vi->resolution_note }}</p>
             </div>
-        </form>
-    </div>
+            @endif
+            @php $resolutionEvidence = $vi->photos->where('evidence_role', 'resolution'); @endphp
+            @if($resolutionEvidence->count())
+            <div class="mt-3">
+                <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('visitors.resolution_evidence') }}</div>
+                <div class="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    @foreach($resolutionEvidence as $photo)
+                    <a href="{{ route('visitors.photos.serve', $photo) }}" target="_blank" class="block rounded-lg border border-slate-200 p-1 hover:border-indigo-300">
+                        <img src="{{ route('visitors.photos.serve', $photo) }}" alt="{{ $photo->original_name }}" class="h-20 w-full rounded-md object-cover" loading="lazy">
+                        <div class="mt-1 truncate text-[10px] text-slate-500">{{ $photo->original_name }}</div>
+                    </a>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+        </div>
 
-    @elseif(in_array($status, ['open', 'in_progress'], true))
+        <div class="grid gap-4 sm:grid-cols-2">
+            @if($canApprove && !$selfApproval)
+            {{-- Approve & Close --}}
+            <form method="POST" action="{{ route('visitors.violations.approve', $vi) }}" onsubmit="return confirm('{{ __('visitors.approve_confirm') }}')">
+                @csrf
+                <div class="space-y-3">
+                    <div>
+                        <label class="form-label">{{ __('visitors.closure_note') }}</label>
+                        <textarea name="comment" class="form-input" rows="2" placeholder="{{ __('visitors.closure_note_placeholder') }}"></textarea>
+                    </div>
+                    <button type="submit" class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700">{{ __('visitors.approve_close') }}</button>
+                </div>
+            </form>
+            @elseif($canApprove && $selfApproval)
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">{{ __('visitors.cannot_self_approve') }}</div>
+            @endif
+
+            @if($canReject)
+            {{-- Reject --}}
+            <form method="POST" action="{{ route('visitors.violations.reject', $vi) }}" onsubmit="return confirm('{{ __('visitors.reject_confirm') }}')">
+                @csrf
+                <div class="space-y-3">
+                    <div>
+                        <label class="form-label">{{ __('visitors.reject_reason') }} *</label>
+                        <textarea name="reject_reason" class="form-input" rows="2" required placeholder="{{ __('visitors.reject_reason_placeholder') }}"></textarea>
+                    </div>
+                    <button type="submit" class="w-full rounded-xl border border-rose-300 bg-white px-4 py-3 text-sm font-bold text-rose-700 hover:bg-rose-50">{{ __('visitors.reject_violation') }}</button>
+                </div>
+            </form>
+            @endif
+        </div>
+        @else
+        <p class="text-sm text-slate-500">{{ __('visitors.resolution_submitted_no_access') }}</p>
+        @endif
+
+    @elseif(in_array($status, ['open', 'in_progress'], true) && $canSubmitResolve)
     {{-- Inspector / reviewer resolve --}}
     <form method="POST" action="{{ route('visitors.violations.resolve', $vi) }}" enctype="multipart/form-data" onsubmit="return confirm('{{ __('visitors.resolve_confirm') }}')">
         @csrf

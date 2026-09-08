@@ -260,6 +260,9 @@ class VisitorViolationFollowUpTest extends TestCase
         $action->refresh();
         $this->assertSame('pending_review', $action->status);
         $this->assertNotNull($action->submitted_review_at);
+        // Follow-up performer is recorded as the resolution submitter.
+        $this->assertSame($this->inspector->id, $action->submitted_by);
+        $this->assertStringContainsString('Fixed during re-inspection', (string) $action->resolution_note);
         $this->assertSame(
             1,
             $action->fresh()->updates()->where('comment', 'like', '%Resolved via follow-up%')->count()

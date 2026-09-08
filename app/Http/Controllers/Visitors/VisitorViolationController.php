@@ -25,7 +25,7 @@ class VisitorViolationController extends Controller
         abort_unless($request->user()->can('visit.view'), 403);
 
         $query = VisitorCapaAction::query()
-            ->with(['visitItem', 'visit', 'visit.branch', 'responsible'])
+            ->with(['visitItem', 'visit', 'visit.branch', 'responsible', 'submitter'])
             ->whereHas('visit', fn ($q) => $q->where('status', 'completed'));
 
         if ($request->filled('status')) {
@@ -65,6 +65,7 @@ class VisitorViolationController extends Controller
             'visit.branch', 'visit.inspector', 'visit.visitType',
             'visitItem.photos', 'visitItem.rootCause',
             'responsible', 'updates.user', 'photos',
+            'submitter', 'closer',
             'followUps.performer', 'followUps.visit', 'followUps.visitItem', 'followUps.photos',
         ]);
 
@@ -74,12 +75,13 @@ class VisitorViolationController extends Controller
     }
 
     /**
-     * Inspector or reviewer submits resolution for an open violation
-     * (between inspections).
+     * Inspector submits resolution for an open violation (between inspections).
+     * Requires the explicit submit permission; the recorded submitter can
+     * never approve their own resolution.
      */
     public function resolve(Request $request, VisitorCapaAction $capaAction): RedirectResponse
     {
-        abort_unless($request->user()->can('visit.update') || $request->user()->can('visit.review'), 403);
+        abort_unless($request->user()->can('visit.resolution.submit'), 403);
 
         $isCritical = strtolower((string) $capaAction->visitItem?->severity) === 'critical';
 
@@ -111,10 +113,12 @@ class VisitorViolationController extends Controller
 
     /**
      * Reviewer approves a pending-review violation → closed.
+     * Requires the explicit approve permission; self-approval is blocked
+     * server-side in CapaService.
      */
     public function approve(Request $request, VisitorCapaAction $capaAction): RedirectResponse
     {
-        abort_unless($request->user()->can('visit.review'), 403);
+        abort_unless($request->user()->can('visit.resolution.approve'), 403);
 
         $data = $request->validate([
             'comment' => ['nullable', 'string', 'max:2000'],
@@ -131,10 +135,11 @@ class VisitorViolationController extends Controller
 
     /**
      * Reviewer rejects a pending-review violation → back to in-progress.
+     * Requires the explicit reject permission.
      */
     public function reject(Request $request, VisitorCapaAction $capaAction): RedirectResponse
     {
-        abort_unless($request->user()->can('visit.review'), 403);
+        abort_unless($request->user()->can('visit.resolution.reject'), 403);
 
         $data = $request->validate([
             'reject_reason' => ['required', 'string', 'max:4000'],

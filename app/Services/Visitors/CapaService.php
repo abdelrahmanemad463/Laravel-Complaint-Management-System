@@ -73,7 +73,8 @@ class CapaService
     /**
      * Inspector submits resolution for an existing open violation between
      * inspections (from the violations page). Critical violations require
-     * resolution evidence attached.
+     * resolution evidence attached. The submitter is recorded so a reviewer —
+     * never the submitter themselves — can approve/reject.
      */
     public function submitResolution(VisitorCapaAction $action, ?string $note = null): void
     {
@@ -94,10 +95,14 @@ class CapaService
         $action->update([
             'status' => 'pending_review',
             'submitted_review_at' => now(),
+            'submitted_by' => auth()->id(),
+            'resolution_note' => $note !== null && trim($note) !== '' ? trim($note) : null,
         ]);
 
-        $comment = $note ? "Resolved: {$note}" : 'Violation resolved.';
-        $this->recordUpdate($action, 'pending_review', $comment);
+        $comment = $note !== null && trim($note) !== '' ? "Resolved: {$note}" : 'Violation resolved.';
+        $evidence = $action->resolutionPhotos()->latest('id')->first()?->original_name;
+
+        $this->recordUpdate($action, 'pending_review', $comment, $evidence);
     }
 
     /**
@@ -115,6 +120,8 @@ class CapaService
         $action->update([
             'status' => 'pending_review',
             'submitted_review_at' => now(),
+            'submitted_by' => auth()->id(),
+            'resolution_note' => $note !== null && trim($note) !== '' ? trim($note) : null,
         ]);
 
         $this->recordUpdate(
@@ -125,7 +132,9 @@ class CapaService
     }
 
     /**
-     * Reviewer approves a pending-review violation → closed.
+     * Reviewer approves a pending-review violation → closed. The user who
+     * submitted the resolution may never approve their own submission
+     * (separation of duties).
      */
     public function approve(VisitorCapaAction $action, ?string $comment = null): void
     {
@@ -133,14 +142,22 @@ class CapaService
             throw new RuntimeException(__('visitors.capa_not_pending_review'));
         }
 
+        if ($action->submitted_by !== null && (int) $action->submitted_by === (int) auth()->id()) {
+            throw new RuntimeException(__('visitors.cannot_self_approve'));
+        }
+
         $action->update([
             'status' => 'closed',
             'completed_at' => now(),
             'reviewed_at' => now(),
             'reviewed_by' => auth()->id(),
+            'closed_by' => auth()->id(),
         ]);
 
-        $this->recordUpdate($action, 'closed', $comment ?: 'Approved by reviewer.');
+        $closingNote = $comment !== null && trim($comment) !== ''
+            ? 'Approved by reviewer. '.trim($comment)
+            : 'Approved by reviewer.';
+        $this->recordUpdate($action, 'closed', $closingNote);
     }
 
     /**

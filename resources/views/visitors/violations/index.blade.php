@@ -89,7 +89,15 @@ $severityBadge = ['critical' => '#dc2626', 'major' => '#ea580c', 'minor' => '#16
             <td class="px-4 py-3"><span class="badge" style="--badge-color:{{ $severityBadge[$v->visitItem?->severity] ?? '#475569' }}">{{ ucfirst($v->visitItem?->severity ?? '—') }}</span></td>
             <td class="px-4 py-3 whitespace-nowrap text-slate-700">{{ $v->due_at?->format('d/m/Y H:i') ?: '—' }}</td>
             <td class="px-4 py-3"><span class="badge" style="--badge-color:{{ $dueStatusColor[$dueStatus] ?? '#475569' }}">{{ ucfirst(str_replace('_', ' ', $dueStatus)) }}</span></td>
-            <td class="px-4 py-3"><span class="badge" style="--badge-color:{{ $statusColor[$status] ?? '#475569' }}">{{ ucfirst(str_replace('_', ' ', $status)) }}</span></td>
+            <td class="px-4 py-3">
+                <span class="badge" style="--badge-color:{{ $statusColor[$status] ?? '#475569' }}">{{ ucfirst(str_replace('_', ' ', $status)) }}</span>
+                @if($v->status === 'pending_review')
+                <div class="mt-1 text-[10px] leading-tight text-slate-500">
+                    {{ __('visitors.submitted_by') }}: {{ $v->submitter?->name ?: '—' }}<br>
+                    {{ $v->submitted_review_at?->format('d/m/Y H:i') }}
+                </div>
+                @endif
+            </td>
             <td class="px-4 py-3 text-right">
                 <a href="{{ route('visitors.violations.show', $v) }}" class="text-indigo-600 hover:underline text-xs font-bold">{{ __('common.view') }}</a>
             </td>

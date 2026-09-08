@@ -11,7 +11,8 @@ class VisitorCapaAction extends Model
     protected $fillable = [
         'visit_id', 'visit_item_id', 'title', 'immediate_action', 'corrective_action',
         'preventive_action', 'responsible_user_id', 'period_hours', 'due_at', 'status',
-        'completed_at', 'reviewed_at', 'reviewed_by', 'submitted_review_at', 'reject_reason',
+        'completed_at', 'reviewed_at', 'reviewed_by', 'submitted_review_at', 'submitted_by',
+        'resolution_note', 'closed_by', 'reject_reason',
     ];
 
     protected function casts(): array
@@ -43,6 +44,30 @@ class VisitorCapaAction extends Model
     public function updates()
     {
         return $this->hasMany(VisitorCapaUpdate::class, 'capa_action_id');
+    }
+
+    /**
+     * Inspector who submitted the resolution that is awaiting review.
+     */
+    public function submitter()
+    {
+        return $this->belongsTo(User::class, 'submitted_by');
+    }
+
+    /**
+     * Reviewer who closed the violation after approving the resolution.
+     */
+    public function closer()
+    {
+        return $this->belongsTo(User::class, 'closed_by');
+    }
+
+    /**
+     * Resolution evidence uploaded when submitting this violation for review.
+     */
+    public function resolutionPhotos()
+    {
+        return $this->photos()->where('evidence_role', 'resolution');
     }
 
     /**

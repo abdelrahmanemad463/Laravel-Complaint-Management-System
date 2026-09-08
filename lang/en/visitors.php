@@ -319,4 +319,13 @@
 'violation_cannot_resolve'=>'Only open or in-progress violations can be submitted for resolution.',
 'capa_not_pending_review'=>'This violation is not pending review.',
 'pending_review_capa'=>'Pending Review',
+'submitted_by'=>'Submitted by',
+'submitted_at'=>'Submission date/time',
+'resolution_submitted'=>'Resolution Submitted for Review',
+'resolution_submitted_no_access'=>'Only reviewers can see the submitted resolution details.',
+'approve_close'=>'Approve & Close',
+'closure_note'=>'Closure note (optional)',
+'closure_note_placeholder'=>'Optional note recorded when closing…',
+'cannot_self_approve'=>'You cannot approve a resolution you submitted yourself.',
+'pending_review_hint'=>'Awaiting review. The reviewer evaluates the resolution evidence and decides whether to close or reject.',
 ];

@@ -244,7 +244,7 @@ class VisitorViolationTest extends TestCase
         $this->assertSame(1, $item->photos()->where('capa_action_id', $action->id)->where('evidence_role', 'resolution')->count());
     }
 
-    // 5. Inspector cannot approve/reject (needs visit.review).
+    // 5. Inspector cannot approve/reject (needs the resolution approve/reject permissions).
     public function test_inspector_cannot_approve_or_reject(): void
     {
         $visit = $this->makeCompletedVisit();
@@ -277,6 +277,7 @@ class VisitorViolationTest extends TestCase
         $this->assertSame('closed', $action->status);
         $this->assertNotNull($action->completed_at);
         $this->assertSame($this->reviewer->id, $action->reviewed_by);
+        $this->assertSame($this->reviewer->id, $action->closed_by);
     }
 
     // 7. Reviewer rejects → back to in_progress with reject_reason.
@@ -480,6 +481,97 @@ class VisitorViolationTest extends TestCase
         $this->assertNotSame($master->fresh()->period_hours, $action->period_hours);
         $this->assertSame($item->item_title, $action->visitItem->item_title);
         $this->assertNotSame('CHANGED TITLE', $action->visitItem->item_title);
+    }
+
+    // 14. Resolving requires the explicit submit permission (backend enforced).
+    public function test_resolve_requires_submit_permission(): void
+    {
+        $visit = $this->makeCompletedVisit();
+        $action = $visit->capaActions()->firstOrFail();
+
+        $outsider = User::factory()->create(); // no role / permission
+        $this->actingAs($outsider)->post(route('visitors.violations.resolve', $action), [
+            'note' => 'fixed',
+            'photo' => UploadedFile::fake()->image('r.jpg'),
+        ])->assertForbidden();
+        $this->assertSame('open', $action->fresh()->status);
+    }
+
+    // 15. A submitter can never approve their own resolution (separation of duties).
+    public function test_submitter_cannot_approve_own_resolution(): void
+    {
+        $visit = $this->makeCompletedVisit();
+        $action = $visit->capaActions()->firstOrFail();
+        Storage::fake('local');
+
+        $this->actingAs($this->inspector)->post(route('visitors.violations.resolve', $action), [
+            'note' => 'Fixed',
+            'photo' => UploadedFile::fake()->image('r.jpg'),
+        ])->assertSessionHas('success');
+        $this->assertSame('pending_review', $action->fresh()->status);
+        $this->assertSame($this->inspector->id, $action->fresh()->submitted_by);
+
+        // Even with the approve permission, self-approval is blocked server-side.
+        $this->inspector->givePermissionTo('visit.resolution.approve');
+        $this->actingAs($this->inspector)->post(route('visitors.violations.approve', $action))
+            ->assertSessionHas('error', __('visitors.cannot_self_approve'));
+        $this->assertSame('pending_review', $action->fresh()->status);
+        $this->assertNull($action->fresh()->completed_at);
+
+        // A different reviewer can still approve it → closed.
+        $this->actingAs($this->reviewer)->post(route('visitors.violations.approve', $action))->assertRedirect();
+        $this->assertSame('closed', $action->fresh()->status);
+    }
+
+    // 16. Approval records reviewer + closure metadata and the closure note.
+    public function test_approve_records_closure_metadata(): void
+    {
+        $visit = $this->makeCompletedVisit();
+        $action = $visit->capaActions()->firstOrFail();
+        Storage::fake('local');
+
+        $this->actingAs($this->inspector)->post(route('visitors.violations.resolve', $action), [
+            'note' => 'Fixed',
+            'photo' => UploadedFile::fake()->image('r.jpg'),
+        ]);
+
+        $this->actingAs($this->reviewer)->post(route('visitors.violations.approve', $action), ['comment' => 'Evidence is solid'])
+            ->assertSessionHas('success', __('visitors.violation_approved'));
+
+        $fresh = $action->fresh();
+        $this->assertSame('closed', $fresh->status);
+        $this->assertSame($this->reviewer->id, $fresh->reviewed_by);
+        $this->assertSame($this->reviewer->id, $fresh->closed_by);
+        $this->assertNotNull($fresh->completed_at);
+        $this->assertNotNull($fresh->reviewed_at);
+        $this->assertTrue($fresh->updates()->where('status', 'closed')->where('comment', 'like', '%Evidence is solid%')->exists());
+    }
+
+    // 17. Report + violation pages show approval controls only to reviewers.
+    public function test_report_controls_require_review_permission(): void
+    {
+        $visit = $this->makeCompletedVisit();
+        $action = $visit->capaActions()->firstOrFail();
+        Storage::fake('local');
+        $this->actingAs($this->inspector)->post(route('visitors.violations.resolve', $action), [
+            'note' => 'Fixed',
+            'photo' => UploadedFile::fake()->image('r.jpg'),
+        ]);
+
+        // The reviewer (Quality Manager) sees the report with Pending Review.
+        $this->actingAs($this->reviewer)->get(route('visitors.reports.show', $visit))
+            ->assertOk()
+            ->assertSee(__('visitors.submitted_by'));
+
+        // The inspector (no review permission) sees no approval/reject controls.
+        $this->actingAs($this->inspector)->get(route('visitors.violations.show', $action))
+            ->assertOk()
+            ->assertDontSee(__('visitors.approve_close'));
+
+        $this->actingAs($this->reviewer)->get(route('visitors.violations.show', $action))
+            ->assertOk()
+            ->assertSee(__('visitors.approve_close'))
+            ->assertSee(__('visitors.submitted_by'));
     }
 
     // Dashboard: pending-review violations appear on the pending-review card.
