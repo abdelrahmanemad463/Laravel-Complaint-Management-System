@@ -127,16 +127,7 @@
         @yield('content')
     </main>
     <footer class="border-t border-slate-200 bg-white">
-        <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 py-2 text-xs text-slate-600 sm:justify-between">
-            <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-                <span class="font-semibold text-indigo-600">{{ __('common.footer_contact') }}:</span>
-                <span class="font-semibold text-slate-900">{{ __('common.footer_name') }}</span>
-                <a class="text-indigo-700 hover:underline" href="tel:{{ __('common.footer_phone_value') }}">{{ __('common.footer_phone') }}: {{ __('common.footer_phone_value') }}</a>
-                <span class="text-slate-400" aria-hidden="true">•</span>
-                <span class="font-semibold text-indigo-600">{{ __('common.footer_social') }}:</span>
-                <a class="text-indigo-700 hover:underline" href="https://www.linkedin.com/in/abdelrahman-emad1" target="_blank" rel="noopener noreferrer">{{ __('common.footer_linkedin') }}</a>
-                <a class="text-indigo-700 hover:underline" href="https://www.facebook.com/abdelrahman.emad.660867/" target="_blank" rel="noopener noreferrer">{{ __('common.footer_facebook') }}</a>
-            </div>
+        <div class="mx-auto flex max-w-7xl items-center justify-center px-4 py-2 text-xs text-slate-600">
             <p class="text-center text-slate-500">{{ __('common.footer_copyright', ['year' => now()->year]) }}</p>
         </div>
     </footer>

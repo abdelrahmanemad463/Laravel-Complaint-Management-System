@@ -57,7 +57,7 @@ class PwaTest extends TestCase
         $this->assertStringNotContainsString('[data-install-modal]', $styles);
     }
 
-    public function test_shared_footer_exposes_localized_contact_details_without_location(): void
+    public function test_shared_footer_exposes_localized_attribution_without_contact_or_social_links(): void
     {
         $this->seed();
         $user = User::where('email', 'admin@example.com')->firstOrFail();
@@ -66,28 +66,26 @@ class PwaTest extends TestCase
             ->withSession(['locale' => 'en'])
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('Abdelrahman Emad')
-            ->assertDontSee('Alexandria')
-            ->assertDontSee('Location')
-            ->assertSee('tel:01110174868', false)
-            ->assertSee('https://www.linkedin.com/in/abdelrahman-emad1', false)
-            ->assertSee('https://www.facebook.com/abdelrahman.emad.660867/', false)
-            ->assertSee('Complaint Desk. All rights reserved.');
+            ->assertSee('Sultan Ayub')
+            ->assertSee('Managed by IT Department')
+            ->assertDontSee('tel:', false)
+            ->assertDontSee('facebook.com', false)
+            ->assertDontSee('linkedin.com', false);
 
         $this->actingAs($user)
             ->withSession(['locale' => 'ar'])
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('عبدالرحمن عماد')
-            ->assertDontSee('الإسكندرية')
-            ->assertDontSee('الموقع')
-            ->assertSee('© '.now()->year.' نظام الشكاوى. جميع الحقوق محفوظة.');
+            ->assertSee('سلطان أيوب')
+            ->assertSee('قسم تقنية المعلومات')
+            ->assertSee('© '.now()->year.' سلطان أيوب. جميع الحقوق محفوظة. بإدارة قسم تقنية المعلومات.');
 
         $layout = (string) file_get_contents(resource_path('views/layouts/app.blade.php'));
-        $this->assertStringContainsString('flex max-w-7xl flex-wrap items-center', $layout);
-        $this->assertStringContainsString('px-4 py-2 text-xs', $layout);
+        $this->assertStringContainsString('items-center justify-center px-4 py-2', $layout);
         $this->assertStringNotContainsString("__('common.footer_location')", $layout);
         $this->assertStringNotContainsString("__('common.footer_city')", $layout);
+        $this->assertStringNotContainsString("__('common.footer_contact')", $layout);
+        $this->assertStringNotContainsString("__('common.footer_social')", $layout);
     }
 
     public function test_pwa_manifest_and_assets_are_valid(): void
