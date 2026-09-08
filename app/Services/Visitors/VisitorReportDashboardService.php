@@ -227,12 +227,12 @@ class VisitorReportDashboardService
 
         return $this->capaQueryBase($f)
             ->leftJoin('branches', 'branches.id', '=', 'visitors_visits.branch_id')
-            ->select('branches.name as branch_name', 'visitors_visits.branch_id')
+            ->select('branches.name_en as branch_name_en', 'branches.name_ar as branch_name_ar', 'visitors_visits.branch_id')
             ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status IN (\'open\',\'in_progress\') THEN 1 ELSE 0 END) as open_count')
             ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status IN (\'open\',\'in_progress\') AND visitors_capa_actions.due_at IS NOT NULL AND visitors_capa_actions.due_at < ? THEN 1 ELSE 0 END) as overdue_count', [$now])
             ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status = \'closed\' THEN 1 ELSE 0 END) as closed_count')
             ->selectRaw('SUM(CASE WHEN visitors_capa_actions.status = \'closed\' AND visitors_capa_actions.completed_at IS NOT NULL AND visitors_capa_actions.due_at IS NOT NULL AND visitors_capa_actions.completed_at > visitors_capa_actions.due_at THEN 1 ELSE 0 END) as closed_late_count')
-            ->groupBy('visitors_visits.branch_id', 'branches.name')
+            ->groupBy('visitors_visits.branch_id', 'branches.name_en', 'branches.name_ar')
             ->orderByDesc('open_count')
             ->get()
             ->map(function ($row) {
@@ -241,7 +241,7 @@ class VisitorReportDashboardService
                 $total = $open + $closed;
                 return [
                     'branch_id' => $row->branch_id,
-                    'name' => $row->branch_name ?: ('#'.$row->branch_id),
+                    'name' => $this->pickLocalized($row->branch_name_en, $row->branch_name_ar) ?: ('#'.$row->branch_id),
                     'open' => $open,
                     'overdue' => (int) ($row->overdue_count ?? 0),
                     'closed' => $closed,
@@ -344,12 +344,12 @@ class VisitorReportDashboardService
     {
         return (clone $this->itemsQuery($f))
             ->leftJoin('branches', 'branches.id', '=', 'visitors_visits.branch_id')
-            ->select('visitors_visits.branch_id', 'branches.name as branch_name')
+            ->select('visitors_visits.branch_id', 'branches.name_en as branch_name_en', 'branches.name_ar as branch_name_ar')
             ->selectRaw('COUNT(DISTINCT visitors_visits.id) as visits')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status <> \'na\' THEN visitors_visit_items.deduction_score ELSE 0 END) as avail')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' THEN visitors_visit_items.deduction_score ELSE 0 END) as ded')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' THEN 1 ELSE 0 END) as violations')
-            ->groupBy('visitors_visits.branch_id', 'branches.name')
+            ->groupBy('visitors_visits.branch_id', 'branches.name_en', 'branches.name_ar')
             ->orderByDesc('visits')
             ->get()
             ->map(function ($row) {
@@ -358,7 +358,7 @@ class VisitorReportDashboardService
                 $score = $avail > 0 ? round((($avail - $ded) / $avail) * 100, 1) : null;
                 return [
                     'branch_id' => $row->branch_id,
-                    'name' => $row->branch_name ?: ('#'.$row->branch_id),
+                    'name' => $this->pickLocalized($row->branch_name_en, $row->branch_name_ar) ?: ('#'.$row->branch_id),
                     'visits' => (int) $row->visits,
                     'violations' => (int) $row->violations,
                     'score' => $score,
@@ -414,8 +414,10 @@ class VisitorReportDashboardService
             ->leftJoin('users as inspectors', 'inspectors.id', '=', 'visitors_visits.inspector_id')
             ->select(
                 'visitors_visits.id as visit_id',
+                'visitors_visits.branch_id',
                 'visitors_visits.visit_date',
-                'branches.name as branch_name',
+                'branches.name_en as branch_name_en',
+                'branches.name_ar as branch_name_ar',
                 'inspectors.name as inspector_name',
                 'visitors_visit_items.item_code',
                 'visitors_visit_items.item_title',
@@ -424,6 +426,18 @@ class VisitorReportDashboardService
             ->orderByDesc('visitors_visits.visit_date')
             ->limit(30)
             ->get()
+            ->map(function ($row) {
+                return [
+                    'visit_id' => $row->visit_id,
+                    'branch_id' => $row->branch_id,
+                    'visit_date' => $row->visit_date,
+                    'branch_name' => $this->pickLocalized($row->branch_name_en, $row->branch_name_ar) ?: ('#'.$row->branch_id),
+                    'inspector_name' => $row->inspector_name,
+                    'item_code' => $row->item_code,
+                    'item_title' => $row->item_title,
+                    'deduction_score' => $row->deduction_score,
+                ];
+            })
             ->all();
     }
 
@@ -537,6 +551,14 @@ class VisitorReportDashboardService
         }
 
         return $trend;
+    }
+
+    private function pickLocalized(?string $nameEn, ?string $nameAr): string
+    {
+        if (app()->getLocale() === 'ar') {
+            return $nameAr ?: $nameEn ?: '';
+        }
+        return $nameEn ?: $nameAr ?: '';
     }
 
     private function color(float $score): string

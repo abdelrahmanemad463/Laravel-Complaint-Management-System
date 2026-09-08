@@ -27,11 +27,11 @@ class DashboardStatsService
             'date_to' => $to->toDateString(),
         ]);
         $currentQuery = Complaint::query()->filter($normalizedFilters);
-        $statuses = ComplaintStatus::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'color', 'sort_order']);
-        $priorities = Priority::query()->orderBy('level')->orderBy('name')->get(['id', 'name', 'color', 'level', 'sort_order']);
-        $resolvedStatusIds = $statuses->filter(fn ($status) => in_array($this->key($status->name), ['solved', 'closed'], true))->pluck('id')->all();
-        $pendingStatusIds = $statuses->filter(fn ($status) => $this->key($status->name) === 'pending')->pluck('id')->all();
-        $highCriticalPriorityIds = $priorities->filter(fn ($priority) => in_array($this->key($priority->name), ['high', 'critical'], true))->pluck('id')->all();
+        $statuses = ComplaintStatus::query()->orderBy('sort_order')->orderBy('name_en')->get(['id', 'name_en', 'name_ar', 'color', 'sort_order']);
+        $priorities = Priority::query()->orderBy('level')->orderBy('name_en')->get(['id', 'name_en', 'name_ar', 'color', 'level', 'sort_order']);
+        $resolvedStatusIds = $statuses->filter(fn ($status) => in_array($this->key($status->name_en), ['solved', 'closed'], true))->pluck('id')->all();
+        $pendingStatusIds = $statuses->filter(fn ($status) => $this->key($status->name_en) === 'pending')->pluck('id')->all();
+        $highCriticalPriorityIds = $priorities->filter(fn ($priority) => in_array($this->key($priority->name_en), ['high', 'critical'], true))->pluck('id')->all();
 
         $total = (clone $currentQuery)->count();
         $statusCounts = $this->countsById($currentQuery, 'status_id');
@@ -90,22 +90,22 @@ class DashboardStatsService
 
     private function filterData(array $selectedBranchIds = []): array
     {
-        $branches = Branch::query()->orderBy('name')->limit(5)->get(['id', 'name']);
+        $branches = Branch::query()->orderBy('name_en')->limit(5)->get(['id', 'name_en', 'name_ar']);
         $missingBranchIds = array_diff($selectedBranchIds, $branches->pluck('id')->all());
         if ($missingBranchIds !== []) {
             $branches = $branches->concat(
-                Branch::query()->whereIn('id', $missingBranchIds)->orderBy('name')->get(['id', 'name'])
+                Branch::query()->whereIn('id', $missingBranchIds)->orderBy('name_en')->get(['id', 'name_en', 'name_ar'])
             );
         }
 
         return [
             'branches' => $branches,
-            'services' => Service::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
-            'categories' => ComplaintCategory::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
-            'sources' => ComplaintSource::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
-            'types' => ComplaintType::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
-            'priorities' => Priority::query()->orderBy('level')->orderBy('name')->get(['id', 'name']),
-            'statuses' => ComplaintStatus::query()->orderBy('sort_order')->orderBy('name')->get(['id', 'name']),
+            'services' => Service::query()->orderBy('sort_order')->orderBy('name_en')->get(['id', 'name_en', 'name_ar']),
+            'categories' => ComplaintCategory::query()->orderBy('sort_order')->orderBy('name_en')->get(['id', 'name_en', 'name_ar']),
+            'sources' => ComplaintSource::query()->orderBy('sort_order')->orderBy('name_en')->get(['id', 'name_en', 'name_ar']),
+            'types' => ComplaintType::query()->orderBy('sort_order')->orderBy('name_en')->get(['id', 'name_en', 'name_ar']),
+            'priorities' => Priority::query()->orderBy('level')->orderBy('name_en')->get(['id', 'name_en', 'name_ar']),
+            'statuses' => ComplaintStatus::query()->orderBy('sort_order')->orderBy('name_en')->get(['id', 'name_en', 'name_ar']),
         ];
     }
 
@@ -135,14 +135,14 @@ class DashboardStatsService
     private function dimensionData(Builder $query, string $column, string $model): array
     {
         $counts = $this->countsById($query, $column);
-        $records = $model::query()->get(['id', 'name'])->keyBy('id');
+        $records = $model::query()->get(['id', 'name_en', 'name_ar', 'color'])->keyBy('id');
         $palette = ['#4f46e5', '#0891b2', '#16a34a', '#ea580c', '#dc2626', '#9333ea', '#ca8a04', '#0f766e'];
 
         return $records->map(function ($record) use ($counts, $palette) {
             $total = (int) ($counts[$record->id] ?? 0);
             return [
                 'id' => $record->id,
-                'name' => $record->name,
+                'name' => $record->localized_name,
                 'total' => $total,
                 'color' => $record->color ?: $palette[$record->id % count($palette)],
             ];
@@ -161,14 +161,14 @@ class DashboardStatsService
             ->groupBy('branch_id')
             ->orderByDesc('total')
             ->get();
-        $branches = Branch::query()->whereIn('id', $rows->pluck('branch_id'))->get(['id', 'name'])->keyBy('id');
+        $branches = Branch::query()->whereIn('id', $rows->pluck('branch_id'))->get(['id', 'name_en', 'name_ar'])->keyBy('id');
 
         return $rows->map(function ($row, $index) use ($branches, $total) {
             $count = (int) $row->total;
             return [
                 'rank' => $index + 1,
                 'id' => (int) $row->branch_id,
-                'name' => $branches[$row->branch_id]->name ?? __('common.unknown'),
+                'name' => $branches[$row->branch_id]->localized_name ?? __('common.unknown'),
                 'total' => $count,
                 'percentage' => $total > 0 ? round(($count / $total) * 100, 1) : 0,
                 'resolved' => (int) $row->resolved_total,
@@ -316,7 +316,7 @@ class DashboardStatsService
 
     private function sumNamed(Collection $records, Collection $counts, string $name): int
     {
-        $id = $records->first(fn ($record) => $this->key($record->name) === $name)?->id;
+        $id = $records->first(fn ($record) => $this->key($record->name_en) === $name)?->id;
         return $id ? (int) ($counts[$id] ?? 0) : 0;
     }
 

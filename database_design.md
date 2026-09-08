@@ -82,7 +82,8 @@ The following tables share a simple structure and are managed separately so Sour
 | Column | Type | Constraints and reason |
 |---|---|---|
 | id | big integer | Primary key |
-| name | string | Required display name |
+| name_en | string | Required English display name; name-keyed business logic matches this column |
+| name_ar | string nullable | Arabic display name; falls back to name_en when empty |
 | color | string nullable or string | Hex/CSS-safe display color; required for priorities and statuses |
 | is_active | boolean | Default true; controls new selections |
 | sort_order | unsigned integer | Default 0; stable UI ordering |
@@ -290,7 +291,7 @@ The authenticated dashboard reuses the complaint data model through `DashboardFi
 | Branch performance | SQL grouping by `branch_id`, with total, percentage of filtered total, resolved, pending, high/critical, and resolution-rate values. |
 | Previous-period comparison | The same non-date filters applied to an immediately preceding period of equal length. |
 
-The dashboard reads existing foreign-key relationships to branches, services, sources, categories, types, priorities, and statuses. Master-data names remain database values rather than per-locale fields; interface labels and metric definitions are translated through Laravel dictionaries. No dashboard-specific schema migration or index was required after reviewing the existing `complaint_date`, branch/date, status/date, `created_at`, and `resolved_at` support.
+The dashboard reads existing foreign-key relationships to branches, services, sources, categories, types, priorities, and statuses. The 7 complaint master-data tables now store `name_en` and `name_ar` (the legacy `name` column was dropped); the `localized_name` accessor returns the locale-appropriate value with fallback. All name-keyed business logic — solved/pending/high-critical detection, complaint-status service activity messages, type→category+priority linkage, and branch-search — matches `name_en` because the original seeded production data is English. No dashboard-specific schema migration or index was required after reviewing the existing `complaint_date`, branch/date, status/date, `created_at`, and `resolved_at` support.
 
 ## 6. Quality Visits (Inspection) Schema (2026-08-31)
 

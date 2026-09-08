@@ -85,13 +85,13 @@ class ComplaintsExport implements FromQuery, WithHeadings, WithMapping
             $complaint->id,
             $complaint->customer?->name,
             $complaint->customer?->phone_primary,
-            $complaint->branch?->name,
-            $complaint->service?->name,
-            $complaint->source?->name,
-            $complaint->category?->name,
-            $complaint->type?->name,
-            $complaint->priority?->name,
-            $complaint->status?->name,
+            $complaint->branch?->localized_name,
+            $complaint->service?->localized_name,
+            $complaint->source?->localized_name,
+            $complaint->category?->localized_name,
+            $complaint->type?->localized_name,
+            $complaint->priority?->localized_name,
+            $complaint->status?->localized_name,
             optional($complaint->complaint_date)->format('Y-m-d'),
             $complaint->serial_number,
             $complaint->price !== null ? (float) $complaint->price : null,
@@ -111,8 +111,8 @@ class ComplaintsExport implements FromQuery, WithHeadings, WithMapping
         foreach ($complaint->statusHistories as $event) {
             $date = optional($event->changed_at)->format('Y-m-d H:i');
             $actor = $event->changer?->name ?? __('common.system');
-            $from = $event->fromStatus?->name ?? __('common.created');
-            $to = $event->toStatus?->name ?? '—';
+            $from = $event->fromStatus?->localized_name ?? __('common.created');
+            $to = $event->toStatus?->localized_name ?? '—';
             $line = trim($date.' | '.$actor.': '.$from.' → '.$to);
 
             if ($event->reason) {

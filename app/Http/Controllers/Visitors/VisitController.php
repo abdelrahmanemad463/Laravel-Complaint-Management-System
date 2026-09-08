@@ -33,7 +33,7 @@ class VisitController extends Controller
         abort_unless(auth()->user()?->can('visit.create'), 403);
         $visitTypes = VisitorVisitType::where('is_active', true)
             ->orderBy('id')->get();
-        $branches = Branch::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get();
+        $branches = Branch::where('is_active', true)->orderBy('sort_order')->orderBy('name_en')->get();
         return view('visitors.create', compact('visitTypes', 'branches'));
     }
 

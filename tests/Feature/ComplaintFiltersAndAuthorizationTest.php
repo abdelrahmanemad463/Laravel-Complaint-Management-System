@@ -190,7 +190,7 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
     {
         $admin = User::where('email', 'admin@example.com')->first();
         foreach (range(1, 7) as $number) {
-            Branch::create(['name' => 'Report Branch '.$number, 'code' => 'RB'.$number, 'is_active' => true, 'sort_order' => $number]);
+            Branch::create(['name_en' => 'Report Branch '.$number, 'name_ar' => 'فرع التقرير '.$number, 'code' => 'RB'.$number, 'is_active' => true, 'sort_order' => $number]);
         }
         $response = $this->actingAs($admin)->get(route('reports.branches'));
         $response->assertOk();
@@ -202,7 +202,7 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
     {
         $admin = User::where('email', 'admin@example.com')->first();
         foreach (range(1, 7) as $number) {
-            Branch::create(['name' => 'Search Branch '.$number, 'code' => 'SB'.$number, 'is_active' => true, 'sort_order' => $number]);
+            Branch::create(['name_en' => 'Search Branch '.$number, 'name_ar' => 'فرع البحث '.$number, 'code' => 'SB'.$number, 'is_active' => true, 'sort_order' => $number]);
         }
         $response = $this->actingAs($admin)->get(route('complaints.index'));
         $response->assertOk();
@@ -255,7 +255,7 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
     public function test_admin_can_open_master_data_create_form(): void
     {
         $admin = User::where('email', 'admin@example.com')->first();
-        $this->actingAs($admin)->get(route('master.create', 'branches'))->assertOk()->assertSee('name="name"', false);
+        $this->actingAs($admin)->get(route('master.create', 'branches'))->assertOk()->assertSee('name="name_en"', false)->assertSee('name="name_ar"', false);
     }
 
     public function test_admin_can_open_user_create_and_edit_forms(): void

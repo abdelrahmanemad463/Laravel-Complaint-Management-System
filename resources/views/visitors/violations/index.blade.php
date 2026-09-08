@@ -30,7 +30,7 @@ $severityBadge = ['critical' => '#dc2626', 'major' => '#ea580c', 'minor' => '#16
             <select name="branch_id" class="form-input">
                 <option value="">{{ __('common.all') }}</option>
                 @foreach($branches as $branch)
-                <option value="{{ $branch->id }}" @selected(request('branch_id') == $branch->id)>{{ $branch->name }}</option>
+                <option value="{{ $branch->id }}" @selected(request('branch_id') == $branch->id)>{{ $branch->localized_name }}</option>
                 @endforeach
             </select>
         </div>
@@ -84,7 +84,7 @@ $severityBadge = ['critical' => '#dc2626', 'major' => '#ea580c', 'minor' => '#16
                 <div class="font-semibold text-slate-900">{{ $v->visitItem?->item_code }}</div>
                 <div class="text-xs text-slate-500 max-w-xs truncate">{{ $v->visitItem?->item_title }}</div>
             </td>
-            <td class="px-4 py-3 text-slate-700">{{ $v->visit?->branch?->name ?: '—' }}</td>
+            <td class="px-4 py-3 text-slate-700">{{ $v->visit?->branch?->localized_name ?: '—' }}</td>
             <td class="px-4 py-3 text-slate-700">{{ $v->visit?->inspector?->name ?: '—' }}</td>
             <td class="px-4 py-3"><span class="badge" style="--badge-color:{{ $severityBadge[$v->visitItem?->severity] ?? '#475569' }}">{{ ucfirst($v->visitItem?->severity ?? '—') }}</span></td>
             <td class="px-4 py-3 whitespace-nowrap text-slate-700">{{ $v->due_at?->format('d/m/Y H:i') ?: '—' }}</td>

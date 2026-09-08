@@ -45,7 +45,7 @@ class VisitorsTest extends TestCase
 
     public function test_create_page_shows_single_form_with_type_branch_and_date(): void
     {
-        $branchName = Branch::where('is_active', true)->firstOrFail()->name;
+        $branchName = Branch::where('is_active', true)->firstOrFail()->localized_name;
         $response = $this->actingAs($this->user)->get(route('visitors.create'));
         $response->assertOk()
             ->assertSee(__('visitors.visit_type'))
@@ -81,7 +81,7 @@ class VisitorsTest extends TestCase
         ])->assertRedirect();
 
         $response = $this->actingAs($this->user)->get(route('visitors.open'));
-        $response->assertOk()->assertSee($mine->branch->name)->assertDontSee($branch->name);
+        $response->assertOk()->assertSee($mine->branch->localized_name)->assertDontSee($branch->localized_name);
     }
 
     public function test_foreign_visit_returns_403(): void

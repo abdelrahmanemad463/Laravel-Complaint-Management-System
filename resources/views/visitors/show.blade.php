@@ -8,7 +8,7 @@
 <div class="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
     <div class="min-w-0">
         <a href="{{ $visit->isCompleted() ? route('visitors.home') : route('visitors.open') }}" class="back-link">← {{ __('visitors.quality_visits') }}</a>
-        <h1 class="page-title mt-3 truncate">{{ $visit->branch?->name }}</h1>
+        <h1 class="page-title mt-3 truncate">{{ $visit->branch?->localized_name }}</h1>
         <p class="page-subtitle truncate">{{ $visit->visitType?->name }} • {{ $visit->visit_date?->format('Y-m-d') }}</p>
         <p class="page-subtitle mt-1 truncate">{{ __('visitors.inspector') }}: {{ $visit->inspector?->name }}</p>
     </div>

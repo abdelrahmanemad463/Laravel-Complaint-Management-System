@@ -70,7 +70,7 @@ class DashboardTest extends TestCase
         ]));
 
         $response->assertOk()
-            ->assertSee($branch->name)
+            ->assertSee($branch->localized_name)
             ->assertSee('branch_ids%5B0%5D='.$branch->id, false)
             ->assertSee('#'.$complaint->id);
     }
@@ -86,8 +86,8 @@ class DashboardTest extends TestCase
             'source_id' => ComplaintSource::first()->id,
             'category_id' => ComplaintCategory::first()->id,
             'type_id' => ComplaintType::first()->id,
-            'priority_id' => Priority::where('name', 'High')->first()->id,
-            'status_id' => ComplaintStatus::where('name', 'Pending')->first()->id,
+            'priority_id' => Priority::where('name_en', 'High')->first()->id,
+            'status_id' => ComplaintStatus::where('name_en', 'Pending')->first()->id,
             'short_description' => 'Dashboard test complaint',
             'description' => 'Dashboard test description.',
             'complaint_date' => now()->toDateString(),

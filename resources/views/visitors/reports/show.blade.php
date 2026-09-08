@@ -53,7 +53,7 @@ $visit = $report['visit'];
 
 {{-- 2. Visit information --}}
 <div class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <div class="card"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ __('common.branch') }}</div><div class="mt-1 text-lg font-bold text-slate-900">{{ $visit->branch?->name ?: '—' }}</div></div>
+    <div class="card"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ __('common.branch') }}</div><div class="mt-1 text-lg font-bold text-slate-900">{{ $visit->branch?->localized_name ?: '—' }}</div></div>
     <div class="card"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ __('visitors.visit_date') }}</div><div class="mt-1 text-lg font-bold text-slate-900">{{ $visit->visit_date?->format('d/m/Y') }}</div></div>
     <div class="card"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ __('visitors.inspector') }}</div><div class="mt-1 text-lg font-bold text-slate-900">{{ $visit->inspector?->name ?: '—' }}</div></div>
     <div class="card"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ __('visitors.visit_type') }}</div><div class="mt-1 text-lg font-bold text-slate-900">{{ $visit->visitType?->name ?: '—' }}</div></div>

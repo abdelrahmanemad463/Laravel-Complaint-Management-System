@@ -48,8 +48,8 @@
                 </div>
                 <div class="max-h-56 space-y-1 overflow-y-auto p-1" data-picker-options>
                     @forelse($data['branches'] as $branch)
-                        <button type="button" class="branch-option flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-sm hover:bg-indigo-50" data-id="{{ $branch->id }}" data-name="{{ $branch->name }}" data-selected="{{ in_array($branch->id, $selectedBranchIds, true) ? '1' : '0' }}" aria-selected="{{ in_array($branch->id, $selectedBranchIds, true) ? 'true' : 'false' }}">
-                            <span class="min-w-0 truncate font-medium">{{ $branch->name }}</span>
+                        <button type="button" class="branch-option flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-sm hover:bg-indigo-50" data-id="{{ $branch->id }}" data-name="{{ $branch->localized_name }}" data-selected="{{ in_array($branch->id, $selectedBranchIds, true) ? '1' : '0' }}" aria-selected="{{ in_array($branch->id, $selectedBranchIds, true) ? 'true' : 'false' }}">
+                            <span class="min-w-0 truncate font-medium">{{ $branch->localized_name }}</span>
                             <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-300 text-xs text-indigo-600"><span class="branch-check" aria-hidden="true">{{ in_array($branch->id, $selectedBranchIds, true) ? '✓' : '' }}</span></span>
                         </button>
                     @empty
@@ -66,7 +66,7 @@
                 <select class="form-input" name="{{ $field }}">
                     <option value="">{{ __('common.all') }}</option>
                     @foreach($data[$key] as $item)
-                        <option value="{{ $item->id }}" @selected(($filters[$field] ?? null) == $item->id)>{{ $item->name }}</option>
+                        <option value="{{ $item->id }}" @selected(($filters[$field] ?? null) == $item->id)>{{ $item->localized_name }}</option>
                     @endforeach
                 </select>
             </div>

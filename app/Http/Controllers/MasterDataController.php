@@ -8,13 +8,13 @@ use Illuminate\Http\Request;
 class MasterDataController extends Controller
 {
     private array $types = [
-        'branches' => ['model' => \App\Models\Branch::class, 'title' => 'branches', 'module' => 'branch', 'fields' => ['name', 'code', 'is_active', 'sort_order']],
-        'services' => ['model' => \App\Models\Service::class, 'title' => 'services', 'module' => 'service', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
-        'sources' => ['model' => \App\Models\ComplaintSource::class, 'title' => 'sources', 'module' => 'source', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
-        'categories' => ['model' => \App\Models\ComplaintCategory::class, 'title' => 'categories', 'module' => 'category', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
-        'types' => ['model' => \App\Models\ComplaintType::class, 'title' => 'types', 'module' => 'type', 'fields' => ['name', 'color', 'category_id', 'priority_id', 'is_active', 'sort_order']],
-        'priorities' => ['model' => \App\Models\Priority::class, 'title' => 'priorities', 'module' => 'priority', 'fields' => ['name', 'color', 'level', 'is_active', 'sort_order']],
-        'statuses' => ['model' => \App\Models\ComplaintStatus::class, 'title' => 'statuses', 'module' => 'status', 'fields' => ['name', 'color', 'is_active', 'sort_order']],
+        'branches' => ['model' => \App\Models\Branch::class, 'title' => 'branches', 'module' => 'branch', 'fields' => ['name_en', 'name_ar', 'code', 'is_active', 'sort_order']],
+        'services' => ['model' => \App\Models\Service::class, 'title' => 'services', 'module' => 'service', 'fields' => ['name_en', 'name_ar', 'color', 'is_active', 'sort_order']],
+        'sources' => ['model' => \App\Models\ComplaintSource::class, 'title' => 'sources', 'module' => 'source', 'fields' => ['name_en', 'name_ar', 'color', 'is_active', 'sort_order']],
+        'categories' => ['model' => \App\Models\ComplaintCategory::class, 'title' => 'categories', 'module' => 'category', 'fields' => ['name_en', 'name_ar', 'color', 'is_active', 'sort_order']],
+        'types' => ['model' => \App\Models\ComplaintType::class, 'title' => 'types', 'module' => 'type', 'fields' => ['name_en', 'name_ar', 'color', 'category_id', 'priority_id', 'is_active', 'sort_order']],
+        'priorities' => ['model' => \App\Models\Priority::class, 'title' => 'priorities', 'module' => 'priority', 'fields' => ['name_en', 'name_ar', 'color', 'level', 'is_active', 'sort_order']],
+        'statuses' => ['model' => \App\Models\ComplaintStatus::class, 'title' => 'statuses', 'module' => 'status', 'fields' => ['name_en', 'name_ar', 'color', 'is_active', 'sort_order']],
     ];
 
     private function config(string $type): array
@@ -31,7 +31,8 @@ class MasterDataController extends Controller
     private function rules(array $config): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name_en' => ['required', 'string', 'max:255'],
+            'name_ar' => ['required', 'string', 'max:255'],
             'color' => in_array('color', $config['fields'], true) ? ['required', 'regex:/^#[0-9A-Fa-f]{6}$/'] : ['nullable', 'string', 'max:30'],
             'code' => ['nullable', 'string', 'max:50'],
             'level' => ['nullable', 'integer', 'min:0'],
@@ -48,8 +49,8 @@ class MasterDataController extends Controller
             return [];
         }
         return [
-            'categories' => \App\Models\ComplaintCategory::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(),
-            'priorities' => \App\Models\Priority::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(),
+            'categories' => \App\Models\ComplaintCategory::where('is_active', true)->orderBy('sort_order')->orderBy('name_en')->get(),
+            'priorities' => \App\Models\Priority::where('is_active', true)->orderBy('sort_order')->orderBy('name_en')->get(),
         ];
     }
 
@@ -61,7 +62,7 @@ class MasterDataController extends Controller
         if ($type === 'types') {
             $query->with(['category', 'priority']);
         }
-        $items = $query->orderBy('sort_order')->orderBy('name')->paginate(20);
+        $items = $query->orderBy('sort_order')->orderBy('name_en')->paginate(20);
         return view('master-data.index', compact('type', 'config', 'items'));
     }
 

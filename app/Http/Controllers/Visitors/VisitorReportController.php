@@ -55,7 +55,7 @@ class VisitorReportController extends Controller
         return view('visitors.reports.index', [
             'visits' => $visits,
             'filters' => $filters,
-            'branches' => Branch::orderBy('sort_order')->orderBy('name')->get(),
+            'branches' => Branch::orderBy('sort_order')->orderBy('name_en')->get(),
             'visitTypes' => VisitorVisitType::orderBy('id')->get(),
             'inspectors' => User::whereIn('id', VisitorVisit::completed()->select('inspector_id')->distinct())->orderBy('name')->get([ 'id', 'name' ]),
         ]);
@@ -88,7 +88,7 @@ class VisitorReportController extends Controller
 
         return view('visitors.reports.dashboard', [
             'data' => $data,
-            'branches' => Branch::orderBy('sort_order')->orderBy('name')->get(),
+            'branches' => Branch::orderBy('sort_order')->orderBy('name_en')->get(),
             'visitTypes' => VisitorVisitType::orderBy('id')->get(),
             'severityOptions' => ['critical', 'major', 'minor'],
             'sections' => VisitorSection::orderBy('sort_order')->orderBy('name')->get(),

@@ -19,8 +19,13 @@
     @endif
 
     <div>
-        <label class="form-label">{{ __('common.name') }} *</label>
-        <input class="form-input" name="name" required value="{{ old('name', $record->name ?? '') }}">
+        <label class="form-label">{{ __('common.name_en') }} *</label>
+        <input class="form-input" name="name_en" required value="{{ old('name_en', $record->name_en ?? '') }}">
+    </div>
+
+    <div>
+        <label class="form-label">{{ __('common.name_ar') }} *</label>
+        <input class="form-input" name="name_ar" required dir="{{ app()->getLocale() === 'en' ? 'rtl' : 'auto' }}" value="{{ old('name_ar', $record->name_ar ?? '') }}">
     </div>
 
     @if(in_array('code', $config['fields'], true))
@@ -50,7 +55,7 @@
             <select class="form-input" name="category_id" required>
                 <option value="">{{ __('common.select') }}</option>
                 @foreach($categories as $item)
-                    <option value="{{ $item->id }}" @selected(old('category_id', $record->category_id ?? '') == $item->id)>{{ $item->name }}</option>
+                    <option value="{{ $item->id }}" @selected(old('category_id', $record->category_id ?? '') == $item->id)>{{ $item->localized_name }}</option>
                 @endforeach
             </select>
         </div>
@@ -59,7 +64,7 @@
             <select class="form-input" name="priority_id" required>
                 <option value="">{{ __('common.select') }}</option>
                 @foreach($priorities as $item)
-                    <option value="{{ $item->id }}" @selected(old('priority_id', $record->priority_id ?? '') == $item->id)>{{ $item->name }}</option>
+                    <option value="{{ $item->id }}" @selected(old('priority_id', $record->priority_id ?? '') == $item->id)>{{ $item->localized_name }}</option>
                 @endforeach
             </select>
         </div>

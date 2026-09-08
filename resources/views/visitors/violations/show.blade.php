@@ -36,7 +36,7 @@ $selfApproval = $vi->submitted_by !== null && (int) $vi->submitted_by === (int) 
 </div>
 
 <div class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <div class="card"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ __('common.branch') }}</div><div class="mt-1 text-lg font-bold text-slate-900">{{ $visit?->branch?->name ?: '—' }}</div></div>
+    <div class="card"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ __('common.branch') }}</div><div class="mt-1 text-lg font-bold text-slate-900">{{ $visit?->branch?->localized_name ?: '—' }}</div></div>
     <div class="card"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ __('visitors.violation_created') }}</div><div class="mt-1 text-lg font-bold text-slate-900">{{ $vi->created_at?->format('d/m/Y H:i') }}</div></div>
     <div class="card"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ __('visitors.due_date') }}</div><div class="mt-1 text-lg font-bold text-slate-900">{{ $vi->due_at?->format('d/m/Y H:i') ?: '—' }}</div></div>
     <div class="card"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">{{ __('visitors.inspector') }}</div><div class="mt-1 text-lg font-bold text-slate-900">{{ $visit?->inspector?->name ?: '—' }}</div></div>

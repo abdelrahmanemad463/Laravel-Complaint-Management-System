@@ -13,7 +13,7 @@ class ComplaintStatusService
             $oldStatus = $complaint->status;
             $newStatus = ComplaintStatus::findOrFail($statusId);
             $complaint->status_id = $statusId;
-            if (mb_strtolower($newStatus->name) === 'solved') {
+            if (mb_strtolower((string) $newStatus->name_en) === 'solved') {
                 $complaint->resolved_by = auth()->id();
                 $complaint->resolved_at = now();
             }
@@ -24,7 +24,7 @@ class ComplaintStatusService
                 'changed_by' => auth()->id(), 'changed_at' => now(),
             ]);
             app(ActivityLogService::class)->record('complaint.status_changed', $complaint->fresh(),
-                __('complaints.status_changed_log', ['from' => $oldStatus?->name ?? '—', 'to' => $newStatus->name]),
+                __('complaints.status_changed_log', ['from' => $oldStatus?->localized_name ?? '—', 'to' => $newStatus->localized_name]),
                 ['status_id' => $oldStatus?->id], ['status_id' => $newStatus->id]);
         });
     }

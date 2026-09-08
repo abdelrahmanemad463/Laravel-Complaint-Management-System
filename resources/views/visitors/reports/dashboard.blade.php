@@ -33,7 +33,7 @@ $charts = [
         <div><label class="form-label">{{ __('common.date_to') }}</label><input type="date" name="date_to" value="{{ $f['date_to'] ?? '' }}" class="form-input"></div>
         <div><label class="form-label">{{ __('common.branch') }}</label>
             <select name="branch_id" class="form-input"><option value="">{{ __('common.all') }}</option>
-            @foreach($branches as $branch)<option value="{{ $branch->id }}" @selected(($f['branch_id'] ?? null) == $branch->id)>{{ $branch->name }}</option>@endforeach
+            @foreach($branches as $branch)<option value="{{ $branch->id }}" @selected(($f['branch_id'] ?? null) == $branch->id)>{{ $branch->localized_name }}</option>@endforeach
             </select>
         </div>
         <div><label class="form-label">{{ __('visitors.visit_type') }}</label>

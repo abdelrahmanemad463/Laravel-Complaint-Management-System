@@ -13,7 +13,7 @@
     <div class="card flex flex-col gap-4">
         <div class="flex items-start justify-between gap-3">
             <div>
-                <div class="text-lg font-bold text-slate-900">{{ $visit->branch?->name }}</div>
+                <div class="text-lg font-bold text-slate-900">{{ $visit->branch?->localized_name }}</div>
                 <div class="text-sm text-slate-500">{{ $visit->visitType?->name }}</div>
                 <div class="mt-1 text-xs text-slate-500">{{ $visit->visit_date?->format('Y-m-d') }}</div>
             </div>

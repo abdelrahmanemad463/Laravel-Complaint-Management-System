@@ -69,7 +69,7 @@ class ComplaintManagementTest extends TestCase
         $data = $this->complaintData($customer);
         $type = ComplaintType::find($data['type_id']);
         $complaint = Complaint::create($data + ['category_id' => $type->category_id, 'priority_id' => $type->priority_id, 'created_by' => $this->user->id]);
-        $solved = ComplaintStatus::where('name', 'Solved')->first();
+        $solved = ComplaintStatus::where('name_en', 'Solved')->first();
         $this->actingAs($this->user)->put(route('complaints.update', $complaint), array_merge($data, ['status_id' => $solved->id, 'resolution' => 'Replacement provided.', 'status_reason' => 'Customer contacted.']))->assertRedirect();
         $this->assertDatabaseHas('complaints', ['id' => $complaint->id, 'status_id' => $solved->id, 'resolved_by' => $this->user->id, 'resolution' => 'Replacement provided.']);
         $this->assertDatabaseHas('complaint_status_histories', ['complaint_id' => $complaint->id, 'to_status_id' => $solved->id, 'changed_by' => $this->user->id]);
@@ -99,7 +99,7 @@ class ComplaintManagementTest extends TestCase
 
     public function test_complaint_store_rejects_type_without_category_priority_config(): void
     {
-        $unconfigured = ComplaintType::create(['name' => 'Unconfigured Type', 'color' => '#111111', 'is_active' => true, 'sort_order' => 99]);
+        $unconfigured = ComplaintType::create(['name_en' => 'Unconfigured Type', 'name_ar' => 'نوع غير مضبوط', 'color' => '#111111', 'is_active' => true, 'sort_order' => 99]);
         $customer = Customer::factory()->create();
         $data = array_merge($this->complaintData($customer), ['type_id' => $unconfigured->id]);
         $this->actingAs($this->user)->post(route('complaints.store'), $data)->assertSessionHasErrors('type_id');
@@ -139,7 +139,7 @@ class ComplaintManagementTest extends TestCase
             ->assertSee('data-category-id', false)
             ->assertSee('data-derived-category-name', false)
             ->assertSee(__('common.auto_determined'));
-        $response = $this->actingAs($this->user)->get(route('complaints.edit', Complaint::create(['customer_id' => Customer::factory()->create()->id, 'type_id' => ComplaintType::first()->id, 'category_id' => ComplaintType::first()->category_id, 'priority_id' => ComplaintType::first()->priority_id, 'branch_id' => Branch::first()->id, 'service_id' => Service::first()->id, 'source_id' => ComplaintSource::first()->id, 'status_id' => ComplaintStatus::where('name', 'Pending')->first()->id, 'short_description' => 'Edit layout', 'description' => 'Layout check.', 'complaint_date' => now()->toDateString(), 'created_by' => $this->user->id])));
+        $response = $this->actingAs($this->user)->get(route('complaints.edit', Complaint::create(['customer_id' => Customer::factory()->create()->id, 'type_id' => ComplaintType::first()->id, 'category_id' => ComplaintType::first()->category_id, 'priority_id' => ComplaintType::first()->priority_id, 'branch_id' => Branch::first()->id, 'service_id' => Service::first()->id, 'source_id' => ComplaintSource::first()->id, 'status_id' => ComplaintStatus::where('name_en', 'Pending')->first()->id, 'short_description' => 'Edit layout', 'description' => 'Layout check.', 'complaint_date' => now()->toDateString(), 'created_by' => $this->user->id])));
         $response->assertOk()->assertDontSee('name="category_id"', false)->assertDontSee('name="priority_id"', false)->assertSee('data-derived-category-name', false);
     }
 
@@ -151,13 +151,13 @@ class ComplaintManagementTest extends TestCase
             ->assertOk()->assertSee('name="category_id"', false)->assertSee('name="priority_id"', false);
         $category = ComplaintCategory::first();
         $priority = Priority::first();
-        $this->actingAs($admin)->post(route('master.store', 'types'), ['name' => 'Managed Type', 'color' => '#0f766e', 'category_id' => $category->id, 'priority_id' => $priority->id, 'is_active' => 1, 'sort_order' => 90])->assertRedirect();
-        $this->assertDatabaseHas('complaint_types', ['name' => 'Managed Type', 'category_id' => $category->id, 'priority_id' => $priority->id]);
-        $this->actingAs($admin)->post(route('master.store', 'types'), ['name' => 'Broken Type', 'color' => '#111111'])->assertSessionHasErrors(['category_id', 'priority_id']);
+        $this->actingAs($admin)->post(route('master.store', 'types'), ['name_en' => 'Managed Type', 'name_ar' => 'نوع مُدار', 'color' => '#0f766e', 'category_id' => $category->id, 'priority_id' => $priority->id, 'is_active' => 1, 'sort_order' => 90])->assertRedirect();
+        $this->assertDatabaseHas('complaint_types', ['name_en' => 'Managed Type', 'category_id' => $category->id, 'priority_id' => $priority->id]);
+        $this->actingAs($admin)->post(route('master.store', 'types'), ['name_en' => 'Broken Type', 'name_ar' => 'نوع خاطئ', 'color' => '#111111'])->assertSessionHasErrors(['category_id', 'priority_id']);
     }
 
     private function complaintData(Customer $customer): array
     {
-        return ['customer_id' => $customer->id, 'branch_id' => Branch::first()->id, 'service_id' => Service::first()->id, 'source_id' => ComplaintSource::first()->id, 'type_id' => ComplaintType::first()->id, 'status_id' => ComplaintStatus::where('name', 'Pending')->first()->id, 'short_description' => 'Wrong item received', 'description' => 'The customer received an incorrect item.', 'complaint_date' => now()->toDateString()];
+        return ['customer_id' => $customer->id, 'branch_id' => Branch::first()->id, 'service_id' => Service::first()->id, 'source_id' => ComplaintSource::first()->id, 'type_id' => ComplaintType::first()->id, 'status_id' => ComplaintStatus::where('name_en', 'Pending')->first()->id, 'short_description' => 'Wrong item received', 'description' => 'The customer received an incorrect item.', 'complaint_date' => now()->toDateString()];
     }
 }

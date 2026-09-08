@@ -334,7 +334,7 @@ class VisitorReportsTest extends TestCase
             // Force Arabic into the DB data itself, so the English-locale PDF
             // must still shape it (Arabic stored data must render in both languages).
             $branch = $this->branch();
-            $branch->update(['name' => 'فرع المدينة']);
+            $branch->update(['name_en' => 'فرع المدينة', 'name_ar' => 'فرع المدينة']);
 
             $visit = $this->makeCompletedVisit($branch);
             $response = $this->actingAs($this->manager)->get(route('visitors.reports.pdf', $visit));

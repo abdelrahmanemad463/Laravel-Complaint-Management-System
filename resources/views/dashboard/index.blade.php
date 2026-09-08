@@ -6,8 +6,8 @@
     $total = $kpis['total'] ?? 0;
     $dashboardQuery = array_filter($filters, static fn ($value) => $value !== null && $value !== '' && $value !== []);
     $selectedBranchIds = array_map('intval', $filters['branch_ids'] ?? []);
-    $statusByKey = collect($filterData['statuses'] ?? [])->keyBy(fn ($status) => strtolower(trim($status->name)));
-    $priorityByKey = collect($filterData['priorities'] ?? [])->keyBy(fn ($priority) => strtolower(trim($priority->name)));
+    $statusByKey = collect($filterData['statuses'] ?? [])->keyBy(fn ($status) => strtolower(trim($status->name_en)));
+    $priorityByKey = collect($filterData['priorities'] ?? [])->keyBy(fn ($priority) => strtolower(trim($priority->name_en)));
     $formatDuration = static function (?int $minutes): string {
         if ($minutes === null) return __('common.no_resolution_data');
         $hours = intdiv($minutes, 60);
@@ -78,8 +78,8 @@
                 </div>
                 <div class="max-h-56 space-y-1 overflow-y-auto p-1" data-picker-options>
                     @forelse($filterData['branches'] ?? [] as $branch)
-                        <button type="button" class="branch-option flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-sm hover:bg-indigo-50" data-id="{{ $branch->id }}" data-name="{{ $branch->name }}" data-selected="{{ in_array($branch->id, $selectedBranchIds, true) ? '1' : '0' }}" role="option" aria-selected="{{ in_array($branch->id, $selectedBranchIds, true) ? 'true' : 'false' }}">
-                            <span class="min-w-0 truncate font-medium">{{ $branch->name }}</span>
+                        <button type="button" class="branch-option flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-sm hover:bg-indigo-50" data-id="{{ $branch->id }}" data-name="{{ $branch->localized_name }}" data-selected="{{ in_array($branch->id, $selectedBranchIds, true) ? '1' : '0' }}" role="option" aria-selected="{{ in_array($branch->id, $selectedBranchIds, true) ? 'true' : 'false' }}">
+                            <span class="min-w-0 truncate font-medium">{{ $branch->localized_name }}</span>
                             <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-300 text-xs text-indigo-600"><span class="branch-check" aria-hidden="true">{{ in_array($branch->id, $selectedBranchIds, true) ? '✓' : '' }}</span></span>
                         </button>
                     @empty
@@ -95,7 +95,7 @@
                 <select class="form-input" name="{{ $field }}">
                     <option value="">{{ __('common.all') }}</option>
                     @foreach($filterData[$key] ?? [] as $item)
-                        <option value="{{ $item->id }}" @selected(($filters[$field] ?? null) == $item->id)>{{ $item->name }}</option>
+                        <option value="{{ $item->id }}" @selected(($filters[$field] ?? null) == $item->id)>{{ $item->localized_name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -211,8 +211,8 @@
         <div class="mt-5 divide-y divide-slate-200">
             @forelse($recentComplaints as $complaint)
                 <a href="{{ route('complaints.show', $complaint) }}" class="flex flex-wrap items-center justify-between gap-3 py-4 first:pt-0 last:pb-0 hover:text-indigo-700">
-                    <div><p class="font-semibold">#{{ $complaint->id }} · {{ $complaint->customer?->name }}</p><p class="mt-1 text-sm text-slate-500">{{ $complaint->branch?->name }} · {{ $complaint->type?->name }}</p></div>
-                    <div class="text-end"><span class="badge" style="--badge-color:{{ $complaint->priority?->color ?? '#64748b' }}">{{ $complaint->priority?->name }}</span><p class="mt-1 text-xs text-slate-500">{{ $complaint->complaint_date?->translatedFormat('d M Y') }}</p></div>
+                    <div><p class="font-semibold">#{{ $complaint->id }} · {{ $complaint->customer?->name }}</p><p class="mt-1 text-sm text-slate-500">{{ $complaint->branch?->localized_name }} · {{ $complaint->type?->localized_name }}</p></div>
+                    <div class="text-end"><span class="badge" style="--badge-color:{{ $complaint->priority?->color ?? '#64748b' }}">{{ $complaint->priority?->localized_name }}</span><p class="mt-1 text-xs text-slate-500">{{ $complaint->complaint_date?->translatedFormat('d M Y') }}</p></div>
                 </a>
             @empty
                 <p class="empty px-0">{{ __('common.no_recent_complaints') }}</p>
@@ -224,8 +224,8 @@
         <div class="mt-5 space-y-3">
             @forelse($attentionComplaints as $complaint)
                 <a href="{{ route('complaints.show', $complaint) }}" class="block rounded-lg border border-rose-200 p-3 transition hover:bg-rose-50">
-                    <div class="flex items-center justify-between gap-3"><strong>#{{ $complaint->id }}</strong><span class="badge" style="--badge-color:{{ $complaint->priority?->color ?? '#dc2626' }}">{{ $complaint->priority?->name }}</span></div>
-                    <p class="mt-1 text-sm text-slate-600">{{ $complaint->branch?->name }} · {{ $complaint->type?->name }}</p>
+                    <div class="flex items-center justify-between gap-3"><strong>#{{ $complaint->id }}</strong><span class="badge" style="--badge-color:{{ $complaint->priority?->color ?? '#dc2626' }}">{{ $complaint->priority?->localized_name }}</span></div>
+                    <p class="mt-1 text-sm text-slate-600">{{ $complaint->branch?->localized_name }} · {{ $complaint->type?->localized_name }}</p>
                 </a>
             @empty
                 <p class="empty px-0">{{ __('common.no_dashboard_data') }}</p>
@@ -239,7 +239,7 @@
         <div class="flex items-center justify-between gap-3"><h2 class="section-title">{{ __('common.recently_solved') }}</h2><a class="back-link" href="{{ route('complaints.index', $dashboardQuery) }}">{{ __('common.view_all') }}</a></div>
         <div class="mt-5 space-y-3">
             @forelse($recentlySolved as $complaint)
-                <a href="{{ route('complaints.show', $complaint) }}" class="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 p-3 hover:bg-emerald-50"><div><strong>#{{ $complaint->id }} · {{ $complaint->customer?->name }}</strong><p class="mt-1 text-sm text-slate-500">{{ $complaint->branch?->name }}</p></div><span class="text-xs text-slate-500">{{ $complaint->resolved_at?->translatedFormat('d M Y H:i') }}</span></a>
+                <a href="{{ route('complaints.show', $complaint) }}" class="flex items-center justify-between gap-3 rounded-lg border border-emerald-200 p-3 hover:bg-emerald-50"><div><strong>#{{ $complaint->id }} · {{ $complaint->customer?->name }}</strong><p class="mt-1 text-sm text-slate-500">{{ $complaint->branch?->localized_name }}</p></div><span class="text-xs text-slate-500">{{ $complaint->resolved_at?->translatedFormat('d M Y H:i') }}</span></a>
             @empty
                 <p class="empty px-0">{{ __('common.no_dashboard_data') }}</p>
             @endforelse

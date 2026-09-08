@@ -68,7 +68,7 @@ $sh = fn($s) => pdf_ar($s);
 <h2>{{ $sh(__('visitors.visit_information')) }}</h2>
 <table class="info">
     <tr>
-        <td><b>{{ $sh(__('common.branch')) }}:</b> {{ $sh($visit->branch?->name ?: '—') }}</td>
+        <td><b>{{ $sh(__('common.branch')) }}:</b> {{ $sh($visit->branch?->localized_name ?: '—') }}</td>
         <td><b>{{ $sh(__('visitors.visit_date')) }}:</b> {{ $visit->visit_date?->format('d/m/Y') }}</td>
         <td><b>{{ $sh(__('visitors.inspector')) }}:</b> {{ $sh($visit->inspector?->name ?: '—') }}</td>
         <td><b>{{ $sh(__('visitors.visit_type')) }}:</b> {{ $sh($visit->visitType?->name ?: '—') }}</td>

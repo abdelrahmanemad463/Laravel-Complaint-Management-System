@@ -33,7 +33,7 @@
         <div class="mt-5 grid grid-cols-1 xs:grid-cols-2 gap-3 sm:grid-cols-4">
             <div class="stat"><b>{{ $customer->complaints->count() }}</b><span>{{ __('common.total') }}</span></div>
             @foreach(['Pending' => 'pending', 'In Progress' => 'in_progress', 'Solved' => 'solved', 'Closed' => 'closed'] as $status => $statusKey)
-                <div class="stat"><b>{{ $customer->complaints->where('status.name', $status)->count() }}</b><span>{{ __('common.' . $statusKey) }}</span></div>
+                <div class="stat"><b>{{ $customer->complaints->where('status.name_en', $status)->count() }}</b><span>{{ __('common.' . $statusKey) }}</span></div>
             @endforeach
         </div>
     </div>
@@ -49,7 +49,7 @@
             <thead><tr><th>{{ __('common.complaint') }}</th><th>{{ __('common.status') }}</th><th>{{ __('common.priority') }}</th><th>{{ __('common.branch') }}</th><th>{{ __('common.date') }}</th></tr></thead>
             <tbody>
                 @forelse($customer->complaints->sortByDesc('complaint_date') as $complaint)
-                    <tr><td><a class="font-semibold text-indigo-700" href="{{ route('complaints.show', $complaint) }}">#{{ $complaint->id }} — {{ $complaint->short_description }}</a></td><td><span class="badge" style="--badge-color:{{ $complaint->status?->color }}">{{ $complaint->status?->name }}</span></td><td><span class="badge" style="--badge-color:{{ $complaint->priority?->color }}">{{ $complaint->priority?->name }}</span></td><td>{{ $complaint->branch?->name }}</td><td>{{ optional($complaint->complaint_date)->format('Y-m-d') }}</td></tr>
+                    <tr><td><a class="font-semibold text-indigo-700" href="{{ route('complaints.show', $complaint) }}">#{{ $complaint->id }} — {{ $complaint->short_description }}</a></td><td><span class="badge" style="--badge-color:{{ $complaint->status?->color }}">{{ $complaint->status?->localized_name }}</span></td><td><span class="badge" style="--badge-color:{{ $complaint->priority?->color }}">{{ $complaint->priority?->localized_name }}</span></td><td>{{ $complaint->branch?->localized_name }}</td><td>{{ optional($complaint->complaint_date)->format('Y-m-d') }}</td></tr>
                 @empty
                     <tr><td colspan="5" class="empty">{{ __('common.no_complaints') }}</td></tr>
                 @endforelse

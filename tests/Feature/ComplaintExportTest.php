@@ -49,8 +49,8 @@ class ComplaintExportTest extends TestCase
         $user = User::where('email', 'admin@example.com')->first();
         $branch = Branch::first();
         $complaint = $this->makeComplaint($user, $branch);
-        $pending = ComplaintStatus::where('name', 'Pending')->first();
-        $solved = ComplaintStatus::where('name', 'Solved')->first();
+        $pending = ComplaintStatus::where('name_en', 'Pending')->first();
+        $solved = ComplaintStatus::where('name_en', 'Solved')->first();
 
         ActivityLog::create([
             'user_id' => $user->id,

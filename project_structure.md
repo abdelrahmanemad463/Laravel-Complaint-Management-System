@@ -300,13 +300,13 @@ The Spatie permission tables are standard package tables: `permissions`, `roles`
 | Table | Purpose | Important columns and rules |
 |---|---|---|
 | `customers` | Customer identity and contact data | Required `name` and `phone_primary`; nullable `phone_2`, `phone_3`, `phone_4`, `address`; phone columns indexed; soft deletes |
-| `branches` | Branch master data | `name`, nullable indexed `code`, indexed `is_active`, `sort_order`; soft deletes |
-| `services` | Complaint service master data | `name`, nullable `color`, indexed `is_active`, `sort_order`; soft deletes |
-| `complaint_sources` | Complaint-origin master data | Same common master-data shape; soft deletes |
-| `complaint_categories` | Complaint-category master data | Same common master-data shape; soft deletes |
-| `complaint_types` | Complaint-type master data | Same common master-data shape plus required `category_id` → complaint_categories and `priority_id` → priorities (nullable in DB, enforced by master-data and complaint validation); soft deletes |
-| `priorities` | Complaint priority master data | Required `color`, nullable `level`, indexed `is_active`, `sort_order`; soft deletes |
-| `complaint_statuses` | Complaint status master data | Required `color`, indexed `is_active`, `sort_order`; soft deletes |
+| `branches` | Branch master data | `name_en`, `name_ar`, nullable indexed `code`, indexed `is_active`, `sort_order`; soft deletes; `localized_name` accessor returns locale-appropriate name with fallback |
+| `services` | Complaint service master data | `name_en`, `name_ar`, nullable `color`, indexed `is_active`, `sort_order`; soft deletes |
+| `complaint_sources` | Complaint-origin master data | `name_en`, `name_ar`, same common master-data shape; soft deletes |
+| `complaint_categories` | Complaint-category master data | `name_en`, `name_ar`, same common master-data shape; soft deletes |
+| `complaint_types` | Complaint-type master data | `name_en`, `name_ar`, same common master-data shape plus required `category_id` → complaint_categories and `priority_id` → priorities (nullable in DB, enforced by master-data and complaint validation); soft deletes |
+| `priorities` | Complaint priority master data | `name_en`, `name_ar`, required `color`, nullable `level`, indexed `is_active`, `sort_order`; soft deletes |
+| `complaint_statuses` | Complaint status master data | `name_en`, `name_ar`, required `color`, indexed `is_active`, `sort_order`; soft deletes |
 | `complaints` | Main complaint record | Required foreign keys to customer, branch, service, source, **category, type, priority (category/priority derived from type — not client submits)**, status; required descriptions/date/creator; nullable resolver, resolved time, resolution; soft deletes |
 | `complaint_status_histories` | Append-only status transitions | Complaint, optional previous status, new status, reason, actor, and `changed_at`; restrictive complaint/status/user foreign keys |
 | `activity_logs` | Audit trail | Nullable actor, stable action string, nullable polymorphic subject, description, JSON old/new snapshots, indexed action/date |
@@ -614,7 +614,7 @@ For XAMPP deployment, Apache should serve the Laravel `public/` directory. In th
 ## 19. Known Limitations
 
 - The application is network-dependent. It is installable as a PWA, but full offline complaint creation, synchronization, and offline authentication are not implemented.
-- Master-data names are stored as single database values rather than per-locale translations. The interface labels are bilingual, but a branch/service/status name entered in one language remains that database value.
+- Master-data names on the 7 complaint master tables are stored as `name_en` and `name_ar` columns (the legacy single `name` column was dropped). The centralized `localized_name` accessor returns the locale-appropriate value with a fallback chain (`name_ar ?: name_en` under ar locale, `name_en ?: name_ar` under en locale). Branch names are shared with the visitors module. Visitor-only master data (VisitType/Section/RootCause/Category) still uses a single `name` column.
 - There is no public customer portal, registration, password reset, attachment workflow, email notification, WhatsApp integration, or external complaint API.
 - There is no branch-specific user scoping; authorization is role/permission based rather than restricted to a user’s branch.
 - The application currently has no custom queued jobs, scheduled tasks, event/listener pipeline, or background synchronization process.

@@ -52,7 +52,7 @@ class VisitorViolationController extends Controller
 
         $violations = $query->latest('created_at')->paginate(15)->withQueryString();
 
-        $branches = Branch::where('is_active', true)->orderBy('name')->get();
+        $branches = Branch::where('is_active', true)->orderBy('name_en')->get();
 
         return view('visitors.violations.index', compact('violations', 'branches'));
     }

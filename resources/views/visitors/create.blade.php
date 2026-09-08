@@ -28,7 +28,7 @@
             <select name="branch_id" id="branch_id" class="form-input" required>
                 <option value="">{{ __('common.select') }}</option>
                 @foreach($branches as $branch)
-                    <option value="{{ $branch->id }}" @selected(old('branch_id') == $branch->id)>{{ $branch->name }}</option>
+                    <option value="{{ $branch->id }}" @selected(old('branch_id') == $branch->id)>{{ $branch->localized_name }}</option>
                 @endforeach
             </select>
             @error('branch_id')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror

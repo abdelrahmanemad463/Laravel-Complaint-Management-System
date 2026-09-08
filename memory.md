@@ -1,6 +1,6 @@
 # Complaint Desk — Persistent Project Memory
 
-**Last synchronized:** 2026-09-04
+**Last synchronized:** 2026-09-08
 **Project root:** `C:\xampp\htdocs\complaint`  
 **Application:** Complaint Desk / Complaint Management System  
 **Source of truth:** The current codebase, migrations, configuration, tests, and generated build output. This file is a concise continuation guide; `project_structure.md` and `database_design.md` contain the fuller architecture and database narratives.
@@ -146,6 +146,14 @@ The migration order is:
 2026_09_06_000001_add_serial_number_and_price_to_complaints_table
         ↓
 2026_09_06_000002_add_category_priority_to_complaint_types_table
+        ↓
+2026_09_06_000003_extend_visitors_violation_follow_up
+        ↓
+2026_09_07_000100_create_visitors_violation_follow_ups
+        ↓
+2026_09_07_000200_add_resolution_review_workflow
+        ↓
+2026_09_08_000100_make_master_data_bilingual
 ```
 
 ### Core tables
@@ -154,13 +162,13 @@ The migration order is:
 |---|---|---|
 | `users` | Authenticated staff | Standard Laravel user fields; complaint actors reference `users.id` |
 | `customers` | Customer identity/contact | Name, four phone fields, optional address, timestamps, soft deletes; phone columns indexed |
-| `branches` | Branch master data | Name, optional indexed code, active flag, sort order, soft deletes |
-| `services` | Service master data | Name, optional color, active flag, sort order, soft deletes |
-| `complaint_sources` | Complaint source master data | Name, optional color, active flag, sort order, soft deletes |
-| `complaint_categories` | Complaint category master data | Name, optional color, active flag, sort order, soft deletes |
-| `complaint_types` | Complaint type master data | Name, optional color, **required `category_id` → complaint_categories and `priority_id` → priorities**, active flag, sort order, soft deletes |
-| `priorities` | Priority master data | Name, required color, optional level, active flag, sort order, soft deletes |
-| `complaint_statuses` | Status master data | Name, required color, active flag, sort order, soft deletes |
+| `branches` | Branch master data | `name_en`, `name_ar`, optional indexed code, active flag, sort order, soft deletes; `localized_name` accessor returns locale-appropriate name |
+| `services` | Service master data | `name_en`, `name_ar`, optional color, active flag, sort order, soft deletes |
+| `complaint_sources` | Complaint source master data | `name_en`, `name_ar`, optional color, active flag, sort order, soft deletes |
+| `complaint_categories` | Complaint category master data | `name_en`, `name_ar`, optional color, active flag, sort order, soft deletes |
+| `complaint_types` | Complaint type master data | `name_en`, `name_ar`, optional color, **required `category_id` → complaint_categories and `priority_id` → priorities**, active flag, sort order, soft deletes |
+| `priorities` | Priority master data | `name_en`, `name_ar`, required color, optional level, active flag, sort order, soft deletes |
+| `complaint_statuses` | Status master data | `name_en`, `name_ar`, required color, active flag, sort order, soft deletes |
 | `complaints` | Main complaint record | Required master-data/customer references, descriptions/date, creator; nullable resolver/resolution fields; `category_id`/`priority_id` are derived from the selected complaint type (not client-editable); soft deletes |
 | `complaint_status_histories` | Append-only status transitions | Complaint, optional from status, to status, reason, actor, changed timestamp |
 | `activity_logs` | Audit trail | Actor, action, nullable polymorphic subject, description, old/new JSON values, timestamp |
@@ -187,7 +195,7 @@ The `.env.example` specifies `SESSION_DRIVER=database`, and the default Laravel 
 - Super Admin access is protected through a Gate bypass and role-management safeguards.
 - Baseline roles are `Super Admin`, `Admin`, `Customer Support`, and `Viewer`.
 - Role deletion is blocked when the role is protected or assigned to a user.
-- Master-data names are stored as database values and are not duplicated per locale. Interface labels are translated, but a branch/service/status name itself remains the value entered in the database.
+- Master-data names are stored as `name_en`/`name_ar` columns on the 7 complaint master tables; the centralized `localized_name` accessor returns the locale-appropriate value with a fallback chain (`name_ar ?: name_en` under ar locale, `name_en ?: name_ar` under en locale). Branch names are also shared with the visitors module. The legacy single `name` column has been dropped; name-keyed business logic (dashboard solved/pending/high-critical detection, `ComplaintStatusService` solved check, type→category+priority linkage) matches `name_en` because the original seeded production data is English.
 
 ## Important Files
 
@@ -248,7 +256,7 @@ The latest complete validation after the due-date / `period_hours` feature was s
 
 - Blade views cleared and cached successfully.
 - Vite production build completed successfully.
-- Full Laravel suite: **110 tests passed, 562 assertions**.
+- Full Laravel suite: **163 tests passed, 991 assertions**.
 - Bilingual localization tests passed for complaint/customer/auth messages, login copy, customer status summaries, audit-log action rendering, and dark-mode labels.
 - Dark-mode layout tests passed for the theme switch markup and early localStorage bootstrap.
 - Dashboard localization regression assertions passed for English and Arabic filter labels, branch-selection guidance, and the Solved/Closed resolution definition.
@@ -275,7 +283,7 @@ For the current XAMPP setup, Apache serves the `public` directory and the applic
 
 ## Current Tasks
 
-There are no unverified feature changes currently pending from the previous implementation work. The most recent completed work was the Quality Visits **violation lifecycle + follow-up** feature (2026-09-06, see the entry at the end of this file): inspection reports stay immutable while CAPA actions follow a real Open → In Progress → Pending Review → Closed / Rejected → In Progress lifecycle with `visit.review` approval, no duplicate open violations across inspections, a dashboard pending-review card, and 18 new end-to-end tests (full suite **136 passed / 765 assertions**), all applied to the live SQL Server DB. Future development should first read this file and `project_structure.md`, then update both when a meaningful architectural, schema, feature, configuration, or workflow change is made.
+There are no unverified feature changes currently pending from the previous implementation work. The most recent completed work was the **Complaint / Compliance master data bilingual** feature (2026-09-08, see the entry at the end of this file): the 7 complaint master-data entities now use `name_en` + `name_ar` behind a `localized_name` accessor, the legacy `name` column was dropped via a single reversible migration, name-keyed business logic matches `name_en`, the visitors module's branch names are also localized, and the full suite is **163 passed / 991 assertions**. Future development should first read this file and `project_structure.md`, then update both when a meaningful architectural, schema, feature, configuration, or workflow change is made.
 
 
 ## Quality Visits (Inspection) module — 2026-08-31
@@ -755,3 +763,14 @@ Reworked the violation submit/approve/reject flow into an explicit **submit → 
 - **UI:** `violations/show.blade.php` single "Review Actions" card: `pending_review` shows the reviewer an amber submitted-resolution panel (submitter name, `submitted_at`, resolution note, `evidence_role='resolution'` photo thumbnails) with Approve & Close (closure-note textarea) gated by `@can('visit.resolution.approve') && !selfApproval`, a `cannot_self_approve` warning when the current user submitted it, and Reject (required reason) gated by `@can('visit.resolution.reject')`; `open|in_progress` shows the resolve form (photo still required only for critical) gated by `@can('visit.resolution.submit')`. Non-reviewers on `pending_review` see `resolution_submitted_no_access`. `violations/index.blade.php` + `reports/show.blade.php` show "Submitted by: <name>" + date/time under `pending_review` status, and the report approve/reject buttons are per-permission + self-approval guarded (reports also gate on `visit.resolution.review` to enter the control group). `VisitorReportService` + `VisitorViolationController::index/show` eager-load `submitter`/`closer`.
 - **Critical-photo alongside:** resolution photo remains required only when the violation severity is critical (both resolve and blade), fixed earlier this day.
 - **Verification:** focused visitor test files **40 passed / 358 assertions**; full suite **158 passed / 975 assertions**. Live: `php artisan migrate --force` (column check via INFORMATION_SCHEMA), `db:seed --class=ResolutionWorkflowPermissionSeeder`, `view:clear`, `permission:cache-reset`; verified 4 perms exist and role grants are exact (QM all 4, Customer Support submit-only, Admin all 4). `view:cache` compiles, `git diff --check` clean. Docs: `database_design.md` + this entry; `project_structure.md` appended.
+
+### Complaint / Compliance master data bilingual (name_en + name_ar) — 2026-09-08
+
+Made the 7 complaint master-data entities bilingual (`name_en` + `name_ar`) behind a centralized `localized_name` accessor, safe migration of the legacy single `name` column, and locale-aware display everywhere (including the visitors module's branch names). Relationships stay ID-based; user-generated content is not translated. **Decision:** all name-keyed business logic (dashboard solved/pending/high-critical detection, `ComplaintStatusService` 'solved' check, `customers/show` + `dashboard/index` keyBy with 'Pending'/'In Progress'/'Solved'/'Closed', type→category+priority linkage) matches **`name_en`** because legacy production data is English; no new code/key column.
+
+- **Schema (`2026_09_08_000100_make_master_data_bilingual.php`, single reversible migration):** on `branches`, `services`, `complaint_sources`, `complaint_categories`, `complaint_types`, `priorities`, `complaint_statuses` — add nullable `name_en`+`name_ar` → backfill `name_en = name`, `name_ar = name` (old value preserved in both; admins correct Arabic later via the bilingual edit form) → **drop `name`** in the same migration (all code/tests deploy together). `down()` recreates `name` from `COALESCE(name_en, name_ar)`. Eloquent `$this->name` on a model without that attribute returns `null` (safe). Verified on live SQL Server + test SQLite.
+- **`app/Models/Concerns/HasLocalizedName.php`:** `localized_name` → ar locale = `name_ar ?: name_en ?: name`, else `name_en ?: name_ar ?: name` (string cast). Used by all 7 models, now fillable `['name_en','name_ar',…]`.
+- **Controllers/services/seeders/export:** `MasterDataController` (store/update validation requires both names; `orderBy('name_en')`); `ComplaintController::searchBranches` (searches `name_en` OR `name_ar`, JSON `name` = `localized_name`); `DashboardStatsService` (selects/order/key on `name_en`, localized) + `ComplaintStatusService` (solved check on `name_en`, message `localized_name`); `MasterDataSeeder` bilingual rewrite (updateOrCreate keyed on `name_en`, branches on `code`); `ComplaintsExport` values + timeline use `localized_name`.
+- **Visitors module (branch shared):** blades render `$branch->localized_name`; `VisitController`/`VisitorViolationController`/`VisitorReportController` order by `name_en`. **`VisitorReportDashboardService`** — raw `branches.name` was still being selected in `branchDueAnalysis`/`branchComparison`/`criticalViolations`, which would 500 on the live SQL Server after the drop; now selects `name_en`+`name_ar` (`branch_name_en`/`branch_name_ar`) with a `pickLocalized()` helper. Visitor-only master data (VisitType/Section/RootCause/Category) stays single-name (out of scope).
+- **Tests:** new **`MasterDataLocalizationTest`** (store/update require both names, `localized_name` locale + fallback, Arabic master-data page, export localization — 5 tests / 18 assertions). Full suite **163 passed / 991 assertions**.
+- **Live deploy:** `migrate --force` (only the bilingual migration was pending) → a translation-only script (update `name_ar` for the 30 matched live rows — statuses, services, sources, categories, types, `Low/Minor/Major/Critical` priorities — **without creating/deleting**; the live production data deliberately differs from the demo seeder, which would have injected Branch A/B/C + High/Medium) → `view:clear`. Verified live: `name` gone, `name_en`/`name_ar` present on all 7 tables; Arabic displays correctly under the ar locale; the 16 real branches fall back to their English `name_ar` under ar locale until an admin supplies Arabic via the bilingual edit form; counts unchanged (16/3/6/6/6/4/5).

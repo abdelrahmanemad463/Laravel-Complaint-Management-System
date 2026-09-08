@@ -30,7 +30,7 @@ $selectedColors = $filters['colors'] ?? [];
             <select name="branch_id" class="form-input">
                 <option value="">{{ __('common.all') }}</option>
                 @foreach($branches as $branch)
-                <option value="{{ $branch->id }}" @selected(($filters['branch_id'] ?? null) == $branch->id)>{{ $branch->name }}</option>
+                <option value="{{ $branch->id }}" @selected(($filters['branch_id'] ?? null) == $branch->id)>{{ $branch->localized_name }}</option>
                 @endforeach
             </select>
         </div>
@@ -118,7 +118,7 @@ $selectedColors = $filters['colors'] ?? [];
             @endphp
             <tr class="border-b border-slate-100 align-middle hover:bg-slate-50">
                 <td class="px-2 py-2 font-semibold whitespace-nowrap text-slate-900">#{{ $visit->id }}</td>
-                <td class="px-2 py-2">{{ $visit->branch?->name ?: '—' }}</td>
+                <td class="px-2 py-2">{{ $visit->branch?->localized_name ?: '—' }}</td>
                 <td class="px-2 py-2">{{ $visit->visitType?->name ?: '—' }}</td>
                 <td class="px-2 py-2">{{ $visit->inspector?->name ?: '—' }}</td>
                 <td class="px-2 py-2 whitespace-nowrap">{{ $visit->visit_date?->format('d/m/Y') }}</td>
