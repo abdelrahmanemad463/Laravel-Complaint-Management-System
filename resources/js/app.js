@@ -45,6 +45,10 @@ if (customerPicker?.hasAttribute('data-filter-dropdown')) {
     const searchUrl = customerPicker.dataset.searchUrl;
     const emptyText = customerPicker.dataset.emptyText;
     const selectLabel = customerPicker.dataset.selectLabel;
+    const notFoundText = customerPicker.dataset.notFoundText || emptyText;
+    const createLabel = customerPicker.dataset.createLabel || '';
+    const quickStoreUrl = customerPicker.dataset.quickStoreUrl || '';
+    const createModal = document.querySelector('[data-customer-create-modal]');
     const initialCustomers = [...options.querySelectorAll('.customer-option')].map((button) => ({
         id: button.dataset.id,
         name: button.dataset.name,
@@ -93,13 +97,21 @@ if (customerPicker?.hasAttribute('data-filter-dropdown')) {
         syncOptions();
     };
 
-    const renderCustomers = (customers) => {
+    const renderCustomers = (customers, term = '') => {
         options.replaceChildren();
         if (!customers.length) {
             const empty = document.createElement('p');
             empty.className = 'px-3 py-3 text-sm text-slate-500';
-            empty.textContent = emptyText;
+            empty.textContent = term ? notFoundText : emptyText;
             options.appendChild(empty);
+            if (term && createModal && createLabel) {
+                const createBtn = document.createElement('button');
+                createBtn.type = 'button';
+                createBtn.className = 'mt-1 w-full rounded-md px-3 py-2 text-start text-sm font-semibold text-indigo-700 hover:bg-indigo-50';
+                createBtn.dataset.createCustomer = '';
+                createBtn.textContent = createLabel;
+                options.appendChild(createBtn);
+            }
             syncOptions();
             return;
         }
@@ -141,7 +153,7 @@ if (customerPicker?.hasAttribute('data-filter-dropdown')) {
             url.searchParams.set('q', term);
             const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
             if (!response.ok) throw new Error('Customer search failed');
-            renderCustomers(await response.json());
+            renderCustomers(await response.json(), term);
         } catch (error) {
             if (error.name !== 'AbortError') console.error(error);
         }
@@ -170,6 +182,107 @@ if (customerPicker?.hasAttribute('data-filter-dropdown')) {
         clearTimeout(timer);
         timer = setTimeout(searchCustomers, 250);
     });
+    if (createModal && quickStoreUrl) {
+        const modalName = createModal.querySelector('#modal-customer-name');
+        const modalPhone = createModal.querySelector('#modal-customer-phone');
+        const modalPhone2 = createModal.querySelector('#modal-customer-phone-2');
+        const modalPhone3 = createModal.querySelector('#modal-customer-phone-3');
+        const modalPhone4 = createModal.querySelector('#modal-customer-phone-4');
+        const modalAddress = createModal.querySelector('#modal-customer-address');
+        const modalErrors = createModal.querySelector('[data-customer-modal-errors]');
+        const modalErrorList = createModal.querySelector('[data-customer-modal-error-list]');
+        const modalSave = createModal.querySelector('[data-customer-modal-save]');
+        const note = customerPicker.querySelector('[data-customer-note]');
+
+        const showNote = (text, tone) => {
+            if (!note) return;
+            note.textContent = text;
+            note.classList.remove('hidden', 'text-emerald-700', 'text-amber-700');
+            note.classList.add(tone === 'info' ? 'text-amber-700' : 'text-emerald-700');
+            clearTimeout(showNote.timer);
+            showNote.timer = setTimeout(() => note.classList.add('hidden'), 6000);
+        };
+
+        const showModalErrors = (messages) => {
+            modalErrorList.replaceChildren();
+            messages.forEach((message) => {
+                const item = document.createElement('li');
+                item.textContent = message;
+                modalErrorList.appendChild(item);
+            });
+            modalErrors.classList.remove('hidden');
+        };
+
+        const openCreateModal = (term) => {
+            const looksPhone = /[0-9]/.test(term || '') && /^[0-9\s+\-()]+$/.test(term || '');
+            modalName.value = looksPhone ? '' : (term || '');
+            modalPhone.value = looksPhone ? term : '';
+            modalPhone2.value = '';
+            modalPhone3.value = '';
+            modalPhone4.value = '';
+            modalAddress.value = '';
+            modalErrors.classList.add('hidden');
+            modalErrorList.replaceChildren();
+            close();
+            createModal.classList.remove('hidden');
+            createModal.classList.add('flex');
+            modalName.focus();
+        };
+
+        const closeCreateModal = () => {
+            createModal.classList.add('hidden');
+            createModal.classList.remove('flex');
+        };
+
+        const selectCustomer = (customer) => {
+            hiddenInput.value = customer.id;
+            summary.textContent = `${customer.name} — ${customer.phone_primary}`;
+            summary.classList.remove('text-slate-500');
+            summary.classList.add('text-slate-900');
+            initialCustomers.unshift({ id: String(customer.id), name: customer.name, phone_primary: customer.phone_primary });
+            searchInput.value = '';
+            renderCustomers(initialCustomers);
+            close();
+        };
+
+        options.addEventListener('click', (event) => {
+            if (event.target.closest('[data-create-customer]')) openCreateModal(searchInput.value.trim());
+        });
+
+        modalSave.addEventListener('click', async () => {
+            modalSave.disabled = true;
+            try {
+                const token = document.querySelector('input[name="_token"]')?.value;
+                const response = await fetch(quickStoreUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...(token ? { 'X-CSRF-TOKEN': token } : {}) },
+                    body: JSON.stringify({ name: modalName.value, phone_primary: modalPhone.value, phone_2: modalPhone2.value, phone_3: modalPhone3.value, phone_4: modalPhone4.value, address: modalAddress.value }),
+                });
+                const payload = await response.json().catch(() => ({}));
+                if ((response.status === 201 || response.status === 422) && payload.customer) {
+                    selectCustomer(payload.customer);
+                    closeCreateModal();
+                    showNote(payload.message || '', response.status === 201 ? 'success' : 'info');
+                    return;
+                }
+                if (response.status === 422 && payload.errors) {
+                    showModalErrors(Object.values(payload.errors).flat());
+                    return;
+                }
+                throw new Error(payload.message || 'Customer creation failed');
+            } catch (error) {
+                showModalErrors([error.message]);
+            } finally {
+                modalSave.disabled = false;
+            }
+        });
+
+        createModal.querySelector('[data-customer-modal-close]')?.addEventListener('click', closeCreateModal);
+        createModal.querySelector('[data-customer-modal-overlay]')?.addEventListener('click', closeCreateModal);
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !createModal.classList.contains('hidden')) closeCreateModal();
+        });
+    }
     bindOptions();
 } else if (customerPicker) {
     const searchInput = customerPicker.querySelector('#customer-search');
@@ -528,9 +641,9 @@ if (branchPicker?.hasAttribute('data-filter-dropdown')) {
         try {
             const url = new URL(searchUrl, window.location.origin);
             url.searchParams.set('q', term);
-            const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
-            if (!response.ok) throw new Error('Branch search failed');
-            renderBranches(await response.json());
+const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
+            if (!response.ok) throw new Error('Customer search failed');
+            renderCustomers(await response.json(), term);
         } catch (error) {
             if (error.name !== 'AbortError') console.error(error);
         }

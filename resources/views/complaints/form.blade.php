@@ -7,7 +7,7 @@
 @php($selectedBranch = ($data['branches'] ?? collect())->firstWhere('id', (int) $selectedBranchId))
 <div class="mb-8"><a href="{{ $editing ? route('complaints.show',$complaint) : route('complaints.index') }}" class="back-link">← {{ __('common.back') }}</a><h1 class="page-title mt-4">{{ $editing ? __('common.edit_complaint') : __('common.new_complaint') }}</h1><p class="page-subtitle">{{ $customer->name ?? $complaint->customer->name ?? __('common.select_customer') }}</p></div>
 <form method="POST" action="{{ $editing ? route('complaints.update',$complaint) : route('complaints.store') }}" class="card p-4 sm:p-6 space-y-6">@csrf @if($editing) @method('PUT') @endif
-<div class="relative rounded-xl border border-indigo-100 bg-indigo-50/60 p-4" data-customer-picker data-filter-dropdown data-search-url="{{ route('customers.search') }}" data-empty-text="{{ __('common.no_customer_matches') }}" data-select-label="{{ __('common.select_customer') }}" data-singular-label="{{ __('common.customer') }}">
+<div class="relative rounded-xl border border-indigo-100 bg-indigo-50/60 p-4" data-customer-picker data-filter-dropdown data-search-url="{{ route('customers.search') }}" data-empty-text="{{ __('common.no_customer_matches') }}" data-select-label="{{ __('common.select_customer') }}" data-singular-label="{{ __('common.customer') }}" data-not-found-text="{{ __('customers.not_found') }}" data-create-label="{{ __('customers.create_new') }}" data-quick-store-url="{{ route('customers.quick-store') }}">
     <label class="form-label">{{ __('common.customer') }} *</label>
     <input type="hidden" name="customer_id" id="customer_id" value="{{ $selectedCustomerId }}" required>
     <button type="button" class="form-input mt-1 flex items-center justify-between gap-3 text-start" data-picker-trigger aria-haspopup="listbox" aria-expanded="false" aria-controls="customer-results">
@@ -30,6 +30,7 @@
         </div>
         <button type="button" class="hidden w-full rounded-md px-3 py-2 text-start text-sm font-semibold text-indigo-700 hover:bg-indigo-50" data-picker-clear>{{ __('common.clear') }}</button>
     </div>
+    <p class="mt-2 hidden text-sm font-medium" data-customer-note></p>
     <p class="mt-2 text-xs text-slate-600">{{ __('common.customer_required_help') }}</p>
 </div>
 <div class="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
@@ -68,6 +69,27 @@
 <div><label class="form-label">{{ __('common.resolution') }}</label><textarea class="form-input" rows="4" name="resolution">{{ old('resolution',$complaint->resolution??'') }}</textarea></div>@if($editing)<div><label class="form-label">{{ __('common.status_reason') }}</label><input class="form-input" name="status_reason" placeholder="{{ __('common.status_reason_hint') }}"></div>@endif
 <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><a class="btn-secondary min-h-[44px] inline-flex items-center justify-center w-full sm:w-auto" href="{{ $editing ? route('complaints.show',$complaint) : route('complaints.index') }}">{{ __('common.cancel') }}</a><button class="btn-primary min-h-[44px] w-full sm:w-auto">{{ __('common.save') }}</button></div>
 </form>
+<div id="customer-create-modal" data-customer-create-modal class="fixed inset-0 z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="customer-create-title">
+    <div class="absolute inset-0 bg-slate-900/50" data-customer-modal-overlay></div>
+    <div class="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-4 shadow-2xl sm:p-6">
+        <h2 id="customer-create-title" class="text-lg font-bold text-slate-900">{{ __('customers.create_title') }}</h2>
+        <div class="mt-3 hidden rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" data-customer-modal-errors><ul class="list-disc ps-5" data-customer-modal-error-list></ul></div>
+        <div class="mt-4 space-y-4" data-customer-create-fields>
+            <div class="grid gap-4 grid-cols-1 sm:grid-cols-2">
+                <div><label class="form-label" for="modal-customer-name">{{ __('common.name') }} *</label><input id="modal-customer-name" class="form-input" name="name" autocomplete="off" placeholder="{{ __('common.name') }}"></div>
+                <div><label class="form-label" for="modal-customer-phone">{{ __('common.primary_phone') }} *</label><input id="modal-customer-phone" class="form-input" name="phone_primary" autocomplete="off" placeholder="{{ __('common.primary_phone') }}"></div>
+                <div><label class="form-label" for="modal-customer-phone-2">{{ __('common.phone_2') }}</label><input id="modal-customer-phone-2" class="form-input" name="phone_2" autocomplete="off" placeholder="{{ __('common.phone_2') }}"></div>
+                <div><label class="form-label" for="modal-customer-phone-3">{{ __('common.phone_3') }}</label><input id="modal-customer-phone-3" class="form-input" name="phone_3" autocomplete="off" placeholder="{{ __('common.phone_3') }}"></div>
+                <div><label class="form-label" for="modal-customer-phone-4">{{ __('common.phone_4') }}</label><input id="modal-customer-phone-4" class="form-input" name="phone_4" autocomplete="off" placeholder="{{ __('common.phone_4') }}"></div>
+                <div class="sm:col-span-2"><label class="form-label" for="modal-customer-address">{{ __('common.address') }}</label><textarea id="modal-customer-address" class="form-input" name="address" rows="3" placeholder="{{ __('common.address') }}"></textarea></div>
+            </div>
+            <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" class="btn-secondary min-h-[44px] w-full sm:w-auto" data-customer-modal-close>{{ __('common.cancel') }}</button>
+                <button type="button" class="btn-primary min-h-[44px] w-full sm:w-auto" data-customer-modal-save>{{ __('customers.save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
 <script>
     (() => {
         const select = document.querySelector('[data-type-select]');

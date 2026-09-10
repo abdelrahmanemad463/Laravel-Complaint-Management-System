@@ -23,5 +23,7 @@
         'source_id' => 'المصدر', 'category_id' => 'التصنيف', 'type_id' => 'النوع',
         'priority_id' => 'الأولوية', 'status_id' => 'الحالة', 'short_description' => 'الوصف المختصر',
         'description' => 'الوصف', 'complaint_date' => 'تاريخ الشكوى', 'role' => 'الدور',
+        'phone_primary' => 'رقم الهاتف الأساسي', 'phone_2' => 'رقم الهاتف 2', 'phone_3' => 'رقم الهاتف 3',
+        'phone_4' => 'رقم الهاتف 4', 'address' => 'العنوان',
     ],
 ];

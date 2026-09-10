@@ -8,6 +8,7 @@ Route::get('/locale/{locale}',LocaleController::class)->name('locale');
 Route::middleware('auth')->group(function () {
     Route::get('/',DashboardController::class)->name('dashboard');
     Route::get('customers/search',[CustomerController::class,'search'])->name('customers.search');
+    Route::post('customers/quick',[CustomerController::class,'quickStore'])->name('customers.quick-store');
     Route::resource('customers',CustomerController::class)->only(['index','create','store','show','edit','update']);
     Route::get('complaints/branches/search',[ComplaintController::class,'searchBranches'])->name('complaints.branches.search');
     Route::get('complaints/export',[ComplaintController::class,'export'])->name('complaints.export')->middleware('permission:complaint.export');

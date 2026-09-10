@@ -23,5 +23,7 @@
         'source_id' => 'source', 'category_id' => 'category', 'type_id' => 'type',
         'priority_id' => 'priority', 'status_id' => 'status', 'short_description' => 'short description',
         'description' => 'description', 'complaint_date' => 'complaint date', 'role' => 'role',
+        'phone_primary' => 'primary phone', 'phone_2' => 'phone 2', 'phone_3' => 'phone 3',
+        'phone_4' => 'phone 4', 'address' => 'address',
     ],
 ];
