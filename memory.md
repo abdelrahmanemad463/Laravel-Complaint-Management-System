@@ -458,6 +458,20 @@ The latest specification verification confirmed the document is synchronized wit
 Persistent project instructions now require that every code edit or code change—feature work, bug fixes, refactors, configuration changes, route changes, permission changes, and frontend changes—starts by reading `memory.md`, `complete_project_specification.md`, and `project_structure.md`. The same task must update all three after the change and keep them consistent with the verified codebase. `complete_project_specification.md` remains the requirements and verified implementation-status source, `memory.md` remains continuation context, and `project_structure.md` remains the architecture/developer map. Schema changes additionally require `database_design.md`. Relevant tests and build checks must be run before reporting completion, and verification results must be recorded here.
 
 
+## Production deployment rules (existing live database — MUST preserve)
+
+Standing rules from the user, effective immediately. The user transfers project files to production manually; the production database already contains real data and is NEVER reset/replaced. Repeat rules in practice, and warn loudly on violation.
+
+- **Never** recommend/run destructive ops on production: `migrate:fresh`, `migrate:refresh`, `db:wipe`, drop/recreate database or tables, import local DB over production, delete production records to match local, replace master-data contents with local data.
+- **All DB changes go through migrations** (`make:migration ...`) designed to safely update an existing populated database; never blindly drop/rename/change/null columns (`dropColumn`, `renameColumn`, `->change()`, unique-on-existing, FK changes) without warning about data impact.
+- New required columns on non-empty tables: add nullable first, backfill safely, only then make required if needed. Never assume production == local schema/data/IDs; never rely on local IDs (e.g., "Branch ID 5 = Semoha") on production.
+- **Do NOT run production DB commands automatically.** Give the user exact manual commands in order, e.g. `php artisan migrate`, and explain what each changes, whether existing data is affected, and any risk.
+- **Seeders:** never blindly `db:seed` on production; prefer idempotent `updateOrCreate`/`firstOrCreate`; state exactly what the seeder changes before the user runs it.
+- **Every finished task must end with:** "Does this change require a production database update?" → if no: "No database changes required."; if yes: migration name(s), what each changes, existing-data impact, risks, exact ordered commands to run manually. Also separate Code Changes vs Database Changes vs Production Commands per the Deployment Checklist.
+- Master data (branches/services/sources/categories/types/priorities/statuses) may contain real records — never replace from local; new records via safe migration-backed inserts or idempotent seed.
+- Priority: **preserve existing production data > apply the new feature**; on conflict, stop and explain rather than choose a destructive fix.
+
+
 ## Complaint/customer pagination and demo data
 
 The complaints index and customers index now use Laravel `paginate(30)->withQueryString()`. The existing Blade views already render paginator links, totals, and current filters, so no client-side pagination was introduced. The 10-record customer picker and 5-record branch picker limits remain separate and unchanged.
