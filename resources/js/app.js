@@ -263,15 +263,15 @@ if (branchPicker?.hasAttribute('data-filter-dropdown')) {
     const selectedInputs = branchPicker.querySelector('#selected-branch-inputs');
     const summary = branchPicker.querySelector('#branch-summary');
     const clearButton = branchPicker.querySelector('[data-picker-clear]');
-    const searchUrl = branchPicker.dataset.searchUrl;
     const emptyText = branchPicker.dataset.emptyText;
     const selectLabel = branchPicker.dataset.selectLabel;
     const singularLabel = branchPicker.dataset.singularLabel;
     const pluralLabel = branchPicker.dataset.pluralLabel;
+    const singleSelect = branchPicker.hasAttribute('data-single-select');
     const initialBranches = [...options.querySelectorAll('.branch-option')].map((button) => ({ id: button.dataset.id, name: button.dataset.name }));
+    const allBranches = initialBranches;
+    const allBranchesLabel = branchPicker.dataset.allBranchesLabel || 'All';
     const selectedIds = new Set((branchPicker.dataset.selectedIds || '').split(',').filter(Boolean));
-    let timer;
-    let controller;
 
     const close = () => {
         results.classList.add('hidden');
@@ -285,6 +285,11 @@ if (branchPicker?.hasAttribute('data-filter-dropdown')) {
     };
 
     const syncSelectedInputs = () => {
+        const singleInput = branchPicker.querySelector('#branch_id');
+        if (singleInput) {
+            singleInput.value = [...selectedIds][0] || '';
+            return;
+        }
         selectedInputs.replaceChildren();
         selectedIds.forEach((id) => {
             const input = document.createElement('input');
@@ -305,8 +310,23 @@ if (branchPicker?.hasAttribute('data-filter-dropdown')) {
             const check = button.querySelector('.branch-check');
             if (check) check.textContent = selected ? '✓' : '';
         });
+        const allBtn = options.querySelector('[data-branch-all]');
+        if (allBtn) {
+            const isAll = allSelected();
+            allBtn.dataset.selected = isAll ? '1' : '0';
+            allBtn.setAttribute('aria-selected', isAll ? 'true' : 'false');
+            allBtn.classList.toggle('bg-indigo-100', isAll);
+            allBtn.classList.toggle('text-indigo-800', isAll);
+            const allCheck = allBtn.querySelector('.branch-check');
+            if (allCheck) allCheck.textContent = isAll ? '✓' : '';
+        }
         const count = selectedIds.size;
-        summary.textContent = count ? `${count} ${count === 1 ? singularLabel : pluralLabel}` : selectLabel;
+        if (singleSelect) {
+            const selected = allBranches.find((branch) => String(branch.id) === String([...selectedIds][0]));
+            summary.textContent = selected ? selected.name : selectLabel;
+        } else {
+            summary.textContent = count ? `${count} ${count === 1 ? singularLabel : pluralLabel}` : selectLabel;
+        }
         summary.classList.toggle('text-slate-500', count === 0);
         summary.classList.toggle('text-slate-900', count > 0);
         clearButton.classList.toggle('hidden', count === 0);
@@ -314,14 +334,49 @@ if (branchPicker?.hasAttribute('data-filter-dropdown')) {
     };
 
     const bindButtons = () => {
+        const allBtn = options.querySelector('[data-branch-all]');
+        if (allBtn) {
+            allBtn.addEventListener('click', () => {
+                if (allSelected()) selectedIds.clear();
+                else allBranches.forEach((branch) => selectedIds.add(String(branch.id)));
+                syncButtons();
+            });
+        }
         options.querySelectorAll('.branch-option').forEach((button) => {
             button.addEventListener('click', () => {
+                if (singleSelect) {
+                    selectedIds.clear();
+                    selectedIds.add(button.dataset.id);
+                    syncButtons();
+                    close();
+                    return;
+                }
                 if (selectedIds.has(button.dataset.id)) selectedIds.delete(button.dataset.id);
                 else selectedIds.add(button.dataset.id);
                 syncButtons();
             });
         });
         syncButtons();
+    };
+
+    const allSelected = () => allBranches.length > 0 && allBranches.every((branch) => selectedIds.has(String(branch.id)));
+
+    const renderAllOption = () => {
+        const allBtn = document.createElement('button');
+        allBtn.type = 'button';
+        allBtn.className = 'branch-all mb-1 flex w-full items-center justify-between gap-3 rounded-md border-b border-slate-200 px-3 py-2 text-start text-sm font-semibold hover:bg-indigo-50';
+        allBtn.dataset.branchAll = '';
+        const label = document.createElement('span');
+        label.className = 'min-w-0 truncate';
+        label.textContent = allBranchesLabel;
+        const allCheckBox = document.createElement('span');
+        allCheckBox.className = 'flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-300 text-xs text-indigo-600';
+        const allCheck = document.createElement('span');
+        allCheck.className = 'branch-check';
+        allCheck.setAttribute('aria-hidden', 'true');
+        allCheckBox.appendChild(allCheck);
+        allBtn.append(label, allCheckBox);
+        return allBtn;
     };
 
     const renderBranches = (branches) => {
@@ -334,7 +389,8 @@ if (branchPicker?.hasAttribute('data-filter-dropdown')) {
             syncButtons();
             return;
         }
-        branches.slice(0, 5).forEach((branch) => {
+        if (!singleSelect) options.appendChild(renderAllOption());
+        branches.forEach((branch) => {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'branch-option flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-sm hover:bg-indigo-50';
@@ -355,23 +411,13 @@ if (branchPicker?.hasAttribute('data-filter-dropdown')) {
         bindButtons();
     };
 
-    const searchBranches = async () => {
-        const term = searchInput.value.trim();
+    const filterBranches = () => {
+        const term = searchInput.value.trim().toLowerCase();
         if (!term) {
-            renderBranches(initialBranches);
+            renderBranches(allBranches);
             return;
         }
-        controller?.abort();
-        controller = new AbortController();
-        try {
-            const url = new URL(searchUrl, window.location.origin);
-            url.searchParams.set('q', term);
-            const response = await fetch(url, { headers: { Accept: 'application/json' }, signal: controller.signal });
-            if (!response.ok) throw new Error('Branch search failed');
-            renderBranches(await response.json());
-        } catch (error) {
-            if (error.name !== 'AbortError') console.error(error);
-        }
+        renderBranches(allBranches.filter((branch) => branch.name.toLowerCase().includes(term)));
     };
 
     trigger.addEventListener('click', () => {
@@ -381,7 +427,7 @@ if (branchPicker?.hasAttribute('data-filter-dropdown')) {
     clearButton.addEventListener('click', () => {
         selectedIds.clear();
         searchInput.value = '';
-        renderBranches(initialBranches);
+        renderBranches(allBranches);
         close();
     });
     document.addEventListener('click', (event) => {
@@ -390,11 +436,12 @@ if (branchPicker?.hasAttribute('data-filter-dropdown')) {
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') close();
     });
-    searchInput.addEventListener('input', () => {
-        clearTimeout(timer);
-        timer = setTimeout(searchBranches, 250);
-    });
-    bindButtons();
+    searchInput.addEventListener('input', filterBranches);
+    renderBranches(allBranches);
+    if (singleSelect && branchPicker.dataset.selectedId) {
+        selectedIds.add(branchPicker.dataset.selectedId);
+        syncButtons();
+    }
 } else if (branchPicker) {
     const searchInput = branchPicker.querySelector('#branch-search');
     const results = branchPicker.querySelector('#branch-results');
@@ -449,7 +496,7 @@ if (branchPicker?.hasAttribute('data-filter-dropdown')) {
             results.appendChild(empty);
             return;
         }
-        branches.slice(0, 5).forEach((branch) => {
+        branches.forEach((branch) => {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'branch-option flex w-full items-center justify-between rounded-md px-3 py-2 text-start text-sm hover:bg-indigo-50';
@@ -473,7 +520,6 @@ if (branchPicker?.hasAttribute('data-filter-dropdown')) {
         const term = searchInput.value.trim();
         if (!term) {
             results.querySelectorAll('.branch-option').forEach((option) => option.classList.remove('hidden'));
-            results.querySelectorAll('.branch-option:nth-child(n+6)').forEach((option) => option.classList.add('hidden'));
             bindButtons();
             return;
         }

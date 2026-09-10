@@ -90,13 +90,7 @@ class DashboardStatsService
 
     private function filterData(array $selectedBranchIds = []): array
     {
-        $branches = Branch::query()->orderBy('name_en')->limit(5)->get(['id', 'name_en', 'name_ar']);
-        $missingBranchIds = array_diff($selectedBranchIds, $branches->pluck('id')->all());
-        if ($missingBranchIds !== []) {
-            $branches = $branches->concat(
-                Branch::query()->whereIn('id', $missingBranchIds)->orderBy('name_en')->get(['id', 'name_en', 'name_ar'])
-            );
-        }
+        $branches = Branch::query()->orderBy('name_en')->get(['id', 'name_en', 'name_ar']);
 
         return [
             'branches' => $branches,

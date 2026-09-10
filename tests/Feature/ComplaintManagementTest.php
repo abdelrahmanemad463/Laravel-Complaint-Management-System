@@ -55,6 +55,29 @@ class ComplaintManagementTest extends TestCase
         $response->assertOk()->assertSee('name="customer_id"', false)->assertSee('Ahmed Mohamed')->assertSee('nav-link-active', false);
     }
 
+    public function test_complaint_form_renders_single_select_branch_picker_with_all_branches(): void
+    {
+        Branch::create(['name_en' => 'Extra Branch', 'name_ar' => 'فرع إضافي', 'code' => 'XB9', 'is_active' => true, 'sort_order' => 99]);
+        $content = $this->actingAs($this->user)->get(route('complaints.create'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('data-single-select', $content);
+        $this->assertStringContainsString('name="branch_id"', $content);
+        $this->assertStringNotContainsString('data-branch-all', $content);
+        $this->assertSame(Branch::count(), substr_count($content, 'class="branch-option'));
+    }
+
+    public function test_complaint_edit_preselects_single_branch_in_picker(): void
+    {
+        $customer = Customer::factory()->create();
+        $branch = Branch::first();
+        $data = $this->complaintData($customer);
+        $complaint = Complaint::create(array_merge($data, ['branch_id' => $branch->id, 'category_id' => ComplaintType::find($data['type_id'])->category_id, 'priority_id' => ComplaintType::find($data['type_id'])->priority_id, 'created_by' => $this->user->id]));
+
+        $content = $this->actingAs($this->user)->get(route('complaints.edit', $complaint))->assertOk()->getContent();
+        $this->assertStringContainsString('name="branch_id" id="branch_id" value="'.$branch->id.'"', $content);
+        $this->assertStringContainsString($branch->localized_name, $content);
+    }
+
     public function test_complaint_stores_authenticated_creator_and_relationships(): void
     {
         $customer = Customer::factory()->create();

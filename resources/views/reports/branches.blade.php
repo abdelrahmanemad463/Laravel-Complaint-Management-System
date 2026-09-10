@@ -17,7 +17,7 @@
             <label class="form-label">{{ __('common.date_to') }}</label>
             <input class="form-input" type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}">
         </div>
-        <div class="relative" data-branch-picker data-filter-dropdown data-search-url="{{ route('complaints.branches.search') }}" data-empty-text="{{ __('common.no_branch_matches') }}" data-selected-ids="{{ implode(',', $selectedBranchIds) }}" data-select-label="{{ __('common.select') }}" data-singular-label="{{ __('common.branch') }}" data-plural-label="{{ __('common.branches') }}">
+        <div class="relative" data-branch-picker data-filter-dropdown data-search-url="{{ route('complaints.branches.search') }}" data-all-branches-label="{{ __('common.all') }}" data-empty-text="{{ __('common.no_branch_matches') }}" data-selected-ids="{{ implode(',', $selectedBranchIds) }}" data-select-label="{{ __('common.select') }}" data-singular-label="{{ __('common.branch') }}" data-plural-label="{{ __('common.branches') }}">
             <label class="form-label">{{ __('common.branch') }}</label>
             <div id="selected-branch-inputs"></div>
             <button type="button" class="form-input flex items-center justify-between gap-3 text-start" data-picker-trigger aria-haspopup="listbox" aria-expanded="false" aria-controls="branch-results">
@@ -28,7 +28,7 @@
                 <div class="border-b border-slate-200 p-1">
                     <input type="search" id="branch-search" class="form-input" autocomplete="off" placeholder="{{ __('common.search_branches') }}" data-picker-search>
                 </div>
-                <div class="max-h-56 space-y-1 overflow-y-auto p-1" data-picker-options>
+                <div class="max-h-64 space-y-1 overflow-y-auto p-1" data-picker-options>
                     @forelse($branches as $branch)
                         <button type="button" class="branch-option flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-sm hover:bg-indigo-50" data-id="{{ $branch->id }}" data-name="{{ $branch->localized_name }}" data-selected="{{ in_array($branch->id, $selectedBranchIds, true) ? '1' : '0' }}" role="option" aria-selected="{{ in_array($branch->id, $selectedBranchIds, true) ? 'true' : 'false' }}">
                             <span class="min-w-0 truncate font-medium">{{ $branch->localized_name }}</span>

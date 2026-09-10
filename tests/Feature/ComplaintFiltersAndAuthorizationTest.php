@@ -186,7 +186,7 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
             ->assertSee('عدد النتائج: 0');
     }
 
-    public function test_branch_reports_uses_the_top_five_searchable_branch_picker(): void
+    public function test_branch_reports_renders_all_branches_and_search_returns_matches(): void
     {
         $admin = User::where('email', 'admin@example.com')->first();
         foreach (range(1, 7) as $number) {
@@ -194,11 +194,11 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
         }
         $response = $this->actingAs($admin)->get(route('reports.branches'));
         $response->assertOk();
-        $this->assertSame(5, substr_count($response->getContent(), 'class="branch-option'));
-        $this->actingAs($admin)->getJson(route('complaints.branches.search', ['q' => 'Report Branch']))->assertOk()->assertJsonCount(5);
+        $this->assertSame(10, substr_count($response->getContent(), 'class="branch-option'));
+        $this->actingAs($admin)->getJson(route('complaints.branches.search', ['q' => 'Report Branch']))->assertOk()->assertJsonCount(7);
     }
 
-    public function test_branch_picker_loads_only_five_initial_rows_and_searches_by_name(): void
+    public function test_branch_picker_loads_all_branches_and_filters_by_name(): void
     {
         $admin = User::where('email', 'admin@example.com')->first();
         foreach (range(1, 7) as $number) {
@@ -206,10 +206,10 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
         }
         $response = $this->actingAs($admin)->get(route('complaints.index'));
         $response->assertOk();
-        $this->assertSame(5, substr_count($response->getContent(), 'class="branch-option'));
+        $this->assertSame(10, substr_count($response->getContent(), 'class="branch-option'));
 
         $response = $this->actingAs($admin)->getJson(route('complaints.branches.search', ['q' => 'Search Branch']));
-        $response->assertOk()->assertJsonCount(5);
+        $response->assertOk()->assertJsonCount(7);
     }
 
     public function test_complaint_filter_loads_only_ten_initial_customers(): void

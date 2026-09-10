@@ -3,6 +3,8 @@
 @section('content')
 @php($selectedCustomer = $customer ?? ($complaint->customer ?? null))
 @php($selectedCustomerId = old('customer_id', $selectedCustomer->id ?? ''))
+@php($selectedBranchId = old('branch_id', $complaint->branch_id ?? ''))
+@php($selectedBranch = ($data['branches'] ?? collect())->firstWhere('id', (int) $selectedBranchId))
 <div class="mb-8"><a href="{{ $editing ? route('complaints.show',$complaint) : route('complaints.index') }}" class="back-link">← {{ __('common.back') }}</a><h1 class="page-title mt-4">{{ $editing ? __('common.edit_complaint') : __('common.new_complaint') }}</h1><p class="page-subtitle">{{ $customer->name ?? $complaint->customer->name ?? __('common.select_customer') }}</p></div>
 <form method="POST" action="{{ $editing ? route('complaints.update',$complaint) : route('complaints.store') }}" class="card p-4 sm:p-6 space-y-6">@csrf @if($editing) @method('PUT') @endif
 <div class="relative rounded-xl border border-indigo-100 bg-indigo-50/60 p-4" data-customer-picker data-filter-dropdown data-search-url="{{ route('customers.search') }}" data-empty-text="{{ __('common.no_customer_matches') }}" data-select-label="{{ __('common.select_customer') }}" data-singular-label="{{ __('common.customer') }}">
@@ -30,7 +32,30 @@
     </div>
     <p class="mt-2 text-xs text-slate-600">{{ __('common.customer_required_help') }}</p>
 </div>
-<div class="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">@foreach(['branch_id'=>'branches','service_id'=>'services','source_id'=>'sources','status_id'=>'statuses'] as $field=>$key)<div><label class="form-label">{{ __('common.'.str_replace('_id','',$field)) }} *</label><select class="form-input" required name="{{ $field }}"><option value="">{{ __('common.select') }}</option>@foreach($data[$key] as $item)<option value="{{ $item->id }}" @selected(old($field,$complaint->$field??'')==$item->id)>{{ $item->localized_name }}</option>@endforeach</select></div>@endforeach<div><label class="form-label">{{ __('common.type') }} *</label><select class="form-input" required name="type_id" data-type-select><option value="">{{ __('common.select') }}</option>@foreach($data['types'] as $item)<option value="{{ $item->id }}" @selected(old('type_id',$complaint->type_id??'')==$item->id) data-category-id="{{ $item->category_id }}" data-category-name="{{ $item->category?->localized_name }}" data-category-color="{{ $item->category?->color }}" data-priority-id="{{ $item->priority_id }}" data-priority-name="{{ $item->priority?->localized_name }}" data-priority-color="{{ $item->priority?->color }}">{{ $item->localized_name }}</option>@endforeach</select></div><div><label class="form-label">{{ __('common.complaint_date') }} *</label><input class="form-input" type="date" required name="complaint_date" value="{{ old('complaint_date',optional($complaint->complaint_date ?? null)->format('Y-m-d') ?? now()->format('Y-m-d')) }}"></div></div>
+<div class="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="relative" data-branch-picker data-filter-dropdown data-single-select data-search-url="{{ route('complaints.branches.search') }}" data-empty-text="{{ __('common.no_branch_matches') }}" data-selected-id="{{ $selectedBranchId }}" data-select-label="{{ __('common.select') }}">
+        <label class="form-label">{{ __('common.branch') }} *</label>
+        <input type="hidden" name="branch_id" id="branch_id" value="{{ $selectedBranchId }}" required>
+        <button type="button" class="form-input flex items-center justify-between gap-3 text-start" data-picker-trigger aria-haspopup="listbox" aria-expanded="false" aria-controls="branch-results">
+            <span id="branch-summary" class="truncate {{ $selectedBranch ? 'text-slate-900' : 'text-slate-500' }}">{{ $selectedBranch ? $selectedBranch->localized_name : __('common.select') }}</span>
+            <span class="shrink-0 text-slate-500" aria-hidden="true">▾</span>
+        </button>
+        <div id="branch-results" class="dropdown-panel absolute start-0 end-0 top-full z-30 mt-2 hidden overflow-hidden rounded-lg border border-slate-200 bg-white p-1 shadow-lg" role="listbox" aria-label="{{ __('common.branch') }}">
+            <div class="border-b border-slate-200 p-1">
+                <input type="search" id="branch-search" class="form-input" autocomplete="off" placeholder="{{ __('common.search_branches') }}" data-picker-search>
+            </div>
+            <div class="max-h-64 space-y-1 overflow-y-auto p-1" data-picker-options>
+                @foreach($data['branches'] as $branchOption)
+                    <button type="button" class="branch-option flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-start text-sm hover:bg-indigo-50" data-id="{{ $branchOption->id }}" data-name="{{ $branchOption->localized_name }}" data-selected="{{ $selectedBranchId == $branchOption->id ? '1' : '0' }}" role="option" aria-selected="{{ $selectedBranchId == $branchOption->id ? 'true' : 'false' }}">
+                        <span class="min-w-0 truncate font-medium">{{ $branchOption->localized_name }}</span>
+                        <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-slate-300 text-xs text-indigo-600"><span class="branch-check" aria-hidden="true">{{ $selectedBranchId == $branchOption->id ? '✓' : '' }}</span></span>
+                    </button>
+                @endforeach
+            </div>
+            <button type="button" class="hidden w-full rounded-md px-3 py-2 text-start text-sm font-semibold text-indigo-700 hover:bg-indigo-50" data-picker-clear>{{ __('common.clear') }}</button>
+        </div>
+    </div>
+    @foreach(['service_id'=>'services','source_id'=>'sources','status_id'=>'statuses'] as $field=>$key)<div><label class="form-label">{{ __('common.'.str_replace('_id','',$field)) }} *</label><select class="form-input" required name="{{ $field }}"><option value="">{{ __('common.select') }}</option>@foreach($data[$key] as $item)<option value="{{ $item->id }}" @selected(old($field,$complaint->$field??'')==$item->id)>{{ $item->localized_name }}</option>@endforeach</select></div>@endforeach<div><label class="form-label">{{ __('common.type') }} *</label><select class="form-input" required name="type_id" data-type-select><option value="">{{ __('common.select') }}</option>@foreach($data['types'] as $item)<option value="{{ $item->id }}" @selected(old('type_id',$complaint->type_id??'')==$item->id) data-category-id="{{ $item->category_id }}" data-category-name="{{ $item->category?->localized_name }}" data-category-color="{{ $item->category?->color }}" data-priority-id="{{ $item->priority_id }}" data-priority-name="{{ $item->priority?->localized_name }}" data-priority-color="{{ $item->priority?->color }}">{{ $item->localized_name }}</option>@endforeach</select></div><div><label class="form-label">{{ __('common.complaint_date') }} *</label><input class="form-input" type="date" required name="complaint_date" value="{{ old('complaint_date',optional($complaint->complaint_date ?? null)->format('Y-m-d') ?? now()->format('Y-m-d')) }}"></div></div>
 <div id="type-derived" class="hidden rounded-xl border border-indigo-100 bg-indigo-50/60 p-4">
     <p class="mb-3 text-xs font-semibold uppercase tracking-wide text-indigo-700">{{ __('common.auto_determined') }}</p>
     <div class="flex flex-wrap gap-2">
