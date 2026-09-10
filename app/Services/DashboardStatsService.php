@@ -135,7 +135,7 @@ class DashboardStatsService
     private function dimensionData(Builder $query, string $column, string $model): array
     {
         $counts = $this->countsById($query, $column);
-        $records = $model::query()->get(['id', 'name_en', 'name_ar', 'color'])->keyBy('id');
+        $records = $model::query()->get()->keyBy('id');
         $palette = ['#4f46e5', '#0891b2', '#16a34a', '#ea580c', '#dc2626', '#9333ea', '#ca8a04', '#0f766e'];
 
         return $records->map(function ($record) use ($counts, $palette) {
