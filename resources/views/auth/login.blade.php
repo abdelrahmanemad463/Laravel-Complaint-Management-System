@@ -8,6 +8,5 @@
         <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="remember" value="1"> {{ __('common.remember') }}</label>
         <button class="btn-primary w-full min-h-[44px]">{{ __('common.sign_in') }}</button>
     </form>
-    <p class="mt-6 text-xs text-slate-500">{{ __('common.demo_login') }}</p>
 </div>
 @endsection

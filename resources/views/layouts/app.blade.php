@@ -44,14 +44,16 @@
             @auth
             <nav class="hidden min-w-0 flex-1 items-center justify-center gap-1 text-sm font-medium xl:flex xl:gap-1.5 2xl:gap-2">
                 @can('dashboard.view')<a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'nav-link-active' : '' }}">{{ __('common.dashboard') }}</a>@endcan
-                <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'nav-link-active' : '' }}">{{ __('common.customers') }}</a>
+                @can('customer.view')<a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'nav-link-active' : '' }}">{{ __('common.customers') }}</a>@endcan
+                @canany(['complaint.view','visit.view'])
                 <details class="group relative" data-nav-dropdown>
                     <summary class="nav-link cursor-pointer list-none {{ (request()->routeIs('complaints.*') || request()->routeIs('visitors.*')) ? 'nav-link-active' : '' }}">{{ __('common.services') }}</summary>
                     <div class="absolute start-0 top-full z-20 mt-1 w-56 rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
-                        <a href="{{ route('complaints.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 {{ request()->routeIs('complaints.*') ? 'bg-indigo-50 text-indigo-700' : '' }}">{{ __('common.customer_complaints') }}</a>
+                        @can('complaint.view')<a href="{{ route('complaints.index') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 {{ request()->routeIs('complaints.*') ? 'bg-indigo-50 text-indigo-700' : '' }}">{{ __('common.customer_complaints') }}</a>@endcan
                         @can('visit.view')<a href="{{ route('visitors.home') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 {{ request()->routeIs('visitors.*') ? 'bg-indigo-50 text-indigo-700' : '' }}">{{ __('common.quality_visits') }}</a>@endcan
                     </div>
                 </details>
+                @endcanany
                 @can('report.view')<a href="{{ route('reports.branches') }}" class="nav-link {{ request()->routeIs('reports.*') ? 'nav-link-active' : '' }}">{{ __('common.reports') }}</a>@endcan
                 @can('branch.view')<a href="{{ route('master.index','branches') }}" class="nav-link {{ request()->routeIs('master.*') ? 'nav-link-active' : '' }}">{{ __('common.master_data') }}</a>@endcan
                 @can('user.view')<a href="{{ route('users.index') }}" class="nav-link {{ request()->routeIs('users.*') ? 'nav-link-active' : '' }}">{{ __('common.users') }}</a>@endcan
@@ -89,9 +91,9 @@
             <div class="flex-1 overflow-y-auto px-2 py-3">
                 <nav class="space-y-1">
                     @can('dashboard.view')<a href="{{ route('dashboard') }}" class="mobile-nav-link {{ request()->routeIs('dashboard') ? 'mobile-nav-link-active' : '' }}">{{ __('common.dashboard') }}</a>@endcan
-                    <a href="{{ route('customers.index') }}" class="mobile-nav-link {{ request()->routeIs('customers.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.customers') }}</a>
+                    @can('customer.view')<a href="{{ route('customers.index') }}" class="mobile-nav-link {{ request()->routeIs('customers.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.customers') }}</a>@endcan
 
-                    <a href="{{ route('complaints.index') }}" class="mobile-nav-link {{ request()->routeIs('complaints.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.customer_complaints') }}</a>
+                    @can('complaint.view')<a href="{{ route('complaints.index') }}" class="mobile-nav-link {{ request()->routeIs('complaints.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.customer_complaints') }}</a>@endcan
 
                     @can('visit.view')
                     <a href="{{ url('/visitors') }}" class="mobile-nav-link {{ request()->routeIs('visitors.*') ? 'mobile-nav-link-active' : '' }}">{{ __('common.quality_visits') }}</a>

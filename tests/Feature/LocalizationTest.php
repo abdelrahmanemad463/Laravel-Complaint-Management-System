@@ -71,7 +71,7 @@ class LocalizationTest extends TestCase
         $admin = User::where('email', 'admin@example.com')->firstOrFail();
         $customer = Customer::factory()->create();
 
-        $this->withSession(['locale' => 'ar'])->get(route('login'))->assertOk()->assertSee('نظام الشكاوى')->assertSee('تجريبي: admin@example.com / password');
+        $this->withSession(['locale' => 'ar'])->get(route('login'))->assertOk()->assertSee('نظام الشكاوى')->assertDontSee('admin@example.com');
         $this->actingAs($admin)->withSession(['locale' => 'ar'])->get(route('customers.show', $customer))->assertOk()->assertSee('قيد الانتظار')->assertSee('قيد المعالجة')->assertSee('تم الحل')->assertSee('مغلقة')->assertDontSee('In Progress');
     }
 
