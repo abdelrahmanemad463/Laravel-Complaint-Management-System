@@ -298,6 +298,27 @@ class ComplaintFiltersAndAuthorizationTest extends TestCase
         $this->assertStringContainsString('<details class="group relative" data-nav-dropdown>', $content);
     }
 
+    public function test_dashboard_hides_new_complaint_button_without_permission(): void
+    {
+        $role = Role::create(['name' => 'Nav Test 2', 'guard_name' => 'web']);
+        $role->syncPermissions(['dashboard.view']);
+        $user = User::factory()->create();
+        $user->assignRole($role->name);
+
+        $content = $this->actingAs($user)->get(route('dashboard'))->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('href="'.route('complaints.create').'"', $content);
+    }
+
+    public function test_dashboard_shows_new_complaint_button_with_permission(): void
+    {
+        $admin = User::where('email', 'admin@example.com')->first();
+
+        $content = $this->actingAs($admin)->get(route('dashboard'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('href="'.route('complaints.create').'"', $content);
+    }
+
     private function makeComplaint(User $user, Branch $branch, ?string $date = null): Complaint
     {
         return Complaint::create(['customer_id'=>Customer::factory()->create()->id,'branch_id'=>$branch->id,'service_id'=>Service::first()->id,'source_id'=>ComplaintSource::first()->id,'category_id'=>ComplaintCategory::first()->id,'type_id'=>ComplaintType::first()->id,'priority_id'=>Priority::first()->id,'status_id'=>ComplaintStatus::first()->id,'short_description'=>'Example complaint','description'=>'Example details','complaint_date'=>$date ?? now()->toDateString(),'created_by'=>$user->id]);

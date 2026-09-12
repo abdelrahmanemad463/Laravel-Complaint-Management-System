@@ -36,7 +36,7 @@
     </div>
     <div class="flex flex-wrap gap-3">
         <a href="{{ route('complaints.index', $dashboardQuery) }}" class="btn-secondary">{{ __('common.view_all_complaints') }}</a>
-        <a href="{{ route('complaints.create') }}" class="btn-primary">{{ __('common.new_complaint') }}</a>
+        @can('complaint.create')<a href="{{ route('complaints.create') }}" class="btn-primary">{{ __('common.new_complaint') }}</a>@endcan
     </div>
 </div>
 
