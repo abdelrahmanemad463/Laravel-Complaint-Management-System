@@ -7,10 +7,12 @@ use App\Models\User;
 use App\Models\VisitorRootCause;
 use App\Models\VisitorVisit;
 use App\Models\VisitorVisitItem;
+use App\Models\VisitorVisitPhoto;
 use App\Models\VisitorVisitType;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class VisitorsTest extends TestCase
@@ -257,5 +259,62 @@ class VisitorsTest extends TestCase
         $this->actingAs($this->user)->post(route('visitors.submit', $visit));
 
         $this->assertSame($title, $item->fresh()->item_title);
+    }
+
+    public function test_owner_can_serve_evidence_photo(): void
+    {
+        Storage::fake('local');
+        $visit = $this->startVisit();
+        $photo = $this->makePhoto($visit);
+
+        $this->actingAs($this->user)->get(route('visitors.photos.serve', $photo))->assertOk();
+    }
+
+    public function test_report_viewer_can_serve_photo_of_completed_visit(): void
+    {
+        Storage::fake('local');
+        $visit = $this->startVisit();
+        $visit->items()->update(['visited_at' => now()]);
+        $this->actingAs($this->user)->post(route('visitors.submit', $visit));
+        $photo = $this->makePhoto($visit);
+
+        $manager = User::factory()->create();
+        $role = Role::create(['name' => 'Photo Viewer', 'guard_name' => 'web']);
+        $role->syncPermissions(['visit.view', 'visit.manage', 'dashboard.view']);
+        $manager->assignRole($role->name);
+
+        $this->actingAs($manager)->get(route('visitors.photos.serve', $photo))->assertOk();
+    }
+
+    public function test_non_owner_without_report_access_cannot_serve_photo(): void
+    {
+        Storage::fake('local');
+        $visit = $this->startVisit();
+        $visit->items()->update(['visited_at' => now()]);
+        $this->actingAs($this->user)->post(route('visitors.submit', $visit));
+        $photo = $this->makePhoto($visit);
+
+        $other = User::factory()->create();
+        $role = Role::create(['name' => 'Photo Stranger', 'guard_name' => 'web']);
+        $role->syncPermissions(['visit.view', 'dashboard.view']);
+        $other->assignRole($role->name);
+
+        $this->actingAs($other)->get(route('visitors.photos.serve', $photo))->assertForbidden();
+    }
+
+    private function makePhoto(VisitorVisit $visit): VisitorVisitPhoto
+    {
+        $item = $visit->items()->first();
+        $photo = $item->photos()->create([
+            'visit_id' => $visit->id,
+            'path' => 'visitor-photos/2026/09/01/test.jpg',
+            'original_name' => 'test.jpg',
+            'mime_type' => 'image/jpeg',
+            'original_size' => 10,
+            'compressed_size' => 10,
+            'evidence_role' => 'initial',
+        ]);
+        Storage::disk('local')->put('visitor-photos/2026/09/01/test.jpg', 'photo-bytes');
+        return $photo;
     }
 }

@@ -56,7 +56,7 @@ class VisitPhotoController extends Controller
      */
     public function serve(VisitorVisitPhoto $photo): StreamedResponse
     {
-        $this->authorize('view', $photo->visit);
+        $this->authorize('viewPhotos', $photo->visit);
         return Storage::disk('local')->download($photo->path, $photo->original_name);
     }
 }

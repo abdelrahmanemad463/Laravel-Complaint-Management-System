@@ -27,6 +27,17 @@ class VisitorVisitPolicy
     }
 
     /**
+     * Evidence photos are embedded on the inspection page (owner-only) and on
+     * the completed report / violations pages (report viewers). Serve access is
+     * therefore the union of the two: the owning inspector, or anyone who may
+     * view the completed report. Super Admin bypasses via Gate::before.
+     */
+    public function viewPhotos(User $user, VisitorVisit $visit): bool
+    {
+        return $this->view($user, $visit) || $this->viewReport($user, $visit);
+    }
+
+    /**
      * Reports follow the application's roles/permissions, not the owner rule.
      * Management roles (whose permissions include visit.manage) may view every
      * completed report; resolution reviewers (visit.resolution.review) may
