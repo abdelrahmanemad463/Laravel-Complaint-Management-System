@@ -157,8 +157,12 @@ class VisitorsTest extends TestCase
     {
         $visit = $this->startVisit();
         $items = $visit->items()->get();
-        $nc = $items->first();
-        $na = $items->last();
+        // The seeded checklist contains a Critical item (often first); use a
+        // non-critical item here so this test keeps verifying that a normal NC
+        // item deducts its own deduction_score. The Critical override is
+        // covered separately by CriticalDeductionTest.
+        $nc = $items->where('severity', '!=', 'critical')->first();
+        $na = $items->where('id', '!=', $nc->id)->last();
         $this->actingAs($this->user)->putJson(route('visitors.items.update', $nc), ['status' => 'nc']);
         $this->actingAs($this->user)->putJson(route('visitors.items.update', $na), ['status' => 'na']);
 

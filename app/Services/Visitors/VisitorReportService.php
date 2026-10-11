@@ -74,7 +74,7 @@ class VisitorReportService
                 return (object) [
                     'severity' => $severity,
                     'count' => $group->count(),
-                    'deduction' => $group->sum('deduction_score'),
+                    'deduction' => $group->sum(fn ($i) => VisitScoreService::itemDeduction($i)),
                 ];
             })
             ->values();
@@ -103,7 +103,7 @@ class VisitorReportService
                     'na' => $na,
                     'applicable' => $applicable,
                     'compliance' => $applicable > 0 ? round(($ok / $applicable) * 100) : null,
-                    'deduction' => $group->where('status', 'nc')->sum('deduction_score'),
+                    'deduction' => $group->sum(fn ($i) => VisitScoreService::itemDeduction($i)),
                 ];
             })
             ->values();
@@ -292,7 +292,7 @@ class VisitorReportService
         $rows = VisitorVisitItem::query()
             ->select('visit_id')
             ->selectRaw("SUM(CASE WHEN status <> 'na' THEN deduction_score ELSE 0 END) as available")
-            ->selectRaw("SUM(CASE WHEN status = 'nc' THEN deduction_score ELSE 0 END) as deduction")
+            ->selectRaw(VisitScoreService::deductionSql().' as deduction')
             ->selectRaw("SUM(CASE WHEN status = 'nc' THEN 1 ELSE 0 END) as violations")
             ->selectRaw("SUM(CASE WHEN status = 'nc' AND severity = 'critical' THEN 1 ELSE 0 END) as critical_violations")
             ->whereIn('visit_id', $ids)
@@ -384,7 +384,7 @@ class VisitorReportService
     private function colorSubquery(string $color)
     {
         $availExpr = "SUM(CASE WHEN status <> 'na' THEN deduction_score ELSE 0 END)";
-        $dedExpr = "SUM(CASE WHEN status = 'nc' THEN deduction_score ELSE 0 END)";
+        $dedExpr = VisitScoreService::deductionSql();
         $pct = "($availExpr - $dedExpr) * 100.0 / $availExpr";
 
         $sub = VisitorVisitItem::query()

@@ -87,7 +87,7 @@ class VisitorReportDashboardService
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' THEN 1 ELSE 0 END) as violations')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' AND visitors_visit_items.severity = \'critical\' THEN 1 ELSE 0 END) as critical')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status <> \'na\' THEN visitors_visit_items.deduction_score ELSE 0 END) as avail')
-            ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' THEN visitors_visit_items.deduction_score ELSE 0 END) as ded')
+            ->selectRaw(VisitScoreService::deductionSql('visitors_visit_items').' as ded')
             ->first();
 
         $avail = (int) ($row->avail ?? 0);
@@ -299,7 +299,7 @@ class VisitorReportDashboardService
             ->where('visitors_visit_items.status', 'nc')
             ->select('visitors_visit_items.severity')
             ->selectRaw('COUNT(*) as count')
-            ->selectRaw('SUM(visitors_visit_items.deduction_score) as deduction')
+            ->selectRaw(VisitScoreService::deductionBySeveritySql('visitors_visit_items').' as deduction')
             ->groupBy('visitors_visit_items.severity')
             ->orderByDesc('deduction')
             ->get()
@@ -347,7 +347,7 @@ class VisitorReportDashboardService
             ->select('visitors_visits.branch_id', 'branches.name_en as branch_name_en', 'branches.name_ar as branch_name_ar')
             ->selectRaw('COUNT(DISTINCT visitors_visits.id) as visits')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status <> \'na\' THEN visitors_visit_items.deduction_score ELSE 0 END) as avail')
-            ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' THEN visitors_visit_items.deduction_score ELSE 0 END) as ded')
+            ->selectRaw(VisitScoreService::deductionSql('visitors_visit_items').' as ded')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' THEN 1 ELSE 0 END) as violations')
             ->groupBy('visitors_visits.branch_id', 'branches.name_en', 'branches.name_ar')
             ->orderByDesc('visits')
@@ -485,7 +485,7 @@ class VisitorReportDashboardService
             ->select('visitors_visits.inspector_id', 'inspectors.name as inspector_name')
             ->selectRaw('COUNT(DISTINCT visitors_visits.id) as visits')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status <> \'na\' THEN visitors_visit_items.deduction_score ELSE 0 END) as avail')
-            ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' THEN visitors_visit_items.deduction_score ELSE 0 END) as ded')
+            ->selectRaw(VisitScoreService::deductionSql('visitors_visit_items').' as ded')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' THEN 1 ELSE 0 END) as violations')
             ->groupBy('visitors_visits.inspector_id', 'inspectors.name')
             ->orderByDesc('visits')
@@ -509,7 +509,7 @@ class VisitorReportDashboardService
         $rows = (clone $this->itemsQuery(array_merge($f, ['severity' => null, 'section' => null])))
             ->select('visitors_visits.id as visit_id', 'visitors_visits.visit_date')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status <> \'na\' THEN visitors_visit_items.deduction_score ELSE 0 END) as avail')
-            ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' THEN visitors_visit_items.deduction_score ELSE 0 END) as ded')
+            ->selectRaw(VisitScoreService::deductionSql('visitors_visit_items').' as ded')
             ->groupBy('visitors_visits.id', 'visitors_visits.visit_date')
             ->get();
 

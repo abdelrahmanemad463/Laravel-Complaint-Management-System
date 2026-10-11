@@ -3,10 +3,61 @@
 namespace App\Services\Visitors;
 
 use App\Models\VisitorVisit;
+use App\Models\VisitorVisitItem;
 use Illuminate\Support\Collection;
 
 class VisitScoreService
 {
+    /**
+     * The configured fixed deduction applied to every qualifying Critical item.
+     * Lives in one documented place: config('inspection.critical_deduction').
+     */
+    public static function criticalDeduction(): int
+    {
+        return (int) config('inspection.critical_deduction', 40);
+    }
+
+    /**
+     * Per-item deduction used by every scoring path. A Non-Compliant item with
+     * a Critical severity snapshot always deducts the fixed configured amount,
+     * independent of its own deduction_score; all other NC items keep their
+     * configured deduction_score; non-NC items deduct nothing (matching the
+     * existing rule that only NC items subtract points).
+     */
+    public static function itemDeduction(VisitorVisitItem $item): int
+    {
+        if ($item->status !== 'nc') {
+            return 0;
+        }
+        return $item->isCritical() ? self::criticalDeduction() : (int) $item->deduction_score;
+    }
+
+    /**
+     * Raw SQL SUM expression for the same per-item deduction rule. The DB
+     * aggregate paths (reports list, color filter, dashboard analytics) use
+     * this instead of duplicating the formula, so every place that computes a
+     * score stays consistent. The configured value is inlined as a plain int.
+     */
+    public static function deductionSql(string $table = 'visitors_visit_items'): string
+    {
+        $c = self::criticalDeduction();
+        return "SUM(CASE WHEN {$table}.status = 'nc' THEN "
+            . "CASE WHEN LOWER({$table}.severity) = 'critical' THEN {$c} "
+            . "ELSE {$table}.deduction_score END ELSE 0 END)";
+    }
+
+    /**
+     * Raw SQL SUM expression for a deduction display already restricted to NC
+     * rows (e.g. the per-severity chart): Critical rows use the fixed value,
+     * other severities keep their deduction_score.
+     */
+    public static function deductionBySeveritySql(string $table = 'visitors_visit_items'): string
+    {
+        $c = self::criticalDeduction();
+        return "SUM(CASE WHEN LOWER({$table}.severity) = 'critical' THEN {$c} "
+            . "ELSE {$table}.deduction_score END)";
+    }
+
     /**
      * The single source of truth for score calculation.
      *
@@ -19,8 +70,7 @@ class VisitScoreService
         $available = $items->filter(fn ($i) => $i->status !== 'na')
             ->sum('deduction_score');
 
-        $deduction = $items->filter(fn ($i) => $i->status === 'nc')
-            ->sum('deduction_score');
+        $deduction = $items->sum(fn ($i) => self::itemDeduction($i));
 
         return $this->fromAggregates($available, $deduction);
     }
