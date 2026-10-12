@@ -15,15 +15,17 @@ use Tests\TestCase;
 
 /**
  * Critical-deduction scoring rule:
- * Every Non-Compliant item whose snapshot severity is Critical deducts the
- * configured fixed amount (config('inspection.critical_deduction'), default 40)
- * instead of its own deduction_score, per qualifying item, everywhere a score
- * is computed (single-visit report, reports list + color filter, dashboard
- * cards/branch ranking/inspector/trend/severity chart). NA items stay excluded
- * from scoring entirely; Critical items that are Compliant (ok) deduct nothing;
- * non-Critical items keep their existing behavior. Scores are computed
- * dynamically from the immutable visitors_visit_items snapshots — nothing is
- * stored, so nothing historical is mutated.
+ * Every Non-Compliant item whose snapshot severity is Critical deducts its own
+ * deduction_score PLUS the configured additional penalty
+ * (config('inspection.critical_deduction'), default 40) — the original
+ * deduction is preserved, never replaced. The penalty applies per qualifying
+ * item, everywhere a score is computed (single-visit report, reports list +
+ * color filter, dashboard cards/branch ranking/inspector/trend/severity chart).
+ * NA items stay excluded from scoring entirely; Critical items that are
+ * Compliant (ok) deduct nothing; non-Critical items keep their existing
+ * behavior. Scores are computed dynamically from the immutable
+ * visitors_visit_items snapshots — nothing is stored, so nothing historical is
+ * mutated.
  */
 class CriticalDeductionTest extends TestCase
 {
@@ -87,26 +89,26 @@ class CriticalDeductionTest extends TestCase
         return $visit->fresh();
     }
 
-    // 1-3. Normal item score 5 / 10 / 20 -> always 40 when Critical and NC.
-    public function test_critical_nc_item_with_normal_score_5_deducts_40(): void
+    // 1-3. Critical NC item = original item score + 40 (original is preserved).
+    public function test_critical_nc_item_with_normal_score_5_deducts_45(): void
     {
         $visit = $this->completedVisit([['severity' => 'critical', 'status' => 'nc', 'deduction_score' => 5]]);
-        $this->assertDeduction($visit, 40);
+        $this->assertDeduction($visit, 5 + 40);
     }
 
-    public function test_critical_nc_item_with_normal_score_10_deducts_40(): void
+    public function test_critical_nc_item_with_normal_score_10_deducts_50(): void
     {
         $visit = $this->completedVisit([['severity' => 'critical', 'status' => 'nc', 'deduction_score' => 10]]);
-        $this->assertDeduction($visit, 40);
+        $this->assertDeduction($visit, 10 + 40);
     }
 
-    public function test_critical_nc_item_with_normal_score_20_deducts_40(): void
+    public function test_critical_nc_item_with_normal_score_20_deducts_60(): void
     {
         $visit = $this->completedVisit([['severity' => 'critical', 'status' => 'nc', 'deduction_score' => 20]]);
-        $this->assertDeduction($visit, 40);
+        $this->assertDeduction($visit, 20 + 40);
     }
 
-    // 4. Each relevant status: NC deducts 40, OK deducts 0, NA is excluded from scoring.
+    // 4. Each relevant status: NC deducts original + 40, OK deducts 0, NA is excluded from scoring.
     public function test_critical_item_statuses_apply_deduction_only_when_nc(): void
     {
         $visit = $this->completedVisit([
@@ -116,18 +118,18 @@ class CriticalDeductionTest extends TestCase
         ]);
 
         $items = $visit->items;
-        $this->assertSame(40, VisitScoreService::itemDeduction($items->where('status', 'nc')->first()));
+        $this->assertSame(50, VisitScoreService::itemDeduction($items->where('status', 'nc')->first()));
         $this->assertSame(0, VisitScoreService::itemDeduction($items->where('status', 'ok')->first()));
         $this->assertSame(0, VisitScoreService::itemDeduction($items->where('status', 'na')->first()));
 
-        // NA is excluded from available; ok + nc remain. Deduction is 40 (nc item only).
+        // NA is excluded from available; ok + nc remain. Deduction is 50 (nc item: 10 + 40).
         $expectedAvailable = $items->where('status', '!=', 'na')->sum('deduction_score');
         $this->assertSame($expectedAvailable, $visit->items->where('status', '!=', 'na')->sum('deduction_score'));
-        $this->assertDeduction($visit, 40);
+        $this->assertDeduction($visit, 50);
     }
 
-    // 5. Multiple critical items in one visit -> per-item, not capped at 40.
-    public function test_multiple_critical_nc_items_deduct_40_each(): void
+    // 5. Multiple critical items in one visit -> per-item original + 40, not capped.
+    public function test_multiple_critical_nc_items_deduct_original_plus_40_each(): void
     {
         $visit = $this->completedVisit([
             ['severity' => 'critical', 'status' => 'nc', 'deduction_score' => 5],
@@ -135,8 +137,16 @@ class CriticalDeductionTest extends TestCase
             ['severity' => 'critical', 'status' => 'nc', 'deduction_score' => 20],
         ]);
 
-        $this->assertDeduction($visit, 120);
+        // (5+40) + (10+40) + (20+40) = 155
+        $this->assertDeduction($visit, 155);
         $this->assertSame(3, $visit->items->where('status', 'nc')->count());
+    }
+
+    // 5b. A Critical NC item whose own score is zero still adds the 40-point penalty.
+    public function test_critical_nc_item_with_zero_original_score_still_adds_penalty(): void
+    {
+        $visit = $this->completedVisit([['severity' => 'critical', 'status' => 'nc', 'deduction_score' => 0]]);
+        $this->assertDeduction($visit, 0 + 40);
     }
 
     // 6. Non-critical items keep their existing deduction_score.
@@ -148,7 +158,7 @@ class CriticalDeductionTest extends TestCase
             ['severity' => 'critical', 'status' => 'nc', 'deduction_score' => 20],
         ]);
 
-        $expected = 40 + 6 + 2; // critical override 40 + both non-critical unchanged
+        $expected = (20 + 40) + 6 + 2; // critical original+penalty + both non-critical unchanged
         $this->assertDeduction($visit, $expected);
     }
 
@@ -159,7 +169,7 @@ class CriticalDeductionTest extends TestCase
         $visit = $this->completedVisit([['severity' => 'critical', 'status' => 'nc', 'deduction_score' => 20]]);
 
         $score = app(VisitScoreService::class)->calculate($visit);
-        $this->assertSame(40, $score['deduction']);
+        $this->assertSame(60, $score['deduction']);
 
         $reports = app(VisitorReportService::class);
         $dayRow = $reports->listReports(['date_from' => '2026-08-31', 'date_to' => '2026-08-31'])->first();
@@ -172,8 +182,8 @@ class CriticalDeductionTest extends TestCase
         $this->assertSame($score['percentage'], $dayRow->score['percentage']);
         $this->assertSame($score['percentage'], $monthRow->score['percentage']);
 
-        // The visit appears exactly once per report; its deduction is 40, not 80.
-        $this->assertNotSame(80, $dayRow->score['deduction']);
+        // The visit appears exactly once per report; its deduction is 60, not 120.
+        $this->assertNotSame(120, $dayRow->score['deduction']);
     }
 
     public function test_dashboard_trend_day_and_month_groupings_match_single_visit_score(): void
@@ -192,8 +202,8 @@ class CriticalDeductionTest extends TestCase
         $this->assertSame($score['percentage'], $daily['score']);
         $this->assertSame($score['percentage'], $monthly['score']);
 
-        // No duplicate deduction: the percentage reflects exactly one 40-point deduction.
-        $this->assertSame(40, $score['deduction']);
+        // No duplicate deduction: the percentage reflects exactly one 20+40 deduction.
+        $this->assertSame(60, $score['deduction']);
     }
 
     public function test_dashboard_cards_branch_ranking_and_inspector_match_single_visit(): void
@@ -221,11 +231,11 @@ class CriticalDeductionTest extends TestCase
 
         $criticalRow = $data['severity']->firstWhere('severity', 'critical');
         $majorRow = $data['severity']->firstWhere('severity', 'major');
-        $this->assertSame(40, $criticalRow->deduction);
+        $this->assertSame(20 + 40, $criticalRow->deduction);
         $this->assertSame(6, $majorRow->deduction);
 
         $sectionRows = collect($data['sections']);
-        $this->assertSame(46, $sectionRows->sum('deduction'));
+        $this->assertSame((20 + 40) + 6, $sectionRows->sum('deduction'));
     }
 
     public function test_dashboard_severity_chart_uses_critical_override(): void
@@ -238,7 +248,8 @@ class CriticalDeductionTest extends TestCase
 
         $rows = collect(app(VisitorReportDashboardService::class)->build([])['severity']);
 
-        $this->assertSame(2 * 40, $rows->firstWhere('name', 'critical')['deduction']);
+        // Critical rows add the penalty to their own original scores: (20+40)+(5+40) = 105.
+        $this->assertSame((20 + 40) + (5 + 40), $rows->firstWhere('name', 'critical')['deduction']);
         $this->assertSame(6, $rows->firstWhere('name', 'major')['deduction']);
     }
 
@@ -250,17 +261,18 @@ class CriticalDeductionTest extends TestCase
             ['severity' => 'critical', 'status' => 'nc', 'deduction_score' => 20],
         ]);
 
-        $this->assertDeduction($visit, 80);
+        // Each item: 20 + 40 = 60 -> 120.
+        $this->assertDeduction($visit, 120);
 
         config(['inspection.critical_deduction' => 30]);
-        $this->assertDeduction($visit, 60);
+        $this->assertDeduction($visit, (20 + 30) * 2); // 100
 
         config(['inspection.critical_deduction' => 50]);
-        $this->assertDeduction($visit, 100);
+        $this->assertDeduction($visit, (20 + 50) * 2); // 140
 
         // DB aggregate path reads the same config and follows the same change.
         $row = app(VisitorReportService::class)->listReports(['date_from' => '2026-08-01', 'date_to' => '2026-08-31'])->first();
-        $this->assertSame(100, $row->score['deduction']);
+        $this->assertSame(140, $row->score['deduction']);
 
         config(['inspection.critical_deduction' => 40]);
     }
@@ -272,12 +284,12 @@ class CriticalDeductionTest extends TestCase
         $visit = $this->completedVisit([['severity' => 'critical', 'status' => 'nc', 'deduction_score' => 5]]);
         $item = $visit->items->where('status', 'nc')->where('severity', 'critical')->first();
 
-        $this->assertDeduction($visit, 40);
+        $this->assertDeduction($visit, 5 + 40);
         $this->assertSame(5, $item->fresh()->deduction_score, 'snapshot score must stay untouched');
 
-        // Historical view now reflects the new rule through the same dynamic path.
+        // Historical view now reflects the new penalty through the same dynamic path.
         config(['inspection.critical_deduction' => 55]);
-        $this->assertDeduction($visit, 55);
+        $this->assertDeduction($visit, 5 + 55);
         $this->assertSame(5, $item->fresh()->deduction_score);
 
         config(['inspection.critical_deduction' => 40]);
@@ -338,7 +350,7 @@ class CriticalDeductionTest extends TestCase
         $this->actingAs($this->inspector)
             ->get(route('visitors.violations.show', $action))
             ->assertOk()
-            ->assertSee('-40');
+            ->assertSee('-45');
     }
 
     private function assertDeduction(VisitorVisit $visit, int $expectedDeduction): void

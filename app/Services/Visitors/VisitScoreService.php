@@ -9,8 +9,9 @@ use Illuminate\Support\Collection;
 class VisitScoreService
 {
     /**
-     * The configured fixed deduction applied to every qualifying Critical item.
-     * Lives in one documented place: config('inspection.critical_deduction').
+     * The configured penalty added ON TOP of a qualifying Critical item's own
+     * deduction (the original deduction is preserved). Lives in one documented
+     * place: config('inspection.critical_deduction').
      */
     public static function criticalDeduction(): int
     {
@@ -18,44 +19,52 @@ class VisitScoreService
     }
 
     /**
-     * Per-item deduction used by every scoring path. A Non-Compliant item with
-     * a Critical severity snapshot always deducts the fixed configured amount,
-     * independent of its own deduction_score; all other NC items keep their
-     * configured deduction_score; non-NC items deduct nothing (matching the
-     * existing rule that only NC items subtract points).
+     * Per-item deduction used by every scoring path. A Non-Compliant item
+     * always deducts its own configured deduction_score; when its severity
+     * snapshot is Critical an ADDITIONAL fixed penalty (config
+     * 'inspection.critical_deduction', default 40) is added on top — the
+     * original deduction is never replaced. Non-NC items deduct nothing
+     * (matching the existing rule that only NC items subtract points).
      */
     public static function itemDeduction(VisitorVisitItem $item): int
     {
         if ($item->status !== 'nc') {
             return 0;
         }
-        return $item->isCritical() ? self::criticalDeduction() : (int) $item->deduction_score;
+
+        $deduction = (int) $item->deduction_score;
+
+        if ($item->isCritical()) {
+            $deduction += self::criticalDeduction();
+        }
+
+        return $deduction;
     }
 
     /**
      * Raw SQL SUM expression for the same per-item deduction rule. The DB
      * aggregate paths (reports list, color filter, dashboard analytics) use
      * this instead of duplicating the formula, so every place that computes a
-     * score stays consistent. The configured value is inlined as a plain int.
+     * score stays consistent. Critical items keep their deduction_score and add
+     * the penalty exactly once; the configured value is inlined as a plain int.
      */
     public static function deductionSql(string $table = 'visitors_visit_items'): string
     {
         $c = self::criticalDeduction();
         return "SUM(CASE WHEN {$table}.status = 'nc' THEN "
-            . "CASE WHEN LOWER({$table}.severity) = 'critical' THEN {$c} "
-            . "ELSE {$table}.deduction_score END ELSE 0 END)";
+            . "({$table}.deduction_score + CASE WHEN LOWER({$table}.severity) = 'critical' THEN {$c} ELSE 0 END) "
+            . "ELSE 0 END)";
     }
 
     /**
      * Raw SQL SUM expression for a deduction display already restricted to NC
-     * rows (e.g. the per-severity chart): Critical rows use the fixed value,
-     * other severities keep their deduction_score.
+     * rows (e.g. the per-severity chart): Critical rows add the penalty to
+     * their deduction_score, other severities keep their deduction_score.
      */
     public static function deductionBySeveritySql(string $table = 'visitors_visit_items'): string
     {
         $c = self::criticalDeduction();
-        return "SUM(CASE WHEN LOWER({$table}.severity) = 'critical' THEN {$c} "
-            . "ELSE {$table}.deduction_score END)";
+        return "SUM({$table}.deduction_score + CASE WHEN LOWER({$table}.severity) = 'critical' THEN {$c} ELSE 0 END)";
     }
 
     /**
