@@ -26,6 +26,6 @@ return [
     |
     */
 
-    'critical_deduction' => (int) env('INSPECTION_CRITICAL_DEDUCTION', 40),
+    'critical_deduction' => (int) env('INSPECTION_CRITICAL_DEDUCTION', 30),
 
 ];
