@@ -18,6 +18,10 @@ class VisitorReportDashboardService
         'minor' => '#16a34a',
     ];
 
+    public function __construct(
+        private VisitScoreService $score,
+    ) {}
+
     /**
      * Build everything the dashboard needs for the given filters.
      */
@@ -85,20 +89,24 @@ class VisitorReportDashboardService
         $row = (clone $base)
             ->selectRaw('COUNT(DISTINCT visitors_visits.id) as visits')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' THEN 1 ELSE 0 END) as violations')
-            ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' AND visitors_visit_items.severity = \'critical\' THEN 1 ELSE 0 END) as critical')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status <> \'na\' THEN visitors_visit_items.deduction_score ELSE 0 END) as avail')
-            ->selectRaw(VisitScoreService::deductionSql('visitors_visit_items').' as ded')
+            ->selectRaw(VisitScoreService::originalDeductionSql('visitors_visit_items').' as original_ded')
+            ->selectRaw(VisitScoreService::criticalItemsSql('visitors_visit_items').' as critical_items')
             ->first();
 
         $avail = (int) ($row->avail ?? 0);
-        $ded = (int) ($row->ded ?? 0);
-        $avgScore = $avail > 0 ? round((($avail - $ded) / $avail) * 100, 1) : null;
+        $originalDeduction = (int) ($row->original_ded ?? 0);
+        $criticalItems = (int) ($row->critical_items ?? 0);
+        $score = $this->score->fromAggregates($avail, $originalDeduction, $criticalItems);
 
         return [
             'totalVisits' => (int) ($row->visits ?? 0),
             'totalViolations' => (int) ($row->violations ?? 0),
-            'criticalViolations' => (int) ($row->critical ?? 0),
-            'avgScore' => $avgScore,
+            'criticalViolations' => $score['critical_items'],
+            'avgScore' => $score['percentage'],
+            'avgScoreBefore' => $score['before']['percentage'],
+            'criticalItems' => $score['critical_items'],
+            'criticalPenalty' => $score['critical_penalty'],
             'openCapa' => $this->countCapa($f, 'open'),
             'overdueCapa' => $this->countCapa($f, 'overdue'),
             'pendingReviewCapa' => $this->countCapa($f, 'pending_review'),
@@ -347,22 +355,28 @@ class VisitorReportDashboardService
             ->select('visitors_visits.branch_id', 'branches.name_en as branch_name_en', 'branches.name_ar as branch_name_ar')
             ->selectRaw('COUNT(DISTINCT visitors_visits.id) as visits')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status <> \'na\' THEN visitors_visit_items.deduction_score ELSE 0 END) as avail')
-            ->selectRaw(VisitScoreService::deductionSql('visitors_visit_items').' as ded')
+            ->selectRaw(VisitScoreService::originalDeductionSql('visitors_visit_items').' as original_ded')
+            ->selectRaw(VisitScoreService::criticalItemsSql('visitors_visit_items').' as critical_items')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' THEN 1 ELSE 0 END) as violations')
             ->groupBy('visitors_visits.branch_id', 'branches.name_en', 'branches.name_ar')
             ->orderByDesc('visits')
             ->get()
             ->map(function ($row) {
-                $avail = (int) ($row->avail ?? 0);
-                $ded = (int) ($row->ded ?? 0);
-                $score = $avail > 0 ? round((($avail - $ded) / $avail) * 100, 1) : null;
+                $score = $this->score->fromAggregates(
+                    (int) ($row->avail ?? 0),
+                    (int) ($row->original_ded ?? 0),
+                    (int) ($row->critical_items ?? 0),
+                );
                 return [
                     'branch_id' => $row->branch_id,
                     'name' => $this->pickLocalized($row->branch_name_en, $row->branch_name_ar) ?: ('#'.$row->branch_id),
                     'visits' => (int) $row->visits,
                     'violations' => (int) $row->violations,
-                    'score' => $score,
-                    'color' => $score === null ? '#475569' : ($this->color($score)),
+                    'score' => $score['percentage'],
+                    'score_before' => $score['before']['percentage'],
+                    'critical_items' => $score['critical_items'],
+                    'critical_penalty' => $score['critical_penalty'],
+                    'color' => $score['percentage'] === null ? '#475569' : ($this->color($score['percentage'])),
                 ];
             })
             ->all();
@@ -485,18 +499,23 @@ class VisitorReportDashboardService
             ->select('visitors_visits.inspector_id', 'inspectors.name as inspector_name')
             ->selectRaw('COUNT(DISTINCT visitors_visits.id) as visits')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status <> \'na\' THEN visitors_visit_items.deduction_score ELSE 0 END) as avail')
-            ->selectRaw(VisitScoreService::deductionSql('visitors_visit_items').' as ded')
+            ->selectRaw(VisitScoreService::originalDeductionSql('visitors_visit_items').' as original_ded')
+            ->selectRaw(VisitScoreService::criticalItemsSql('visitors_visit_items').' as critical_items')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status = \'nc\' THEN 1 ELSE 0 END) as violations')
             ->groupBy('visitors_visits.inspector_id', 'inspectors.name')
             ->orderByDesc('visits')
             ->get()
             ->map(function ($row) {
-                $avail = (int) ($row->avail ?? 0);
-                $ded = (int) ($row->ded ?? 0);
+                $score = $this->score->fromAggregates(
+                    (int) ($row->avail ?? 0),
+                    (int) ($row->original_ded ?? 0),
+                    (int) ($row->critical_items ?? 0),
+                );
                 return [
                     'name' => $row->inspector_name ?: ('#'.$row->inspector_id),
                     'visits' => (int) $row->visits,
-                    'score' => $avail > 0 ? round((($avail - $ded) / $avail) * 100, 1) : null,
+                    'score' => $score['percentage'],
+                    'score_before' => $score['before']['percentage'],
                     'violations' => (int) $row->violations,
                 ];
             })
@@ -509,7 +528,8 @@ class VisitorReportDashboardService
         $rows = (clone $this->itemsQuery(array_merge($f, ['severity' => null, 'section' => null])))
             ->select('visitors_visits.id as visit_id', 'visitors_visits.visit_date')
             ->selectRaw('SUM(CASE WHEN visitors_visit_items.status <> \'na\' THEN visitors_visit_items.deduction_score ELSE 0 END) as avail')
-            ->selectRaw(VisitScoreService::deductionSql('visitors_visit_items').' as ded')
+            ->selectRaw(VisitScoreService::originalDeductionSql('visitors_visit_items').' as original_ded')
+            ->selectRaw(VisitScoreService::criticalItemsSql('visitors_visit_items').' as critical_items')
             ->groupBy('visitors_visits.id', 'visitors_visits.visit_date')
             ->get();
 
@@ -534,9 +554,13 @@ class VisitorReportDashboardService
         foreach ($rows as $row) {
             $avail = (int) $row->avail;
             if ($avail <= 0) continue;
-            $pct = (($avail - (int) $row->ded) / $avail) * 100;
+            $originalDeduction = (int) $row->original_ded;
+            $criticalItems = (int) $row->critical_items;
+            $pct = (($avail - ($originalDeduction + $criticalItems * VisitScoreService::criticalDeduction())) / $avail) * 100;
+            $pctBefore = (($avail - $originalDeduction) / $avail) * 100;
             $key = $bucketKey($row->visit_date);
             $buckets[$key]['sum'] = ($buckets[$key]['sum'] ?? 0) + $pct;
+            $buckets[$key]['sumBefore'] = ($buckets[$key]['sumBefore'] ?? 0) + $pctBefore;
             $buckets[$key]['n'] = ($buckets[$key]['n'] ?? 0) + 1;
         }
 
@@ -547,6 +571,7 @@ class VisitorReportDashboardService
             $trend[] = [
                 'label' => $bucketLabel($key),
                 'score' => round($b['sum'] / $b['n'], 1),
+                'score_before' => round($b['sumBefore'] / $b['n'], 1),
             ];
         }
 

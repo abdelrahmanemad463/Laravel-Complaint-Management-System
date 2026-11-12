@@ -126,6 +126,9 @@ $selectedColors = $filters['colors'] ?? [];
                     <span class="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold {{ $scoreClasses }}">
                         {{ $score['percentage'] !== null ? $score['percentage'].'%' : '—' }}
                     </span>
+                    @if($score['before']['percentage'] !== null && $score['before']['percentage'] != $score['percentage'])
+                    <div class="mt-0.5 whitespace-nowrap text-[10px] text-slate-500">{{ __('visitors.score_before_penalty', ['percentage' => $score['before']['percentage']]) }}</div>
+                    @endif
                 </td>
                 <td class="px-2 py-2 tabular-nums"><span class="{{ $visit->getAttribute('violations') ? 'font-bold text-rose-600' : 'text-slate-500' }}">{{ $visit->getAttribute('violations') }}</span></td>
                 <td class="px-2 py-2 tabular-nums"><span class="{{ $visit->getAttribute('critical_violations') ? 'font-bold text-rose-700' : 'text-slate-500' }}">{{ $visit->getAttribute('critical_violations') }}</span></td>

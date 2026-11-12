@@ -292,9 +292,9 @@ class VisitorReportService
         $rows = VisitorVisitItem::query()
             ->select('visit_id')
             ->selectRaw("SUM(CASE WHEN status <> 'na' THEN deduction_score ELSE 0 END) as available")
-            ->selectRaw(VisitScoreService::deductionSql().' as deduction')
+            ->selectRaw(VisitScoreService::originalDeductionSql().' as original_deduction')
+            ->selectRaw(VisitScoreService::criticalItemsSql().' as critical_items')
             ->selectRaw("SUM(CASE WHEN status = 'nc' THEN 1 ELSE 0 END) as violations")
-            ->selectRaw("SUM(CASE WHEN status = 'nc' AND severity = 'critical' THEN 1 ELSE 0 END) as critical_violations")
             ->whereIn('visit_id', $ids)
             ->groupBy('visit_id')
             ->get()
@@ -313,10 +313,11 @@ class VisitorReportService
         $visits->getCollection()->transform(function ($visit) use ($rows, $capaRows) {
             $row = $rows->get($visit->id);
             $available = $row ? (int) $row->available : 0;
-            $deduction = $row ? (int) $row->deduction : 0;
+            $originalDeduction = $row ? (int) $row->original_deduction : 0;
+            $criticalItems = $row ? (int) $row->critical_items : 0;
             $visit->setAttribute('violations', $row ? (int) $row->violations : 0);
-            $visit->setAttribute('critical_violations', $row ? (int) $row->critical_violations : 0);
-            $visit->setAttribute('score', $this->score->fromAggregates($available, $deduction));
+            $visit->setAttribute('critical_violations', $criticalItems);
+            $visit->setAttribute('score', $this->score->fromAggregates($available, $originalDeduction, $criticalItems));
             $visit->setAttribute('capa_due', $this->capaDueStats((int) $visit->id, $capaRows->get($visit->id)));
             return $visit;
         });

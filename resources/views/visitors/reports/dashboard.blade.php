@@ -71,7 +71,12 @@ $charts = [
 {{-- Cards --}}
 <div class="mb-8 grid gap-3 sm:gap-4 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.total_visits') }}</div><div class="mt-1 text-3xl font-black text-slate-900">{{ $cards['totalVisits'] }}</div></div>
-    <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.avg_score') }}</div><div class="mt-1 text-3xl font-black" style="color:{{ $scoreHex }}">{{ $cards['avgScore'] !== null ? $cards['avgScore'].'%' : '—' }}</div></div>
+    <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.avg_score') }}</div><div class="mt-1 text-3xl font-black" style="color:{{ $scoreHex }}">{{ $cards['avgScore'] !== null ? $cards['avgScore'].'%' : '—' }}</div>
+        @if($cards['avgScoreBefore'] !== null && $cards['avgScoreBefore'] != $cards['avgScore'])
+        <div class="mt-1 text-[11px] text-slate-500">{{ __('visitors.score_before_penalty', ['percentage' => $cards['avgScoreBefore']]) }}</div>
+        <div class="text-[11px] text-amber-700">{{ __('visitors.total_additional_critical_deduction') }}: {{ $cards['criticalPenalty'] }}</div>
+        @endif
+    </div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.critical_violations') }}</div><div class="mt-1 text-3xl font-black {{ $cards['criticalViolations'] ? 'text-rose-600' : 'text-slate-900' }}">{{ $cards['criticalViolations'] }}</div></div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.total_violations') }}</div><div class="mt-1 text-3xl font-black text-orange-600">{{ $cards['totalViolations'] }}</div></div>
     <div class="card text-center"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.open_capa') }}</div><div class="mt-1 text-3xl font-black text-blue-600">{{ $cards['openCapa'] }}</div></div>
@@ -146,7 +151,11 @@ $charts = [
                 @foreach($d['branchComparison'] as $row)
                 <tr class="border-b border-slate-100">
                     <td class="py-2 font-semibold">{{ $row['name'] }}</td>
-                    <td class="py-2"><span class="badge" style="--badge-color:{{ $row['color'] }}">{{ $row['score'] !== null ? $row['score'].'%' : 'â€”' }}</span></td>
+                    <td class="py-2"><span class="badge" style="--badge-color:{{ $row['color'] }}">{{ $row['score'] !== null ? $row['score'].'%' : '—' }}</span>
+                        @if(!empty($row['score_before']) && $row['score_before'] != $row['score'])
+                        <div class="mt-0.5 text-[10px] text-slate-500">{{ __('visitors.score_before_penalty', ['percentage' => $row['score_before']]) }}</div>
+                        @endif
+                    </td>
                     <td class="py-2">{{ $row['visits'] }}</td>
                     <td class="py-2 {{ $row['violations'] ? 'font-bold text-rose-600' : 'text-slate-500' }}">{{ $row['violations'] }}</td>
                 </tr>
@@ -228,7 +237,11 @@ $charts = [
             <thead><tr class="border-b border-slate-200 text-left text-xs font-bold uppercase tracking-wide text-slate-500"><th class="py-2">{{ __('visitors.inspector') }}</th><th class="py-2">{{ __('visitors.visits') }}</th><th class="py-2">{{ __('visitors.avg_score') }}</th><th class="py-2">{{ __('visitors.violations_found') }}</th></tr></thead>
             <tbody>
                 @foreach($d['inspectorPerformance'] as $row)
-                <tr class="border-b border-slate-100"><td class="py-2 font-semibold">{{ $row['name'] }}</td><td class="py-2">{{ $row['visits'] }}</td><td class="py-2 font-bold">{{ $row['score'] !== null ? $row['score'].'%' : 'â€”' }}</td><td class="py-2 {{ $row['violations'] ? 'font-bold text-rose-600' : '' }}">{{ $row['violations'] }}</td></tr>
+                <tr class="border-b border-slate-100"><td class="py-2 font-semibold">{{ $row['name'] }}</td><td class="py-2">{{ $row['visits'] }}</td><td class="py-2 font-bold">{{ $row['score'] !== null ? $row['score'].'%' : '—' }}
+                    @if(!empty($row['score_before']) && $row['score_before'] != $row['score'])
+                    <div class="text-[10px] font-normal text-slate-500">{{ __('visitors.score_before_penalty', ['percentage' => $row['score_before']]) }}</div>
+                    @endif
+                </td><td class="py-2 {{ $row['violations'] ? 'font-bold text-rose-600' : '' }}">{{ $row['violations'] }}</td></tr>
                 @endforeach
             </tbody>
         </table>

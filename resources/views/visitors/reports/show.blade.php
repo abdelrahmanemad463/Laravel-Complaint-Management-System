@@ -60,15 +60,59 @@ $visit = $report['visit'];
 </div>
 
 {{-- 3. Score summary --}}
+@php
+    $before = $score['before'];
+    $beforeHex = $colors[$before['color']][0] ?? $colors['slate'][0];
+@endphp
 <div class="mb-8 card">
     <h3 class="section-title mb-4">{{ __('visitors.score_summary') }}</h3>
-    <div class="grid gap-4 text-center sm:grid-cols-2 lg:grid-cols-5">
-        <div class="rounded-xl border p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.final_score') }}</div><div class="mt-1 text-3xl font-black" style="color:{{ $scoreHex }}">{{ $score['final'] }}</div></div>
-        <div class="rounded-xl border p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.available_score') }}</div><div class="mt-1 text-2xl font-bold text-slate-900">{{ $score['available'] }}</div></div>
-        <div class="rounded-xl border p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.total_deduction') }}</div><div class="mt-1 text-2xl font-bold text-rose-600">{{ $score['deduction'] }}</div></div>
-        <div class="rounded-xl border p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.percentage') }}</div><div class="mt-1 text-3xl font-black" style="color:{{ $scoreHex }}">{{ $score['percentage'] !== null ? $score['percentage'].'%' : '—' }}</div></div>
-        <div class="rounded-xl border p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.rating') }}</div><div class="mt-1 text-2xl font-bold uppercase" style="color:{{ $scoreHex }}">{{ __('visitors.score_class_'.$scoreColor) }}</div></div>
+
+    {{-- Section 1: score before the additional Critical penalty --}}
+    <div class="rounded-2xl border border-sky-200 bg-sky-50/50 p-4 sm:p-5">
+        <h4 class="mb-3 text-sm font-black uppercase tracking-wide text-sky-800">{{ __('visitors.score_before_critical_heading') }}</h4>
+        <div class="grid gap-3 text-center sm:grid-cols-2 lg:grid-cols-5">
+            <div class="rounded-xl border border-sky-100 bg-white p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.available_score') }}</div><div class="mt-1 text-2xl font-bold text-slate-900">{{ $score['available'] }}</div></div>
+            <div class="rounded-xl border border-sky-100 bg-white p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.original_total_deduction') }}</div><div class="mt-1 text-2xl font-bold text-rose-600">{{ $before['deduction'] }}</div></div>
+            <div class="rounded-xl border border-sky-100 bg-white p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.score_before_critical_penalty') }}</div><div class="mt-1 text-3xl font-black" style="color:{{ $beforeHex }}">{{ $before['final'] }}</div></div>
+            <div class="rounded-xl border border-sky-100 bg-white p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.percentage_before_critical') }}</div><div class="mt-1 text-3xl font-black" style="color:{{ $beforeHex }}">{{ $before['percentage'] !== null ? $before['percentage'].'%' : '—' }}</div></div>
+            <div class="rounded-xl border border-sky-100 bg-white p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.rating_before_critical') }}</div><div class="mt-1 text-2xl font-bold uppercase" style="color:{{ $beforeHex }}">{{ __('visitors.score_class_'.$before['color']) }}</div></div>
+        </div>
     </div>
+
+    {{-- Section 2: the additional Critical penalty itself --}}
+    <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:p-5">
+        <h4 class="mb-1 text-sm font-black uppercase tracking-wide text-amber-800">{{ __('visitors.additional_critical_penalty_heading') }}</h4>
+        <p class="mb-3 text-xs text-amber-700">{{ __('visitors.additional_critical_penalty_help') }}</p>
+        <div class="grid gap-3 text-center sm:grid-cols-3">
+            <div class="rounded-xl border border-amber-200 bg-white p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.critical_items_count') }}</div><div class="mt-1 text-3xl font-black text-amber-700">{{ $score['critical_items'] }}</div></div>
+            <div class="rounded-xl border border-amber-200 bg-white p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.critical_deduction_per_item') }}</div><div class="mt-1 text-3xl font-black text-amber-700">{{ $score['critical_penalty_per_item'] }}</div></div>
+            <div class="rounded-xl border border-amber-200 bg-white p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.total_additional_critical_deduction') }}</div><div class="mt-1 text-3xl font-black {{ $score['critical_penalty'] ? 'text-rose-600' : 'text-slate-900' }}">{{ $score['critical_penalty'] }}</div></div>
+        </div>
+    </div>
+
+    {{-- Section 3: final score after the additional Critical penalty --}}
+    <div class="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 sm:p-5">
+        <h4 class="mb-3 text-sm font-black uppercase tracking-wide text-indigo-900">{{ __('visitors.final_score_after_critical_heading') }}</h4>
+        <div class="grid gap-3 text-center sm:grid-cols-2 lg:grid-cols-5">
+            <div class="rounded-xl border border-indigo-100 bg-white p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.available_score') }}</div><div class="mt-1 text-2xl font-bold text-slate-900">{{ $score['available'] }}</div></div>
+            <div class="rounded-xl border border-indigo-100 bg-white p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.total_deduction_after_critical') }}</div><div class="mt-1 text-2xl font-bold text-rose-600">{{ $score['deduction'] }}</div></div>
+            <div class="rounded-xl border border-indigo-100 bg-white p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.final_score') }}</div><div class="mt-1 text-3xl font-black" style="color:{{ $scoreHex }}">{{ $score['final'] }}</div></div>
+            <div class="rounded-xl border border-indigo-100 bg-white p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.final_percentage') }}</div><div class="mt-1 text-3xl font-black" style="color:{{ $scoreHex }}">{{ $score['percentage'] !== null ? $score['percentage'].'%' : '—' }}</div></div>
+            <div class="rounded-xl border border-indigo-100 bg-white p-4"><div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.final_rating') }}</div><div class="mt-1 text-2xl font-bold uppercase" style="color:{{ $scoreHex }}">{{ __('visitors.score_class_'.$scoreColor) }}</div></div>
+        </div>
+    </div>
+
+    <p class="mt-3 text-sm text-slate-600">
+        {{ __('visitors.critical_score_summary_note', [
+            'before' => $before['final'],
+            'available' => $score['available'],
+            'penalty' => $score['critical_penalty'],
+            'items' => $score['critical_items'],
+            'per_item' => $score['critical_penalty_per_item'],
+            'final' => $score['final'],
+        ]) }}
+    </p>
+
     <div class="mt-4 grid gap-4 text-center sm:grid-cols-3">
         <div class="text-sm text-slate-600">{{ __('visitors.compliant') }}: <span class="font-bold text-emerald-600">{{ $report['counts']['ok'] }}</span></div>
         <div class="text-sm text-slate-600">{{ __('visitors.non_compliant') }}: <span class="font-bold text-rose-600">{{ $report['counts']['nc'] }}</span></div>
@@ -76,7 +120,7 @@ $visit = $report['visit'];
     </div>
 
     {{-- Violations & corrective-action due-summary cards --}}
-    @php $dueSummary = $report['dueSummary']; $totalViolations = $report['counts']['nc']; $criticalViolations = $report['severity']->where('severity', 'critical')->sum('count'); @endphp
+    @php $dueSummary = $report['dueSummary']; $totalViolations = $report['counts']['nc']; $criticalViolations = $score['critical_items']; @endphp
     <div class="mt-5 grid gap-4 text-center sm:grid-cols-2 lg:grid-cols-4">
         <a href="#corrective-action-plan" class="rounded-xl border border-slate-200 p-4 transition hover:border-indigo-300 hover:bg-indigo-50/40 no-underline">
             <div class="text-xs font-bold uppercase text-slate-400">{{ __('visitors.total_violations') }}</div>

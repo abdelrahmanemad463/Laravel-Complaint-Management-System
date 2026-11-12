@@ -42,6 +42,29 @@ class VisitScoreService
     }
 
     /**
+     * Raw SQL SUM expression for the ORIGINAL item deduction only (the sum of
+     * deduction_score of every Non-Compliant item), with no Critical penalty.
+     * Used by every aggregate path so the "before penalty" score can be shown
+     * alongside the final score without duplicating the formula.
+     */
+    public static function originalDeductionSql(string $table = 'visitors_visit_items'): string
+    {
+        return "SUM(CASE WHEN {$table}.status = 'nc' THEN {$table}.deduction_score ELSE 0 END)";
+    }
+
+    /**
+     * Raw SQL COUNT expression for the qualifying Critical items: Non-Compliant
+     * rows whose snapshot severity is Critical. Each inspection item is counted
+     * exactly once; follow-ups, CAPA actions and violation links are separate
+     * tables and are deliberately never joined here, so they cannot inflate the
+     * penalty.
+     */
+    public static function criticalItemsSql(string $table = 'visitors_visit_items'): string
+    {
+        return "SUM(CASE WHEN {$table}.status = 'nc' AND LOWER({$table}.severity) = 'critical' THEN 1 ELSE 0 END)";
+    }
+
+    /**
      * Raw SQL SUM expression for the same per-item deduction rule. The DB
      * aggregate paths (reports list, color filter, dashboard analytics) use
      * this instead of duplicating the formula, so every place that computes a
@@ -70,7 +93,14 @@ class VisitScoreService
     /**
      * The single source of truth for score calculation.
      *
-     * @return array{available:int,deduction:int,final:int,percentage:?float,color:string}
+     * The returned array keeps the legacy keys (deduction/final/percentage/
+     * color always describe the score AFTER the additional Critical penalty)
+     * and adds the before/after breakdown used by the report summary:
+     *  - original_deduction: sum of the items' own deduction_score (NC only)
+     *  - critical_items / critical_penalty_per_item / critical_penalty
+     *  - before: the same score without the additional Critical penalty
+     *
+     * @return array<string,mixed>
      */
     public function calculate(VisitorVisit $visit): array
     {
@@ -79,30 +109,67 @@ class VisitScoreService
         $available = $items->filter(fn ($i) => $i->status !== 'na')
             ->sum('deduction_score');
 
-        $deduction = $items->sum(fn ($i) => self::itemDeduction($i));
+        $originalDeduction = $items
+            ->filter(fn ($i) => $i->status === 'nc')
+            ->sum('deduction_score');
 
-        return $this->fromAggregates($available, $deduction);
+        $criticalItems = $items
+            ->filter(fn ($i) => $i->status === 'nc' && $i->isCritical())
+            ->count();
+
+        return $this->fromAggregates($available, $originalDeduction, $criticalItems);
     }
 
     /**
-     * The single source of truth for turning aggregated available/deduction
-     * scores into the final score, percentage and color. Report listing uses
-     * this with database aggregates so it never duplicates the formula.
+     * The single source of truth for turning aggregated available/original
+     * deduction/qualifying Critical item counts into the before and after
+     * score, percentage and color. Report listing and dashboard analytics use
+     * this with database aggregates so they never duplicate the formula.
      *
-     * @return array{available:int,deduction:int,final:int,percentage:?float,color:string}
+     * The additional Critical penalty is always read from
+     * config('inspection.critical_deduction') and added ON TOP of the original
+     * item deductions; the available score is never changed by the penalty.
+     *
+     * @return array<string,mixed>
      */
-    public function fromAggregates(int $available, int $deduction): array
+    public function fromAggregates(int $available, int $originalDeduction, int $criticalItems = 0): array
     {
+        $criticalItems = max(0, $criticalItems);
+        $penaltyPerItem = self::criticalDeduction();
+        $criticalPenalty = $criticalItems * $penaltyPerItem;
+        $deduction = $originalDeduction + $criticalPenalty;
+
+        $beforeFinal = $available - $originalDeduction;
         $final = $available - $deduction;
 
+        $beforePercentage = $available > 0 ? round(($beforeFinal / $available) * 100, 1) : null;
         $percentage = $available > 0 ? round(($final / $available) * 100, 1) : null;
 
+        $beforeColor = $this->colorFor($beforePercentage);
+
         return [
+            // Legacy keys: always the score AFTER the Critical penalty.
             'available' => $available,
             'deduction' => $deduction,
             'final' => $final,
             'percentage' => $percentage,
             'color' => $this->colorFor($percentage),
+
+            // Original item deductions (before the additional penalty).
+            'original_deduction' => $originalDeduction,
+
+            // Additional Critical penalty breakdown.
+            'critical_items' => $criticalItems,
+            'critical_penalty_per_item' => $penaltyPerItem,
+            'critical_penalty' => $criticalPenalty,
+
+            // The score as it would be without the additional Critical penalty.
+            'before' => [
+                'deduction' => $originalDeduction,
+                'final' => $beforeFinal,
+                'percentage' => $beforePercentage,
+                'color' => $beforeColor,
+            ],
         ];
     }
 

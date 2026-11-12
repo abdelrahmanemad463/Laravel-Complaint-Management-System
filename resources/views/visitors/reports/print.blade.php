@@ -50,6 +50,8 @@ $capaCol = ['open' => '#2563eb', 'in_progress' => '#7c3aed', 'overdue' => '#dc26
 $dueCol = ['immediate' => '#7c3aed', 'upcoming' => '#2563eb', 'due_soon' => '#ca8a04', 'overdue' => '#dc2626', 'completed' => '#16a34a', 'closed_late' => '#ea580c', 'pending_review' => '#d97706', 'rejected' => '#475569'];
 $dueLbl = ['immediate' => __('visitors.st_immediate'), 'upcoming' => __('visitors.st_upcoming'), 'due_soon' => __('visitors.st_due_soon'), 'overdue' => __('visitors.st_overdue'), 'completed' => __('visitors.st_completed'), 'closed_late' => __('visitors.st_closed_late'), 'pending_review' => __('visitors.st_pending_review'), 'rejected' => __('visitors.st_rejected')];
 $hex = $colors[$score['color']] ?? '#475569';
+$before = $score['before'];
+$beforeHex = $colors[$before['color']] ?? '#475569';
 $sh = fn($s) => pdf_ar($s);
 @endphp
 
@@ -77,15 +79,55 @@ $sh = fn($s) => pdf_ar($s);
 
 {{-- 3. Score summary --}}
 <h2>{{ $sh(__('visitors.score_summary')) }}</h2>
-<table class="grid-5">
-    <tr>
-        <td class="score"><div class="muted">{{ $sh(__('visitors.final_score')) }}</div><div class="value" style="color:{{ $hex }}">{{ $score['final'] }}</div></td>
-        <td class="score"><div class="muted">{{ $sh(__('visitors.available_score')) }}</div><div class="value">{{ $score['available'] }}</div></td>
-        <td class="score"><div class="muted">{{ $sh(__('visitors.total_deduction')) }}</div><div class="value nc">{{ $score['deduction'] }}</div></td>
-        <td class="score"><div class="muted">{{ $sh(__('visitors.percentage')) }}</div><div class="value" style="color:{{ $hex }}">{{ $score['percentage'] !== null ? $score['percentage'].'%' : '—' }}</div></td>
-        <td class="score"><div class="muted">{{ $sh(__('visitors.rating')) }}</div><div class="value" style="color:{{ $hex }}; font-size:13px">{{ $sh(__('visitors.score_class_'.$score['color'])) }}</div></td>
-    </tr>
-</table>
+
+<div style="border:1px solid #bae6fd; border-left:4px solid #0284c7; background:#f0f9ff; padding:8px 10px;">
+    <div style="color:#075985; font-weight:800; font-size:11px; text-transform:uppercase; margin-bottom:6px;">{{ $sh(__('visitors.score_before_critical_heading')) }}</div>
+    <table class="grid-5">
+        <tr>
+            <td class="score"><div class="muted">{{ $sh(__('visitors.available_score')) }}</div><div class="value">{{ $score['available'] }}</div></td>
+            <td class="score"><div class="muted">{{ $sh(__('visitors.original_total_deduction')) }}</div><div class="value nc">{{ $before['deduction'] }}</div></td>
+            <td class="score"><div class="muted">{{ $sh(__('visitors.score_before_critical_penalty')) }}</div><div class="value" style="color:{{ $beforeHex }}">{{ $before['final'] }}</div></td>
+            <td class="score"><div class="muted">{{ $sh(__('visitors.percentage_before_critical')) }}</div><div class="value" style="color:{{ $beforeHex }}">{{ $before['percentage'] !== null ? $before['percentage'].'%' : '—' }}</div></td>
+            <td class="score"><div class="muted">{{ $sh(__('visitors.rating_before_critical')) }}</div><div class="value" style="color:{{ $beforeHex }}; font-size:13px">{{ $sh(__('visitors.score_class_'.$before['color'])) }}</div></td>
+        </tr>
+    </table>
+</div>
+
+<div style="border:1px solid #fde68a; border-left:4px solid #d97706; background:#fffbeb; padding:8px 10px; margin-top:8px;">
+    <div style="color:#92400e; font-weight:800; font-size:11px; text-transform:uppercase; margin-bottom:2px;">{{ $sh(__('visitors.additional_critical_penalty_heading')) }}</div>
+    <div class="muted" style="font-size:10px; margin-bottom:6px;">{{ $sh(__('visitors.additional_critical_penalty_help')) }}</div>
+    <table class="grid-5">
+        <tr>
+            <td class="score"><div class="muted">{{ $sh(__('visitors.critical_items_count')) }}</div><div class="value" style="color:#b45309">{{ $score['critical_items'] }}</div></td>
+            <td class="score"><div class="muted">{{ $sh(__('visitors.critical_deduction_per_item')) }}</div><div class="value" style="color:#b45309">{{ $score['critical_penalty_per_item'] }}</div></td>
+            <td class="score"><div class="muted">{{ $sh(__('visitors.total_additional_critical_deduction')) }}</div><div class="value nc">{{ $score['critical_penalty'] }}</div></td>
+        </tr>
+    </table>
+</div>
+
+<div style="border:1px solid #c7d2fe; border-left:4px solid #4f46e5; background:#eef2ff; padding:8px 10px; margin-top:8px;">
+    <div style="color:#1e1b4b; font-weight:800; font-size:11px; text-transform:uppercase; margin-bottom:6px;">{{ $sh(__('visitors.final_score_after_critical_heading')) }}</div>
+    <table class="grid-5">
+        <tr>
+            <td class="score"><div class="muted">{{ $sh(__('visitors.available_score')) }}</div><div class="value">{{ $score['available'] }}</div></td>
+            <td class="score"><div class="muted">{{ $sh(__('visitors.total_deduction_after_critical')) }}</div><div class="value nc">{{ $score['deduction'] }}</div></td>
+            <td class="score"><div class="muted">{{ $sh(__('visitors.final_score')) }}</div><div class="value" style="color:{{ $hex }}">{{ $score['final'] }}</div></td>
+            <td class="score"><div class="muted">{{ $sh(__('visitors.final_percentage')) }}</div><div class="value" style="color:{{ $hex }}">{{ $score['percentage'] !== null ? $score['percentage'].'%' : '—' }}</div></td>
+            <td class="score"><div class="muted">{{ $sh(__('visitors.final_rating')) }}</div><div class="value" style="color:{{ $hex }}; font-size:13px">{{ $sh(__('visitors.score_class_'.$score['color'])) }}</div></td>
+        </tr>
+    </table>
+</div>
+
+<p style="margin:8px 0 0">
+    {{ $sh(__('visitors.critical_score_summary_note', [
+        'before' => $before['final'],
+        'available' => $score['available'],
+        'penalty' => $score['critical_penalty'],
+        'items' => $score['critical_items'],
+        'per_item' => $score['critical_penalty_per_item'],
+        'final' => $score['final'],
+    ])) }}
+</p>
 <p style="margin:8px 0 0">
     {{ $sh(__('visitors.compliant')) }}: <b class="ok">{{ $report['counts']['ok'] }}</b> ·
     {{ $sh(__('visitors.non_compliant')) }}: <b class="nc">{{ $report['counts']['nc'] }}</b> ·
